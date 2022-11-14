@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
 
 	"gorm.io/driver/sqlite"
@@ -20,23 +21,27 @@ var (
 	sqlDB *sql.DB
 )
 
-func openDb(path string) {
+func openDb(path string) error {
 	tmpDb, err := gorm.Open(sqlite.Open(path), &gorm.Config{})
 	if err != nil {
-		panic(err)
+		return errors.Wrap(err, "couldn't open sqlite")
 	}
 	db = tmpDb
 	sqlDB, err = db.DB()
 	if err != nil {
-		panic(err)
+		return errors.Wrap(err, "couldn't return *sql.DB")
 	}
+	return nil
 }
 
 // Make sure only one load at a time is performed
-func loadCache(path string) *Cache {
+func loadCache(path string) (*Cache, error) {
 	lock.Lock()
+	start := time.Now()
 
-	openDb(path)
+	if err := openDb(path); err != nil {
+		return nil, err
+	}
 	c := Cache{}
 	c.Id2Packagename, c.Packagename2Id = loadPkgNames()
 	c.Updates = loadUpdates()
@@ -79,9 +84,9 @@ func loadCache(path string) *Cache {
 	c.OvalTestDetail = loadOvalTestDetail("OvalTestDetail")
 	c.OvalTestID2States = loadOvalTestID2States("OvalTestID2States")
 
-	utils.Log().Info("Cache loaded successfully")
+	utils.Log("elapsed", time.Since(start)).Info("Cache loaded successfully")
 	lock.Unlock()
-	return &c
+	return &c, nil
 }
 
 func loadErrataRepoIds() map[ErrataID][]RepoID {
