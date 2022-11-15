@@ -435,7 +435,7 @@ func getModules(c *Cache, modules []ModuleStream) map[int]bool {
 	}
 	// filter out streams without satisfied requires
 	filteredIDs := make(map[int]bool, len(moduleIDs))
-	for m, _ := range moduleIDs {
+	for m := range moduleIDs {
 		requires := c.ModuleRequires[m]
 		issubset := true
 		for _, r := range requires {

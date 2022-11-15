@@ -128,13 +128,17 @@ func (r *ProcessedRequest) evaluateOval(c *Cache, cves *VulnerabilitiesCvesDetai
 			cvesOval := c.OvaldefinitionID2Cves[defID]
 			utils.Log("definition", defID, "cvesOval", cvesOval).Trace("evaluateOval")
 			// Skip if all CVEs from definition were already found somewhere
+			allCvesFound := true
 			for _, cve := range cvesOval {
 				_, inCves := cves.Cves[cve]
 				_, inManualCves := cves.ManualCves[cve]
 				_, inUnpatchedCves := cves.UnpatchedCves[cve]
-				if inCves || inManualCves || inUnpatchedCves {
-					continue
+				if !(inCves || inManualCves || inUnpatchedCves) {
+					allCvesFound = false
 				}
+			}
+			if allCvesFound {
+				continue
 			}
 
 			if evaluateCriteria(c, definition.CriteriaID, pkgNameID, parsedNevra, modules) {
