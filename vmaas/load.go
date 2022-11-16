@@ -137,15 +137,18 @@ func loadPkgNames() (map[NameID]string, map[string]NameID) {
 		Packagename string
 	}
 
-	var rows []PkgName
-	err := db.Table("packagename").Find(&rows).Error
+	r := PkgName{}
+	id2name := map[NameID]string{}
+	name2id := map[string]NameID{}
+	rows, err := db.Table("packagename").Rows()
 	if err != nil {
 		panic(err)
 	}
-	id2name := map[NameID]string{}
-	name2id := map[string]NameID{}
 
-	for _, r := range rows {
+	for rows.Next() {
+		if err := db.ScanRows(rows, &r); err != nil {
+			panic(err)
+		}
 		id2name[r.Id] = r.Packagename
 		name2id[r.Packagename] = r.Id
 	}
@@ -251,16 +254,18 @@ func loadEvrMaps() (map[EvrID]utils.Evr, map[utils.Evr]EvrID) {
 		utils.Evr
 	}
 
-	var rows []IdEvr
-	err := db.Table("evr").Find(&rows).Error
+	r := IdEvr{}
+	id2evr := map[EvrID]utils.Evr{}
+	evr2id := map[utils.Evr]EvrID{}
+	rows, err := db.Table("evr").Rows()
 	if err != nil {
 		panic(err)
 	}
 
-	id2evr := map[EvrID]utils.Evr{}
-	evr2id := map[utils.Evr]EvrID{}
-
-	for _, r := range rows {
+	for rows.Next() {
+		if err := db.ScanRows(rows, &r); err != nil {
+			panic(err)
+		}
 		id2evr[r.ID] = r.Evr
 		evr2id[r.Evr] = r.ID
 	}
@@ -274,16 +279,18 @@ func loadArchs() (map[ArchID]string, map[string]ArchID) {
 		ID   ArchID
 		Arch string
 	}
-	var rows []Arch
-	err := db.Table("arch").Find(&rows).Error
+	r := Arch{}
+	id2arch := map[ArchID]string{}
+	arch2id := map[string]ArchID{}
+	rows, err := db.Table("arch").Rows()
 	if err != nil {
 		panic(err)
 	}
 
-	id2arch := map[ArchID]string{}
-	arch2id := map[string]ArchID{}
-
-	for _, r := range rows {
+	for rows.Next() {
+		if err := db.ScanRows(rows, &r); err != nil {
+			panic(err)
+		}
 		id2arch[r.ID] = r.Arch
 		arch2id[r.Arch] = r.ID
 	}
@@ -296,15 +303,17 @@ func loadArchCompat() map[ArchID]map[ArchID]bool {
 		FromArchId ArchID
 		ToArchId   ArchID
 	}
-	var rows []ArchCompat
-	err := db.Table("arch_compat").Find(&rows).Error
+	r := ArchCompat{}
+	m := map[ArchID]map[ArchID]bool{}
+	rows, err := db.Table("arch_compat").Rows()
 	if err != nil {
 		panic(err)
 	}
 
-	m := map[ArchID]map[ArchID]bool{}
-
-	for _, r := range rows {
+	for rows.Next() {
+		if err := db.ScanRows(rows, &r); err != nil {
+			panic(err)
+		}
 		fromMap := m[r.FromArchId]
 		if fromMap == nil {
 			fromMap = map[ArchID]bool{}
@@ -392,14 +401,17 @@ func loadLabel2ContentSetID(info string) map[string]ContentSetID {
 		Label string
 	}
 
-	var rows []LabelContent
+	r := LabelContent{}
 	label2contentSetID := make(map[string]ContentSetID)
-	err := db.Table("content_set").Find(&rows).Error
+	rows, err := db.Table("content_set").Rows()
 	if err != nil {
 		panic(err)
 	}
 
-	for _, r := range rows {
+	for rows.Next() {
+		if err := db.ScanRows(rows, &r); err != nil {
+			panic(err)
+		}
 		label2contentSetID[r.Label] = r.ID
 	}
 	return label2contentSetID
@@ -735,16 +747,20 @@ func loadOvalDefinitionDetail() map[DefinitionID]DefinitionDetail {
 		CriteriaID       CriteriaID
 	}
 
-	var rows []OvalDefinitionDetail
+	row := OvalDefinitionDetail{}
 	defDetail := make(map[DefinitionID]DefinitionDetail)
-	err := db.Table("oval_definition_detail").Find(&rows).Error
+	rows, err := db.Table("oval_definition_detail").Rows()
 	if err != nil {
 		panic(err)
 	}
-	for _, r := range rows {
-		defDetail[r.ID] = DefinitionDetail{
-			DefinitionTypeID: r.DefinitionTypeID,
-			CriteriaID:       r.CriteriaID,
+
+	for rows.Next() {
+		if err := db.ScanRows(rows, &row); err != nil {
+			panic(err)
+		}
+		defDetail[row.ID] = DefinitionDetail{
+			DefinitionTypeID: row.DefinitionTypeID,
+			CriteriaID:       row.CriteriaID,
 		}
 	}
 	return defDetail
@@ -810,16 +826,19 @@ func loadOvalCriteriaDependency(info string) (map[CriteriaID][]CriteriaID, map[C
 		DepModuleTestID  ModuleTestID
 	}
 
-	var rows = []OvalCriteriaDep{}
+	r := OvalCriteriaDep{}
 	criteriaID2DepCriteriaIDs := make(map[CriteriaID][]CriteriaID)
 	criteriaID2DepTestIDs := make(map[CriteriaID][]TestID)
 	criteriaID2DepModuleTestIDs := make(map[CriteriaID][]ModuleTestID)
-	err := db.Table("oval_criteria_dependency").Find(&rows).Error
+	rows, err := db.Table("oval_criteria_dependency").Rows()
 	if err != nil {
 		panic(err)
 	}
 
-	for _, r := range rows {
+	for rows.Next() {
+		if err := db.ScanRows(rows, &r); err != nil {
+			panic(err)
+		}
 		if _, ok := criteriaID2DepCriteriaIDs[r.ParentCriteriaID]; !ok {
 			criteriaID2DepCriteriaIDs[r.ParentCriteriaID] = []CriteriaID{}
 			criteriaID2DepTestIDs[r.ParentCriteriaID] = []TestID{}
@@ -847,14 +866,17 @@ func loadOvalCriteriaID2Type(info string) map[CriteriaID]int {
 		TypeID     int
 	}
 
-	var rows = []OvalCriteriaType{}
+	r := OvalCriteriaType{}
 	criteriaID2Type := make(map[CriteriaID]int)
-	err := db.Table("oval_criteria_type").Find(&rows).Error
+	rows, err := db.Table("oval_criteria_type").Rows()
 	if err != nil {
 		panic(err)
 	}
 
-	for _, r := range rows {
+	for rows.Next() {
+		if err := db.ScanRows(rows, &r); err != nil {
+			panic(err)
+		}
 		criteriaID2Type[r.CriteriaID] = r.TypeID
 	}
 	return criteriaID2Type
@@ -878,14 +900,17 @@ func loadOvalModuleTestDetail(info string) map[ModuleTestID]OvalModuleTestDetail
 		ModuleStream string
 	}
 
-	var rows = []ModuleTestDetail{}
+	r := ModuleTestDetail{}
 	details := make(map[ModuleTestID]OvalModuleTestDetail)
-	err := db.Table("oval_module_test_detail").Find(&rows).Error
+	rows, err := db.Table("oval_module_test_detail").Rows()
 	if err != nil {
 		panic(err)
 	}
 
-	for _, r := range rows {
+	for rows.Next() {
+		if err := db.ScanRows(rows, &r); err != nil {
+			panic(err)
+		}
 		splitted := strings.Split(r.ModuleStream, ":")
 		details[r.ID] = OvalModuleTestDetail{
 			ModuleStream: ModuleStream{Module: splitted[0], Stream: splitted[1]},
@@ -903,13 +928,16 @@ func loadOvalTestDetail(info string) map[TestID]OvalTestDetail {
 		CheckExistenceID int
 	}
 
-	var rows = []TestDetail{}
+	r := TestDetail{}
 	testDetail := make(map[TestID]OvalTestDetail)
-	err := db.Table("oval_test_detail").Find(&rows).Error
+	rows, err := db.Table("oval_test_detail").Rows()
 	if err != nil {
 		panic(err)
 	}
-	for _, r := range rows {
+	for rows.Next() {
+		if err := db.ScanRows(rows, &r); err != nil {
+			panic(err)
+		}
 		testDetail[r.ID] = OvalTestDetail{PkgNameID: r.PackageNameID, CheckExistence: r.CheckExistenceID}
 	}
 	return testDetail
@@ -917,6 +945,7 @@ func loadOvalTestDetail(info string) map[TestID]OvalTestDetail {
 
 func loadOvalTestID2States(info string) map[TestID][]OvalState {
 	defer utils.TimeTrack(time.Now(), info)
+
 	type TestState struct {
 		TestID         TestID
 		StateID        OvalStateID
@@ -924,13 +953,16 @@ func loadOvalTestID2States(info string) map[TestID][]OvalState {
 		EvrOperationID int
 	}
 
-	var rows = []TestState{}
+	r := TestState{}
 	test2State := make(map[TestID][]OvalState)
-	err := db.Table("oval_test_state").Find(&rows).Error
+	rows, err := db.Table("oval_test_state").Rows()
 	if err != nil {
 		panic(err)
 	}
-	for _, r := range rows {
+	for rows.Next() {
+		if err := db.ScanRows(rows, &r); err != nil {
+			panic(err)
+		}
 		test2State[r.TestID] = append(test2State[r.TestID], OvalState{
 			ID:           r.StateID,
 			EvrID:        r.EvrID,
