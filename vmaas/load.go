@@ -3,6 +3,7 @@ package vmaas
 import (
 	"database/sql"
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 	"sync"
@@ -69,7 +70,7 @@ func loadCache(path string) (*Cache, error) {
 
 	// OVAL
 	c.OvaldefinitionDetail = loadOvalDefinitionDetail()
-	c.OvaldefinitionID2Cves = loadOvalDefinitionCves()
+	c.OvaldefinitionID2Cves = loadOvalDefinitionCves("oval_definition_cve")
 	c.PackagenameID2definitionIDs = loadPackagenameID2DefinitionIDs("PackagenameID2definitionIDs")
 	c.RepoID2CpeIDs = loadRepoCpes("RepoID2CpeIDs")
 	c.ContentSetID2CpeIDs = loadContentSet2Cpes("ContentSetID2CpeIDs")
@@ -658,6 +659,49 @@ func loadString2Ints(table, cols, info string) map[string][]int {
 	return int2strs
 }
 
+func loadKey2Vals(table, key, val string, row interface{}, info string) interface{} {
+	defer utils.TimeTrack(time.Now(), info)
+
+	// get type of struct fields by `key`, `val` strings
+	r := reflect.ValueOf(row)
+	k := reflect.Indirect(r).FieldByName(key)
+	v := reflect.Indirect(r).FieldByName(val)
+	keyType := k.Type()
+	valueType := v.Type()
+
+	// create map of slices
+	var sliceType = reflect.SliceOf(valueType)
+	var mapType = reflect.MapOf(keyType, sliceType)
+	value := reflect.New(sliceType)
+	out := reflect.MakeMap(mapType)
+
+	rows, err := db.Table(table).Rows()
+	if err != nil {
+		panic(err)
+	}
+
+	for rows.Next() {
+		if err := db.ScanRows(rows, row); err != nil {
+			panic(err)
+		}
+
+		// get values from `row` struct
+		r := reflect.ValueOf(row)
+		k := reflect.Indirect(r).FieldByName(key)
+		v := reflect.Indirect(r).FieldByName(val)
+
+		mapValue := out.MapIndex(k)
+		if !mapValue.IsValid() {
+			// key is not found in map
+			// initialize empty inner slice
+			value = reflect.New(sliceType)
+		}
+		value = reflect.Append(reflect.Indirect(value), v)
+		out.SetMapIndex(k, value)
+	}
+	return out.Interface()
+}
+
 func loadErrataModules() map[int][]Module {
 	defer utils.TimeTrack(time.Now(), "errata2module")
 
@@ -706,123 +750,54 @@ func loadOvalDefinitionDetail() map[DefinitionID]DefinitionDetail {
 	return defDetail
 }
 
-func loadOvalDefinitionCves() map[DefinitionID][]string {
-	defer utils.TimeTrack(time.Now(), "oval_definition_cve")
-
+func loadOvalDefinitionCves(info string) map[DefinitionID][]string {
 	type OvalDefinitionCve struct {
 		DefinitionID DefinitionID
 		Cve          string
 	}
-
-	var rows []OvalDefinitionCve
-	defCve := make(map[DefinitionID][]string)
-	err := db.Table("oval_definition_cve").Find(&rows).Error
-	if err != nil {
-		panic(err)
-	}
-	for _, r := range rows {
-		if _, ok := defCve[r.DefinitionID]; !ok {
-			defCve[r.DefinitionID] = []string{}
-		}
-		defCve[r.DefinitionID] = append(defCve[r.DefinitionID], r.Cve)
-	}
-	return defCve
+	row := OvalDefinitionCve{}
+	keyVals := loadKey2Vals("oval_definition_cve", "DefinitionID", "Cve", &row, info)
+	return keyVals.(map[DefinitionID][]string)
 }
 
 func loadPackagenameID2DefinitionIDs(info string) map[NameID][]DefinitionID {
-	defer utils.TimeTrack(time.Now(), info)
-
 	type NameDefinition struct {
 		NameID       NameID
 		DefinitionID DefinitionID
 	}
-
-	var rows []NameDefinition
-	nameID2definitionID := make(map[NameID][]DefinitionID)
-	err := db.Table("packagename_oval_definition").Find(&rows).Error
-	if err != nil {
-		panic(err)
-	}
-
-	for _, r := range rows {
-		if _, ok := nameID2definitionID[r.NameID]; !ok {
-			nameID2definitionID[r.NameID] = []DefinitionID{}
-		}
-		nameID2definitionID[r.NameID] = append(nameID2definitionID[r.NameID], r.DefinitionID)
-	}
-	return nameID2definitionID
+	row := NameDefinition{}
+	keyVals := loadKey2Vals("packagename_oval_definition", "NameID", "DefinitionID", &row, info)
+	return keyVals.(map[NameID][]DefinitionID)
 }
 
 func loadRepoCpes(info string) map[RepoID][]CpeID {
-	defer utils.TimeTrack(time.Now(), info)
-
-	type RepoCpe struct {
+	type CpeRepo struct {
 		RepoID RepoID
 		CpeID  CpeID
 	}
-
-	var rows []RepoCpe
-	repo2cpe := make(map[RepoID][]CpeID)
-	err := db.Table("cpe_repo").Find(&rows).Error
-	if err != nil {
-		panic(err)
-	}
-
-	for _, r := range rows {
-		if _, ok := repo2cpe[r.RepoID]; !ok {
-			repo2cpe[r.RepoID] = []CpeID{}
-		}
-		repo2cpe[r.RepoID] = append(repo2cpe[r.RepoID], r.CpeID)
-	}
-	return repo2cpe
+	row := CpeRepo{}
+	keyVals := loadKey2Vals("cpe_repo", "RepoID", "CpeID", &row, info)
+	return keyVals.(map[RepoID][]CpeID)
 }
 
 func loadContentSet2Cpes(info string) map[ContentSetID][]CpeID {
-	defer utils.TimeTrack(time.Now(), info)
-
-	type CsCpe struct {
+	type CpeCS struct {
 		ContentSetID ContentSetID
 		CpeID        CpeID
 	}
-
-	var rows []CsCpe
-	cs2cpe := make(map[ContentSetID][]CpeID)
-	err := db.Table("cpe_content_set").Find(&rows).Error
-	if err != nil {
-		panic(err)
-	}
-
-	for _, r := range rows {
-		if _, ok := cs2cpe[r.ContentSetID]; !ok {
-			cs2cpe[r.ContentSetID] = []CpeID{}
-		}
-		cs2cpe[r.ContentSetID] = append(cs2cpe[r.ContentSetID], r.CpeID)
-	}
-	return cs2cpe
+	row := CpeCS{}
+	keyVals := loadKey2Vals("cpe_content_set", "ContentSetID", "CpeID", &row, info)
+	return keyVals.(map[ContentSetID][]CpeID)
 }
 
 func loadCpeID2DefinitionIDs(info string) map[CpeID][]DefinitionID {
-	defer utils.TimeTrack(time.Now(), info)
-
-	type CpeDefinition struct {
+	type DefinitionCpe struct {
 		CpeID        CpeID
 		DefinitionID DefinitionID
 	}
-
-	var rows []CpeDefinition
-	cpe2def := make(map[CpeID][]DefinitionID)
-	err := db.Table("oval_definition_cpe").Find(&rows).Error
-	if err != nil {
-		panic(err)
-	}
-
-	for _, r := range rows {
-		if _, ok := cpe2def[r.CpeID]; !ok {
-			cpe2def[r.CpeID] = []DefinitionID{}
-		}
-		cpe2def[r.CpeID] = append(cpe2def[r.CpeID], r.DefinitionID)
-	}
-	return cpe2def
+	row := DefinitionCpe{}
+	keyVals := loadKey2Vals("oval_definition_cpe", "CpeID", "DefinitionID", &row, info)
+	return keyVals.(map[CpeID][]DefinitionID)
 }
 
 func loadOvalCriteriaDependency(info string) (map[CriteriaID][]CriteriaID, map[CriteriaID][]TestID, map[CriteriaID][]ModuleTestID) {
@@ -886,27 +861,13 @@ func loadOvalCriteriaID2Type(info string) map[CriteriaID]int {
 }
 
 func loadOvalStateID2Arches(info string) map[OvalStateID][]ArchID {
-	defer utils.TimeTrack(time.Now(), info)
-
-	type OvalStateArch struct {
+	type StateArch struct {
 		StateID OvalStateID
 		ArchID  ArchID
 	}
-
-	var rows = []OvalStateArch{}
-	state2arches := make(map[OvalStateID][]ArchID)
-	err := db.Table("oval_state_arch").Find(&rows).Error
-	if err != nil {
-		panic(err)
-	}
-
-	for _, r := range rows {
-		if _, ok := state2arches[r.StateID]; !ok {
-			state2arches[r.StateID] = []ArchID{}
-		}
-		state2arches[r.StateID] = append(state2arches[r.StateID], r.ArchID)
-	}
-	return state2arches
+	row := StateArch{}
+	keyVals := loadKey2Vals("oval_state_arch", "StateID", "ArchID", &row, info)
+	return keyVals.(map[OvalStateID][]ArchID)
 }
 
 func loadOvalModuleTestDetail(info string) map[ModuleTestID]OvalModuleTestDetail {
