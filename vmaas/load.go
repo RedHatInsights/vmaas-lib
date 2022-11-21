@@ -3,7 +3,6 @@ package vmaas
 import (
 	"database/sql"
 	"fmt"
-	"reflect"
 	"sort"
 	"strings"
 	"sync"
@@ -140,13 +139,10 @@ func loadPkgNames() (map[NameID]string, map[string]NameID) {
 	r := PkgName{}
 	id2name := map[NameID]string{}
 	name2id := map[string]NameID{}
-	rows, err := db.Table("packagename").Rows()
-	if err != nil {
-		panic(err)
-	}
+	rows := getAllRows("packagename", "id,packagename", "id")
 
 	for rows.Next() {
-		if err := db.ScanRows(rows, &r); err != nil {
+		if err := rows.Scan(&r.Id, &r.Packagename); err != nil {
 			panic(err)
 		}
 		id2name[r.Id] = r.Packagename
@@ -257,13 +253,10 @@ func loadEvrMaps() (map[EvrID]utils.Evr, map[utils.Evr]EvrID) {
 	r := IdEvr{}
 	id2evr := map[EvrID]utils.Evr{}
 	evr2id := map[utils.Evr]EvrID{}
-	rows, err := db.Table("evr").Rows()
-	if err != nil {
-		panic(err)
-	}
+	rows := getAllRows("evr", "id,epoch,version,release", "id")
 
 	for rows.Next() {
-		if err := db.ScanRows(rows, &r); err != nil {
+		if err := rows.Scan(&r.ID, &r.Epoch, &r.Version, &r.Release); err != nil {
 			panic(err)
 		}
 		id2evr[r.ID] = r.Evr
@@ -282,13 +275,10 @@ func loadArchs() (map[ArchID]string, map[string]ArchID) {
 	r := Arch{}
 	id2arch := map[ArchID]string{}
 	arch2id := map[string]ArchID{}
-	rows, err := db.Table("arch").Rows()
-	if err != nil {
-		panic(err)
-	}
+	rows := getAllRows("arch", "id,arch", "id")
 
 	for rows.Next() {
-		if err := db.ScanRows(rows, &r); err != nil {
+		if err := rows.Scan(&r.ID, &r.Arch); err != nil {
 			panic(err)
 		}
 		id2arch[r.ID] = r.Arch
@@ -305,13 +295,10 @@ func loadArchCompat() map[ArchID]map[ArchID]bool {
 	}
 	r := ArchCompat{}
 	m := map[ArchID]map[ArchID]bool{}
-	rows, err := db.Table("arch_compat").Rows()
-	if err != nil {
-		panic(err)
-	}
+	rows := getAllRows("arch_compat", "from_arch_id,to_arch_id", "from_arch_id,to_arch_id")
 
 	for rows.Next() {
-		if err := db.ScanRows(rows, &r); err != nil {
+		if err := rows.Scan(&r.FromArchId, &r.ToArchId); err != nil {
 			panic(err)
 		}
 		fromMap := m[r.FromArchId]
@@ -403,13 +390,10 @@ func loadLabel2ContentSetID(info string) map[string]ContentSetID {
 
 	r := LabelContent{}
 	label2contentSetID := make(map[string]ContentSetID)
-	rows, err := db.Table("content_set").Rows()
-	if err != nil {
-		panic(err)
-	}
+	rows := getAllRows("content_set", "id,label", "id")
 
 	for rows.Next() {
-		if err := db.ScanRows(rows, &r); err != nil {
+		if err := rows.Scan(&r.ID, &r.Label); err != nil {
 			panic(err)
 		}
 		label2contentSetID[r.Label] = r.ID
@@ -671,49 +655,6 @@ func loadString2Ints(table, cols, info string) map[string][]int {
 	return int2strs
 }
 
-func loadKey2Vals(table, key, val string, row interface{}, info string) interface{} {
-	defer utils.TimeTrack(time.Now(), info)
-
-	// get type of struct fields by `key`, `val` strings
-	r := reflect.ValueOf(row)
-	k := reflect.Indirect(r).FieldByName(key)
-	v := reflect.Indirect(r).FieldByName(val)
-	keyType := k.Type()
-	valueType := v.Type()
-
-	// create map of slices
-	var sliceType = reflect.SliceOf(valueType)
-	var mapType = reflect.MapOf(keyType, sliceType)
-	value := reflect.New(sliceType)
-	out := reflect.MakeMap(mapType)
-
-	rows, err := db.Table(table).Rows()
-	if err != nil {
-		panic(err)
-	}
-
-	for rows.Next() {
-		if err := db.ScanRows(rows, row); err != nil {
-			panic(err)
-		}
-
-		// get values from `row` struct
-		r := reflect.ValueOf(row)
-		k := reflect.Indirect(r).FieldByName(key)
-		v := reflect.Indirect(r).FieldByName(val)
-
-		mapValue := out.MapIndex(k)
-		if !mapValue.IsValid() {
-			// key is not found in map
-			// initialize empty inner slice
-			value = reflect.New(sliceType)
-		}
-		value = reflect.Append(reflect.Indirect(value), v)
-		out.SetMapIndex(k, value)
-	}
-	return out.Interface()
-}
-
 func loadErrataModules() map[int][]Module {
 	defer utils.TimeTrack(time.Now(), "errata2module")
 
@@ -749,13 +690,10 @@ func loadOvalDefinitionDetail() map[DefinitionID]DefinitionDetail {
 
 	row := OvalDefinitionDetail{}
 	defDetail := make(map[DefinitionID]DefinitionDetail)
-	rows, err := db.Table("oval_definition_detail").Rows()
-	if err != nil {
-		panic(err)
-	}
+	rows := getAllRows("oval_definition_detail", "id,definition_type_id,criteria_id", "id")
 
 	for rows.Next() {
-		if err := db.ScanRows(rows, &row); err != nil {
+		if err := rows.Scan(&row.ID, &row.DefinitionTypeID, &row.CriteriaID); err != nil {
 			panic(err)
 		}
 		defDetail[row.ID] = DefinitionDetail{
@@ -767,13 +705,24 @@ func loadOvalDefinitionDetail() map[DefinitionID]DefinitionDetail {
 }
 
 func loadOvalDefinitionCves(info string) map[DefinitionID][]string {
+	defer utils.TimeTrack(time.Now(), info)
+
 	type OvalDefinitionCve struct {
 		DefinitionID DefinitionID
 		Cve          string
 	}
-	row := OvalDefinitionCve{}
-	keyVals := loadKey2Vals("oval_definition_cve", "DefinitionID", "Cve", &row, info)
-	return keyVals.(map[DefinitionID][]string)
+	r := OvalDefinitionCve{}
+	ret := make(map[DefinitionID][]string)
+	cols := "definition_id,cve"
+	rows := getAllRows("oval_definition_cve", cols, cols)
+
+	for rows.Next() {
+		if err := rows.Scan(&r.DefinitionID, &r.Cve); err != nil {
+			panic(err)
+		}
+		ret[r.DefinitionID] = append(ret[r.DefinitionID], r.Cve)
+	}
+	return ret
 }
 
 func loadPackagenameID2DefinitionIDs(info string) map[NameID][]DefinitionID {
@@ -781,9 +730,18 @@ func loadPackagenameID2DefinitionIDs(info string) map[NameID][]DefinitionID {
 		NameID       NameID
 		DefinitionID DefinitionID
 	}
-	row := NameDefinition{}
-	keyVals := loadKey2Vals("packagename_oval_definition", "NameID", "DefinitionID", &row, info)
-	return keyVals.(map[NameID][]DefinitionID)
+	r := NameDefinition{}
+	ret := make(map[NameID][]DefinitionID)
+	cols := "name_id,definition_id"
+	rows := getAllRows("packagename_oval_definition", cols, cols)
+
+	for rows.Next() {
+		if err := rows.Scan(&r.NameID, &r.DefinitionID); err != nil {
+			panic(err)
+		}
+		ret[r.NameID] = append(ret[r.NameID], r.DefinitionID)
+	}
+	return ret
 }
 
 func loadRepoCpes(info string) map[RepoID][]CpeID {
@@ -791,9 +749,18 @@ func loadRepoCpes(info string) map[RepoID][]CpeID {
 		RepoID RepoID
 		CpeID  CpeID
 	}
-	row := CpeRepo{}
-	keyVals := loadKey2Vals("cpe_repo", "RepoID", "CpeID", &row, info)
-	return keyVals.(map[RepoID][]CpeID)
+	r := CpeRepo{}
+	ret := make(map[RepoID][]CpeID)
+	cols := "repo_id,cpe_id"
+	rows := getAllRows("cpe_repo", cols, cols)
+
+	for rows.Next() {
+		if err := rows.Scan(&r.RepoID, &r.CpeID); err != nil {
+			panic(err)
+		}
+		ret[r.RepoID] = append(ret[r.RepoID], r.CpeID)
+	}
+	return ret
 }
 
 func loadContentSet2Cpes(info string) map[ContentSetID][]CpeID {
@@ -801,9 +768,18 @@ func loadContentSet2Cpes(info string) map[ContentSetID][]CpeID {
 		ContentSetID ContentSetID
 		CpeID        CpeID
 	}
-	row := CpeCS{}
-	keyVals := loadKey2Vals("cpe_content_set", "ContentSetID", "CpeID", &row, info)
-	return keyVals.(map[ContentSetID][]CpeID)
+	r := CpeCS{}
+	ret := make(map[ContentSetID][]CpeID)
+	cols := "content_set_id,cpe_id"
+	rows := getAllRows("cpe_content_set", cols, cols)
+
+	for rows.Next() {
+		if err := rows.Scan(&r.ContentSetID, &r.CpeID); err != nil {
+			panic(err)
+		}
+		ret[r.ContentSetID] = append(ret[r.ContentSetID], r.CpeID)
+	}
+	return ret
 }
 
 func loadCpeID2DefinitionIDs(info string) map[CpeID][]DefinitionID {
@@ -811,9 +787,18 @@ func loadCpeID2DefinitionIDs(info string) map[CpeID][]DefinitionID {
 		CpeID        CpeID
 		DefinitionID DefinitionID
 	}
-	row := DefinitionCpe{}
-	keyVals := loadKey2Vals("oval_definition_cpe", "CpeID", "DefinitionID", &row, info)
-	return keyVals.(map[CpeID][]DefinitionID)
+	r := DefinitionCpe{}
+	ret := make(map[CpeID][]DefinitionID)
+	cols := "cpe_id,definition_id"
+	rows := getAllRows("oval_definition_cpe", cols, cols)
+
+	for rows.Next() {
+		if err := rows.Scan(&r.CpeID, &r.DefinitionID); err != nil {
+			panic(err)
+		}
+		ret[r.CpeID] = append(ret[r.CpeID], r.DefinitionID)
+	}
+	return ret
 }
 
 func loadOvalCriteriaDependency(info string) (map[CriteriaID][]CriteriaID, map[CriteriaID][]TestID, map[CriteriaID][]ModuleTestID) {
@@ -830,13 +815,12 @@ func loadOvalCriteriaDependency(info string) (map[CriteriaID][]CriteriaID, map[C
 	criteriaID2DepCriteriaIDs := make(map[CriteriaID][]CriteriaID)
 	criteriaID2DepTestIDs := make(map[CriteriaID][]TestID)
 	criteriaID2DepModuleTestIDs := make(map[CriteriaID][]ModuleTestID)
-	rows, err := db.Table("oval_criteria_dependency").Rows()
-	if err != nil {
-		panic(err)
-	}
+
+	cols := "parent_criteria_id,COALESCE(dep_criteria_id, 0),COALESCE(dep_test_id, 0),COALESCE(dep_module_test_id, 0)"
+	rows := getAllRows("oval_criteria_dependency", cols, cols)
 
 	for rows.Next() {
-		if err := db.ScanRows(rows, &r); err != nil {
+		if err := rows.Scan(&r.ParentCriteriaID, &r.DepCriteriaID, &r.DepTestID, &r.DepModuleTestID); err != nil {
 			panic(err)
 		}
 		if _, ok := criteriaID2DepCriteriaIDs[r.ParentCriteriaID]; !ok {
@@ -868,13 +852,11 @@ func loadOvalCriteriaID2Type(info string) map[CriteriaID]int {
 
 	r := OvalCriteriaType{}
 	criteriaID2Type := make(map[CriteriaID]int)
-	rows, err := db.Table("oval_criteria_type").Rows()
-	if err != nil {
-		panic(err)
-	}
+	cols := "criteria_id,type_id"
+	rows := getAllRows("oval_criteria_type", cols, cols)
 
 	for rows.Next() {
-		if err := db.ScanRows(rows, &r); err != nil {
+		if err := rows.Scan(&r.CriteriaID, &r.TypeID); err != nil {
 			panic(err)
 		}
 		criteriaID2Type[r.CriteriaID] = r.TypeID
@@ -887,9 +869,18 @@ func loadOvalStateID2Arches(info string) map[OvalStateID][]ArchID {
 		StateID OvalStateID
 		ArchID  ArchID
 	}
-	row := StateArch{}
-	keyVals := loadKey2Vals("oval_state_arch", "StateID", "ArchID", &row, info)
-	return keyVals.(map[OvalStateID][]ArchID)
+	r := StateArch{}
+	ret := make(map[OvalStateID][]ArchID)
+	cols := "state_id,arch_id"
+	rows := getAllRows("oval_state_arch", cols, cols)
+
+	for rows.Next() {
+		if err := rows.Scan(&r.StateID, &r.ArchID); err != nil {
+			panic(err)
+		}
+		ret[r.StateID] = append(ret[r.StateID], r.ArchID)
+	}
+	return ret
 }
 
 func loadOvalModuleTestDetail(info string) map[ModuleTestID]OvalModuleTestDetail {
@@ -902,13 +893,11 @@ func loadOvalModuleTestDetail(info string) map[ModuleTestID]OvalModuleTestDetail
 
 	r := ModuleTestDetail{}
 	details := make(map[ModuleTestID]OvalModuleTestDetail)
-	rows, err := db.Table("oval_module_test_detail").Rows()
-	if err != nil {
-		panic(err)
-	}
+	cols := "id,module_stream"
+	rows := getAllRows("oval_module_test_detail", cols, cols)
 
 	for rows.Next() {
-		if err := db.ScanRows(rows, &r); err != nil {
+		if err := rows.Scan(&r.ID, &r.ModuleStream); err != nil {
 			panic(err)
 		}
 		splitted := strings.Split(r.ModuleStream, ":")
@@ -930,12 +919,11 @@ func loadOvalTestDetail(info string) map[TestID]OvalTestDetail {
 
 	r := TestDetail{}
 	testDetail := make(map[TestID]OvalTestDetail)
-	rows, err := db.Table("oval_test_detail").Rows()
-	if err != nil {
-		panic(err)
-	}
+	cols := "id,package_name_id,check_existence_id"
+	rows := getAllRows("oval_test_detail", cols, cols)
+
 	for rows.Next() {
-		if err := db.ScanRows(rows, &r); err != nil {
+		if err := rows.Scan(&r.ID, &r.PackageNameID, &r.CheckExistenceID); err != nil {
 			panic(err)
 		}
 		testDetail[r.ID] = OvalTestDetail{PkgNameID: r.PackageNameID, CheckExistence: r.CheckExistenceID}
@@ -955,12 +943,11 @@ func loadOvalTestID2States(info string) map[TestID][]OvalState {
 
 	r := TestState{}
 	test2State := make(map[TestID][]OvalState)
-	rows, err := db.Table("oval_test_state").Rows()
-	if err != nil {
-		panic(err)
-	}
+	cols := "test_id,state_id,evr_id,evr_operation_id"
+	rows := getAllRows("oval_test_state", cols, cols)
+
 	for rows.Next() {
-		if err := db.ScanRows(rows, &r); err != nil {
+		if err := rows.Scan(&r.TestID, &r.StateID, &r.EvrID, &r.EvrOperationID); err != nil {
 			panic(err)
 		}
 		test2State[r.TestID] = append(test2State[r.TestID], OvalState{
