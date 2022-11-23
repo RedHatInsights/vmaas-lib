@@ -87,6 +87,9 @@ func (api *API) PeriodicCacheReload(interval time.Duration, latestDumpEndpoint s
 				return
 			}
 			utils.Log().Info("Reloading cache")
+			// invalidate cache and manually run GC to free memory
+			api.Cache = nil
+			utils.RunGC()
 			if len(url) > 0 {
 				if err := api.LoadCacheFromUrl(url); err != nil {
 					utils.Log("err", err.Error()).Error("Cache reload failed")
