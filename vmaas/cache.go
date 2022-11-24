@@ -3,45 +3,45 @@ package vmaas
 import "github.com/redhatinsights/vmaas-lib/vmaas/utils"
 
 type Cache struct {
-	Packagename2Id map[string]NameID
-	Id2Packagename map[NameID]string
+	Packagename2ID map[string]NameID
+	ID2Packagename map[NameID]string
 
 	// name -> []pkg ordered by e-v-r ordering
 	Updates map[NameID][]PkgID
 	// name -> evr -> idx into updates[name]
 	UpdatesIndex map[NameID]map[EvrID][]int
 
-	Evr2Id map[utils.Evr]EvrID
-	Id2Evr map[EvrID]utils.Evr
+	Evr2ID map[utils.Evr]EvrID
+	ID2Evr map[EvrID]utils.Evr
 
-	Id2Arch map[ArchID]string
-	Arch2Id map[string]ArchID
+	ID2Arch map[ArchID]string
+	Arch2ID map[string]ArchID
 
 	ArchCompat map[ArchID]map[ArchID]bool
 
 	PackageDetails map[PkgID]PackageDetail
-	Nevra2PkgId    map[Nevra]PkgID
+	Nevra2PkgID    map[Nevra]PkgID
 
 	RepoDetails        map[RepoID]RepoDetail
-	RepoLabel2Ids      map[string][]RepoID
+	RepoLabel2IDs      map[string][]RepoID
 	Label2ContentSetID map[string]ContentSetID
 
-	ProductId2RepoIds map[int][]RepoID
-	PkgId2RepoIds     map[PkgID][]RepoID
+	ProductID2RepoIDs map[int][]RepoID
+	PkgID2RepoIDs     map[PkgID][]RepoID
 
-	ErrataId2Name    map[ErrataID]string
-	PkgId2ErrataIds  map[PkgID][]ErrataID
-	ErrataId2RepoIds map[ErrataID][]RepoID
+	ErrataID2Name    map[ErrataID]string
+	PkgID2ErrataIDs  map[PkgID][]ErrataID
+	ErrataID2RepoIDs map[ErrataID][]RepoID
 
 	CveDetail map[string]CveDetail
 	CveNames  map[int]string
 
 	PkgErrata2Module map[PkgErrata][]int
-	Module2Ids       map[ModuleStream][]int
+	Module2IDs       map[ModuleStream][]int
 	ModuleRequires   map[int][]int
-	DbChange         DbChange
+	DBChange         DBChange
 	ErrataDetail     map[string]ErrataDetail
-	SrcPkgId2PkgId   map[PkgID][]PkgID
+	SrcPkgID2PkgID   map[PkgID][]PkgID
 	String           map[int]string
 
 	// OVAL

@@ -95,6 +95,7 @@ func evaluate(c *Cache, request *Request) (*VulnerabilitiesCvesDetails, error) {
 	return &cves, nil
 }
 
+//nolint:funlen,gocognit,nolintlint
 func (r *ProcessedRequest) evaluateOval(c *Cache, cves *VulnerabilitiesCvesDetails) error {
 	modules := make(map[string]string)
 	for _, m := range r.OriginalRequest.Modules {
@@ -108,12 +109,12 @@ func (r *ProcessedRequest) evaluateOval(c *Cache, cves *VulnerabilitiesCvesDetai
 	candidateDefinitions := repos2definitions(c, r.OriginalRequest)
 	utils.Log("candidateDefinitions", candidateDefinitions).Trace("evaluateOval")
 	for pkg, parsedNevra := range r.Packages {
-		pkgNameID := c.Packagename2Id[parsedNevra.Name]
+		pkgNameID := c.Packagename2ID[parsedNevra.Name]
 		definitionsIDs := map[DefinitionID]bool{}
 		allDefinitionsIDs := c.PackagenameID2definitionIDs[pkgNameID]
 		for _, defID := range allDefinitionsIDs {
 			if candidateDefinitions[defID] {
-				definitionsIDs[DefinitionID(defID)] = true
+				definitionsIDs[defID] = true
 			}
 		}
 
@@ -122,7 +123,8 @@ func (r *ProcessedRequest) evaluateOval(c *Cache, cves *VulnerabilitiesCvesDetai
 			definition := c.OvaldefinitionDetail[defID]
 			// Skip if unfixed CVE feature flag is disabled
 			if definition.DefinitionTypeID == OvalDefinitionTypeVulnerability && !conf.Env.OvalUnfixedEvalEnabled {
-				utils.Log("DefinitionTypeID", definition.DefinitionTypeID, "OvalUnfixedEvalEnabled", conf.Env.OvalUnfixedEvalEnabled).Trace("Ovaldefinition")
+				utils.Log("DefinitionTypeID", definition.DefinitionTypeID,
+					"OvalUnfixedEvalEnabled", conf.Env.OvalUnfixedEvalEnabled).Trace("Ovaldefinition")
 				continue
 			}
 			cvesOval := c.OvaldefinitionID2Cves[defID]
@@ -173,6 +175,7 @@ func (r *ProcessedRequest) evaluateOval(c *Cache, cves *VulnerabilitiesCvesDetai
 	return nil
 }
 
+//nolint:gocognit,nolintlint
 func repos2definitions(c *Cache, r *Request) map[DefinitionID]bool {
 	// TODO: some CPEs are not matching because they are substrings/subtrees
 	repoIDs := make(map[RepoID]bool)
@@ -181,7 +184,7 @@ func repos2definitions(c *Cache, r *Request) map[DefinitionID]bool {
 	for _, label := range r.Repos {
 		utils.Log("label", label).Trace("repos2definitions")
 		if r.Basearch != nil || r.Releasever != nil {
-			for _, repoID := range c.RepoLabel2Ids[label] {
+			for _, repoID := range c.RepoLabel2IDs[label] {
 				if r.Basearch != nil && *c.RepoDetails[repoID].BaseArch != *r.Basearch {
 					continue
 				}
@@ -231,7 +234,9 @@ func repos2definitions(c *Cache, r *Request) map[DefinitionID]bool {
 	return candidateDefinitions
 }
 
-func evaluateCriteria(c *Cache, criteriaID CriteriaID, pkgNameID NameID, nevra utils.Nevra, modules map[string]string) bool {
+func evaluateCriteria(c *Cache, criteriaID CriteriaID, pkgNameID NameID, nevra utils.Nevra,
+	modules map[string]string,
+) bool {
 	moduleTestDeps := c.OvalCriteriaID2DepModuleTestIDs[criteriaID]
 	testDeps := c.OvalCriteriaID2DepTestIDs[criteriaID]
 	criteriaDeps := c.OvalCriteriaID2DepCriteriaIDs[criteriaID]
@@ -289,7 +294,7 @@ func evaluateCriteria(c *Cache, criteriaID CriteriaID, pkgNameID NameID, nevra u
 }
 
 func evaluateState(c *Cache, state OvalState, nevra utils.Nevra) (matched bool) {
-	candidateEvr := c.Id2Evr[state.EvrID]
+	candidateEvr := c.ID2Evr[state.EvrID]
 	switch state.OperationEvr {
 	case OvalOperationEvrEquals:
 		matched = (nevra.Epoch == candidateEvr.Epoch &&
@@ -304,7 +309,7 @@ func evaluateState(c *Cache, state OvalState, nevra utils.Nevra) (matched bool) 
 
 	candidateArches := c.OvalStateID2Arches[state.ID]
 	if len(candidateArches) > 0 {
-		archID, ok := c.Arch2Id[nevra.Arch]
+		archID, ok := c.Arch2ID[nevra.Arch]
 		if !ok {
 			utils.Log("arch", nevra.Arch).Error("Invalid arch name")
 			return false

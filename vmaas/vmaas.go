@@ -29,11 +29,11 @@ func InitFromFile(cachePath string) (*API, error) {
 	return api, nil
 }
 
-func InitFromUrl(cacheUrl string) (*API, error) {
+func InitFromURL(cacheURL string) (*API, error) {
 	api := new(API)
-	api.url = cacheUrl
+	api.url = cacheURL
 	api.path = Dump
-	if err := api.LoadCacheFromUrl(cacheUrl); err != nil {
+	if err := api.LoadCacheFromURL(cacheURL); err != nil {
 		return api, errors.Wrap(err, "couldn't init from url")
 	}
 	return api, nil
@@ -60,28 +60,28 @@ func (api *API) LoadCacheFromFile(cachePath string) error {
 	return nil
 }
 
-func (api *API) LoadCacheFromUrl(cacheUrl string) error {
-	useRsync := strings.Contains(cacheUrl, "rsync")
-	if err := DownloadCache(cacheUrl, Dump, useRsync); err != nil {
+func (api *API) LoadCacheFromURL(cacheURL string) error {
+	useRsync := strings.Contains(cacheURL, "rsync")
+	if err := DownloadCache(cacheURL, Dump, useRsync); err != nil {
 		return errors.Wrap(err, "couldn't download cache")
 	}
 	err := api.LoadCacheFromFile(api.path)
 	return err
 }
 
-func (api *API) PeriodicCacheReload(interval time.Duration, latestDumpEndpoint string, cacheUrl *string) {
+func (api *API) PeriodicCacheReload(interval time.Duration, latestDumpEndpoint string, cacheURL *string) {
 	ticker := time.NewTicker(interval)
-	// preserve api.url set by InitFromUrl
+	// preserve api.url set by InitFromURL
 	url := api.url
-	if cacheUrl != nil {
-		url = *cacheUrl
+	if cacheURL != nil {
+		url = *cacheURL
 	}
 
 	go func() {
 		for range ticker.C {
 			reloadNeeded, err := api.IsReloadNeeded(latestDumpEndpoint)
 			if err != nil {
-				utils.Log("err", err.Error()).Warn("Error geting latest dump timestamp")
+				utils.Log("err", err.Error()).Warn("Error getting latest dump timestamp")
 			}
 			if !reloadNeeded {
 				return
@@ -91,7 +91,7 @@ func (api *API) PeriodicCacheReload(interval time.Duration, latestDumpEndpoint s
 			api.Cache = nil
 			utils.RunGC()
 			if len(url) > 0 {
-				if err := api.LoadCacheFromUrl(url); err != nil {
+				if err := api.LoadCacheFromURL(url); err != nil {
 					utils.Log("err", err.Error()).Error("Cache reload failed")
 				}
 				return
@@ -110,7 +110,7 @@ func (api *API) IsReloadNeeded(latestDumpEndpoint string) (bool, error) {
 		return true, nil
 	}
 
-	resp, err := http.Get(latestDumpEndpoint)
+	resp, err := http.Get(latestDumpEndpoint) //nolint:gosec // url is user's input
 	if err != nil {
 		return true, errors.Wrap(err, "couldn't get latest dump info")
 	}
@@ -126,7 +126,7 @@ func (api *API) IsReloadNeeded(latestDumpEndpoint string) (bool, error) {
 		return true, errors.Wrap(err, "couldn't parse latest timestamp")
 	}
 
-	exported, err := time.Parse(time.RFC3339, api.Cache.DbChange.Exported)
+	exported, err := time.Parse(time.RFC3339, api.Cache.DBChange.Exported)
 	if err != nil {
 		return true, errors.Wrap(err, "couldn't parse exported timestamp")
 	}
@@ -148,7 +148,7 @@ func DownloadCache(url, dest string, useRsync bool) error {
 		utils.Log().Info("Cache downloaded - rsync")
 		return nil
 	}
-	resp, err := http.Get(url)
+	resp, err := http.Get(url) //nolint:gosec // url is user's input
 	if err != nil {
 		return errors.Wrap(err, "couldn't download cache")
 	}
@@ -159,7 +159,7 @@ func DownloadCache(url, dest string, useRsync bool) error {
 		return errors.Wrap(err, "couldn't read response body")
 	}
 
-	err = os.WriteFile(dest, body, 0644)
+	err = os.WriteFile(dest, body, 0o644) //nolint:gosec // file needs 0644 permissions
 	if err != nil {
 		return errors.Wrap(err, "couldn't write file")
 	}

@@ -6,19 +6,21 @@ import (
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
 )
 
-type RepoID int
-type PkgID int
-type NameID int
-type EvrID int
-type ArchID int
-type ErrataID int
-type ContentSetID int
-type DefinitionID int
-type CpeID int
-type CriteriaID int
-type TestID int
-type ModuleTestID int
-type OvalStateID int
+type (
+	RepoID       int
+	PkgID        int
+	NameID       int
+	EvrID        int
+	ArchID       int
+	ErrataID     int
+	ContentSetID int
+	DefinitionID int
+	CpeID        int
+	CriteriaID   int
+	TestID       int
+	ModuleTestID int
+	OvalStateID  int
+)
 
 type Request struct {
 	Packages   []string       `json:"package_list"`
@@ -87,38 +89,38 @@ type NevraIDs struct {
 }
 
 type PackageDetail struct {
-	NameId        NameID
-	EvrId         EvrID
-	ArchId        ArchID
-	SummaryId     int
-	DescriptionId int
+	NameID        NameID
+	EvrID         EvrID
+	ArchID        ArchID
+	SummaryID     int
+	DescriptionID int
 
-	SrcPkgId   *PkgID
+	SrcPkgID   *PkgID
 	Modified   *time.Time
 	ModifiedID int
 }
 
 type Nevra struct {
-	NameId NameID
-	EvrId  EvrID
-	ArchId ArchID
+	NameID NameID
+	EvrID  EvrID
+	ArchID ArchID
 }
 
 type RepoDetail struct {
 	Label      string
 	Name       string
-	Url        string
+	URL        string
 	BaseArch   *string
 	ReleaseVer *string
 	Product    string
-	ProductId  int
+	ProductID  int
 	Revision   *string
 	ThirdParty bool
 }
 
 type CveDetail struct {
-	RedHatUrl     *string
-	SecondaryUrl  *string
+	RedHatURL     *string
+	SecondaryURL  *string
 	Cvss3Score    *string
 	Cvss3Metrics  *string
 	Impact        string
@@ -131,13 +133,13 @@ type CveDetail struct {
 	Source        string
 
 	CWEs      []string
-	PkgIds    []int
-	ErrataIds []int
+	PkgIDs    []int
+	ErrataIDs []int
 }
 
 type PkgErrata struct {
-	PkgId    int
-	ErrataId int
+	PkgID    int
+	ErrataID int
 }
 
 type Module struct {
@@ -155,7 +157,7 @@ type ModuleStream struct {
 	Stream string `json:"module_stream"`
 }
 
-type DbChange struct {
+type DBChange struct {
 	ErrataChanges string `json:"errata_changes"`
 	CveChanges    string `json:"cve_changes"`
 	RepoChanges   string `json:"repository_changes"`
@@ -171,15 +173,15 @@ type ErrataDetail struct {
 	Severity       *string
 	Description    *string
 	CVEs           []string
-	PkgIds         []int
-	ModulePkgIds   []int
+	PkgIDs         []int
+	ModulePkgIDs   []int
 	Bugzillas      []string
 	Refs           []string
 	Modules        []Module
 	Solution       *string
 	Issued         *string
 	Updated        *string
-	Url            string
+	URL            string
 	ThirdParty     bool
 	RequiresReboot bool
 }
