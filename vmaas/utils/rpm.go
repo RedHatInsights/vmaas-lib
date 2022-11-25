@@ -108,10 +108,7 @@ func (n Nevra) EVRAString() string {
 }
 
 func (n Nevra) EVRACmp(other *Nevra) int {
-	ret := rpm.LabelCompare(
-		&rpm.EVR{Epoch: fmt.Sprint(n.Epoch), Version: n.Version, Release: n.Release},
-		&rpm.EVR{Epoch: fmt.Sprint(other.Epoch), Version: other.Version, Release: other.Release},
-	)
+	ret := n.EVRCmp(other)
 	if ret == 0 {
 		ret = strings.Compare(n.Arch, other.Arch)
 	}
@@ -119,11 +116,12 @@ func (n Nevra) EVRACmp(other *Nevra) int {
 }
 
 func (n Nevra) EVRCmp(other *Nevra) int {
-	ret := rpm.LabelCompare(
-		&rpm.EVR{Epoch: fmt.Sprint(n.Epoch), Version: n.Version, Release: n.Release},
-		&rpm.EVR{Epoch: fmt.Sprint(other.Epoch), Version: other.Version, Release: other.Release},
-	)
-	return ret
+	evr := Evr{
+		Epoch:   other.Epoch,
+		Version: other.Version,
+		Release: other.Release,
+	}
+	return n.NevraCmpEvr(evr)
 }
 
 func (n Nevra) NevraCmpEvr(other Evr) int {
