@@ -10,6 +10,7 @@ jobs:
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
+      - run: sudo apt install -y librpm-dev rpm
       # cache downloaded modules and build cache
       - uses: actions/cache@v3
         with:
@@ -28,33 +29,40 @@ jobs:
           go-version: ${{ matrix.go-version }}
       - uses: actions/checkout@v3
       - run: |
-          go test -race ./...
-  fuzz:
-    name: fuzz
-    strategy:
-      matrix:
-        go-version: [1.18.x, 1.19.x]
-        os: [ubuntu-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      # cache downloaded modules and build cache
-      - uses: actions/cache@v3
+          go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+      - uses: codecov/codecov-action@v1
         with:
-          # In order:
-          # * Module download cache
-          # * Build cache (Linux)
-          # * Fuzz cache (Linux)
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-            ~/.cache/fuzz
-          key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-${{ matrix.go-version }}-
-      # run tests
-      - uses: actions/setup-go@v3
-        with:
-          go-version: ${{ matrix.go-version }}
-      - uses: actions/checkout@v3
-      - run: |
-          go test -fuzz Fuzz -fuzztime 30s ./...
+          files: ./coverage.txt
+          flags: unittests
+          name: codecov-umbrella
+          verbose: true
+  # fuzz:
+  #   name: fuzz
+  #   strategy:
+  #     matrix:
+  #       go-version: [1.18.x, 1.19.x]
+  #       os: [ubuntu-latest]
+  #   runs-on: ${{ matrix.os }}
+  #   steps:
+  #     - run: sudo apt install -y librpm-dev rpm
+  #     # cache downloaded modules and build cache
+  #     - uses: actions/cache@v3
+  #       with:
+  #         # In order:
+  #         # * Module download cache
+  #         # * Build cache (Linux)
+  #         # * Fuzz cache (Linux)
+  #         path: |
+  #           ~/go/pkg/mod
+  #           ~/.cache/go-build
+  #           ~/.cache/fuzz
+  #         key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
+  #         restore-keys: |
+  #           ${{ runner.os }}-go-${{ matrix.go-version }}-
+  #     # run tests
+  #     - uses: actions/setup-go@v3
+  #       with:
+  #         go-version: ${{ matrix.go-version }}
+  #     - uses: actions/checkout@v3
+  #     - run: |
+  #         go test -fuzz Fuzz -fuzztime 30s ./vmaas
