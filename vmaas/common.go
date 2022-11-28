@@ -86,7 +86,7 @@ func processInputPackages(c *Cache, request *Request) (map[string]utils.Nevra, U
 }
 
 func processUpdates(c *Cache, updateList UpdateList, packages map[string]utils.Nevra,
-	repoIDs map[RepoID]bool, moduleIDs map[int]bool, r *Request,
+	repoIDs []RepoID, moduleIDs map[int]bool, r *Request,
 ) UpdateList {
 	for pkg, nevra := range packages {
 		updateList[pkg] = processPackagesUpdates(c, nevra, repoIDs, moduleIDs, r)
@@ -94,7 +94,7 @@ func processUpdates(c *Cache, updateList UpdateList, packages map[string]utils.N
 	return updateList
 }
 
-func processPackagesUpdates(c *Cache, nevra utils.Nevra, repoIDs map[RepoID]bool, moduleIDs map[int]bool, r *Request,
+func processPackagesUpdates(c *Cache, nevra utils.Nevra, repoIDs []RepoID, moduleIDs map[int]bool, r *Request,
 ) UpdateDetail {
 	updateDetail := UpdateDetail{}
 	nevraIDs := extractNevraIDs(c, &nevra)
@@ -125,7 +125,7 @@ func processPackagesUpdates(c *Cache, nevra utils.Nevra, repoIDs map[RepoID]bool
 }
 
 func pkgUpdates(c *Cache, pkgID PkgID, archID ArchID, securityOnly bool, modules map[int]bool,
-	repoIDs map[RepoID]bool, releasevers map[string]bool, thirdparty bool,
+	repoIDs []RepoID, releasevers map[string]bool, thirdparty bool,
 ) []Update {
 	if archID == 0 {
 		return nil
@@ -159,7 +159,7 @@ func pkgUpdates(c *Cache, pkgID PkgID, archID ArchID, securityOnly bool, modules
 }
 
 func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErrataID, modules map[int]bool,
-	repoIDs map[RepoID]bool, releasevers map[string]bool, nevra utils.Nevra, securityOnly, thirdparty bool,
+	repoIDs []RepoID, releasevers map[string]bool, nevra utils.Nevra, securityOnly, thirdparty bool,
 ) []Update {
 	erratumName := c.ErrataID2Name[erratumID]
 	erratumDetail := c.ErrataDetail[erratumName]
@@ -182,18 +182,24 @@ func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErrataID, modules map[int
 	}
 	errataModules := c.PkgErrata2Module[pkgErrata]
 	utils.Log("errataModules", errataModules, "pkgErrata", pkgErrata, "modules", modules).Trace("pkgErrataUpdate")
+	// return nil if errataModules and modules intersection is empty
+	intersects := false
 	for _, em := range errataModules {
-		if _, ok := modules[em]; !ok {
-			utils.Log("ok", ok).Trace("pkgErrataUpdate - modules[em]")
-			return nil
+		if _, ok := modules[em]; ok {
+			// at least 1 item in intersection
+			intersects = true
+			break
 		}
+	}
+	if len(errataModules) > 0 && intersects == false {
+		return nil
 	}
 
 	repos := filterRepositories(c, pkgID, erratumID, repoIDs, releasevers)
 	utils.Log("repos", repos, "pkgErrata", pkgErrata, "errataModules", errataModules).Trace(
 		"pkgErrataUpdates - filter repositories")
-	updates := make([]Update, 0, len(repoIDs))
-	for r := range repos {
+	updates := make([]Update, 0, len(repos))
+	for _, r := range repos {
 		details := c.RepoDetails[r]
 		updates = append(updates, Update{
 			Package:    nevra.String(),
@@ -215,33 +221,30 @@ func filterNonSecurity(errataDetail ErrataDetail, securityOnly bool) bool {
 	return !isSecurity
 }
 
-func filterRepositories(c *Cache, pkgID PkgID, erratumID ErrataID, repoIDs map[RepoID]bool,
+func filterRepositories(c *Cache, pkgID PkgID, erratumID ErrataID, repoIDs []RepoID,
 	releasevers map[string]bool,
-) map[RepoID]bool {
+) []RepoID {
 	errataRepoIDs := make(map[RepoID]bool)
 	errataRepos := c.ErrataID2RepoIDs[erratumID]
 	for _, er := range errataRepos {
 		errataRepoIDs[er] = true
 	}
 
-	pkgRepoIDs := make(map[RepoID]bool)
-	tmp := make(map[RepoID]bool)
 	pkgRepos := c.PkgID2RepoIDs[pkgID]
 	utils.Log("available_repo_ids", repoIDs, "c.PkgID2RepoIDs[pkgID]", pkgRepos,
 		"errata_repo_ids", errataRepoIDs).Trace("filterRepositories")
+
+	result := make([]RepoID, 0, len(repoIDs))
+	pkgRepoIDs := make(map[RepoID]bool)
 	for _, rid := range pkgRepos {
-		tmp[rid] = true
-	}
-	for rid := range repoIDs {
-		if tmp[rid] && errataRepoIDs[rid] {
-			pkgRepoIDs[rid] = true
-		}
+		pkgRepoIDs[rid] = true
 	}
 
-	result := make(map[RepoID]bool)
-	for rid := range pkgRepoIDs {
-		if isRepoValid(c, rid, releasevers) {
-			result[rid] = true
+	for _, rid := range repoIDs {
+		if pkgRepoIDs[rid] && errataRepoIDs[rid] {
+			if isRepoValid(c, rid, releasevers) {
+				result = append(result, rid)
+			}
 		}
 	}
 	return result
@@ -388,30 +391,34 @@ func filterPkgList(pkgs []string, latestOnly bool) []string {
 	return filtered
 }
 
-func getRepoIDs(c *Cache, repos []string) map[RepoID]bool {
-	repoIDs := make(map[RepoID]bool, len(repos))
+func getRepoIDs(c *Cache, repos []string) []RepoID {
+	tmp := make(map[RepoID]bool, len(repos))
+	repoIDs := make([]RepoID, 0, len(repos))
 	if len(repos) == 0 {
-		for k := range c.RepoDetails {
-			repoIDs[k] = true
+		for k, _ := range c.RepoDetails {
+			repoIDs = append(repoIDs, k)
 		}
 	}
 	for _, label := range repos {
 		repoIDsCache := c.RepoLabel2IDs[label]
 		for _, r := range repoIDsCache {
-			repoIDs[r] = true
+			if !tmp[r] {
+				repoIDs = append(repoIDs, r)
+				tmp[r] = true
+			}
 		}
 	}
 	return repoIDs
 }
 
-func filterReposByReleasever(c *Cache, releasever *string, repoIDs map[RepoID]bool) map[RepoID]bool {
+func filterReposByReleasever(c *Cache, releasever *string, repoIDs []RepoID) []RepoID {
 	if releasever != nil {
-		repos := make(map[RepoID]bool, len(repoIDs))
-		for oid := range repoIDs {
+		repos := make([]RepoID, 0, len(repoIDs))
+		for _, oid := range repoIDs {
 			detailReleasever := c.RepoDetails[oid].ReleaseVer
 			if (detailReleasever == nil && strings.Contains(c.RepoDetails[oid].URL, *releasever)) ||
 				(detailReleasever != nil && *detailReleasever == *releasever) {
-				repos[oid] = true
+				repos = append(repos, oid)
 			}
 		}
 		repoIDs = repos
@@ -419,14 +426,14 @@ func filterReposByReleasever(c *Cache, releasever *string, repoIDs map[RepoID]bo
 	return repoIDs
 }
 
-func filterReposByBasearch(c *Cache, basearch *string, repoIDs map[RepoID]bool) map[RepoID]bool {
+func filterReposByBasearch(c *Cache, basearch *string, repoIDs []RepoID) []RepoID {
 	if basearch != nil {
-		repos := make(map[RepoID]bool, len(repoIDs))
-		for oid := range repoIDs {
+		repos := make([]RepoID, 0, len(repoIDs))
+		for _, oid := range repoIDs {
 			detailBasearch := c.RepoDetails[oid].BaseArch
 			if (detailBasearch == nil && strings.Contains(c.RepoDetails[oid].URL, *basearch)) ||
 				(detailBasearch != nil && *detailBasearch == *basearch) {
-				repos[oid] = true
+				repos = append(repos, oid)
 			}
 		}
 		repoIDs = repos
