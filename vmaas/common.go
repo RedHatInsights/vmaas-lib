@@ -22,16 +22,12 @@ func (r *ProcessedRequest) evaluateRepositories(c *Cache) *Updates {
 	}
 
 	repoIDs := getRepoIDs(c, r.Updates.RepoList)
-	utils.Log("repoIDs", repoIDs).Trace("processRequest - repoIDs unfiltered")
-	repoIDs = filterReposByReleasever(c, r.Updates.Releasever, repoIDs)
 
 	// Get list of valid repository IDs based on input parameters
 	repoIDs = filterReposByBasearch(c, r.Updates.BaseArch, repoIDs)
 
 	moduleIDs := getModules(c, r.Updates.ModuleList)
 
-	utils.Log("moduleIDs", moduleIDs, "repoIDs", repoIDs).Trace("processRequest")
-	// Process updated packages, errata and fill the response
 	updateList := processUpdates(c, r.Updates.UpdateList, r.Packages, repoIDs, moduleIDs, r.OriginalRequest)
 	r.Updates.UpdateList = updateList
 
@@ -62,7 +58,6 @@ func (r *Request) processRequest(c *Cache) (*ProcessedRequest, error) {
 // Parse input NEVRAs and filter out unknown (or without updates) package names
 func processInputPackages(c *Cache, request *Request) (map[string]utils.Nevra, UpdateList) {
 	pkgsToProcess := filterPkgList(request.Packages, request.LatestOnly)
-	utils.Log("pkgsToProcess", pkgsToProcess).Trace("processInputPackages")
 	filteredPkgsToProcess := make(map[string]utils.Nevra)
 	updateList := make(UpdateList)
 	for _, pkg := range pkgsToProcess {
@@ -78,7 +73,6 @@ func processInputPackages(c *Cache, request *Request) (map[string]utils.Nevra, U
 			}
 		}
 	}
-	utils.Log("filteredPkgsToProcess", filteredPkgsToProcess, "updateList", updateList).Trace("processInputPackages")
 	return filteredPkgsToProcess, updateList
 }
 
@@ -109,15 +103,11 @@ func processPackagesUpdates(c *Cache, nevra utils.Nevra, repoIDs []RepoID, modul
 		return UpdateDetail{}
 	}
 
-	utils.Log("updatePkgIDs", updatePkgIDs, "validReleasevers", validReleasevers).Trace("processPackagesUpdates")
-
 	for _, u := range updatePkgIDs {
 		updates := pkgUpdates(c, u, nevraIDs.ArchID, r.SecurityOnly, moduleIDs,
 			repoIDs, validReleasevers, r.ThirdParty)
 		updateDetail.AvailableUpdates = append(updateDetail.AvailableUpdates, updates...)
 	}
-
-	utils.Log("updateDetail", updateDetail).Trace("processPackagesUpdates")
 	return updateDetail
 }
 
@@ -130,7 +120,6 @@ func pkgUpdates(c *Cache, pkgID PkgID, archID ArchID, securityOnly bool, modules
 
 	// Filter out packages without errata
 	if _, ok := c.PkgID2ErrataIDs[pkgID]; !ok {
-		utils.Log().Trace("pkgUpdates - no errata")
 		return nil
 	}
 
@@ -138,7 +127,6 @@ func pkgUpdates(c *Cache, pkgID PkgID, archID ArchID, securityOnly bool, modules
 	updatedNevraArchID := c.PackageDetails[pkgID].ArchID
 	if updatedNevraArchID != archID {
 		if _, ok := c.ArchCompat[archID]; !ok {
-			utils.Log().Trace("pkgUpdates - no compatible arch")
 			return nil
 		}
 	}
@@ -146,7 +134,6 @@ func pkgUpdates(c *Cache, pkgID PkgID, archID ArchID, securityOnly bool, modules
 	errataIDs := c.PkgID2ErrataIDs[pkgID]
 	nevra := buildNevra(c, pkgID)
 	updates := []Update{}
-	utils.Log("errataIDs", errataIDs, "nevra", nevra).Trace("pkgUpdates")
 	for _, eid := range errataIDs {
 		errataUpdates := pkgErrataUpdates(c, pkgID, eid, modules, repoIDs,
 			releasevers, nevra, securityOnly, thirdparty)
@@ -163,13 +150,11 @@ func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErrataID, modules map[int
 
 	// Filter out non-security updates
 	if filterNonSecurity(erratumDetail, securityOnly) {
-		utils.Log().Trace("pkgErrataUpdate - non security")
 		return nil
 	}
 
 	// If we don't want third party content, and current advisory is third party, skip it
 	if !thirdparty && erratumDetail.ThirdParty {
-		utils.Log().Trace("pkgErrataUpdate - 3rd party")
 		return nil
 	}
 
@@ -178,7 +163,6 @@ func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErrataID, modules map[int
 		ErrataID: int(erratumID),
 	}
 	errataModules := c.PkgErrata2Module[pkgErrata]
-	utils.Log("errataModules", errataModules, "pkgErrata", pkgErrata, "modules", modules).Trace("pkgErrataUpdate")
 	// return nil if errataModules and modules intersection is empty
 	intersects := false
 	for _, em := range errataModules {
@@ -193,8 +177,6 @@ func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErrataID, modules map[int
 	}
 
 	repos := filterRepositories(c, pkgID, erratumID, repoIDs, releasevers)
-	utils.Log("repos", repos, "pkgErrata", pkgErrata, "errataModules", errataModules).Trace(
-		"pkgErrataUpdates - filter repositories")
 	updates := make([]Update, 0, len(repos))
 	for _, r := range repos {
 		details := c.RepoDetails[r]
@@ -227,12 +209,9 @@ func filterRepositories(c *Cache, pkgID PkgID, erratumID ErrataID, repoIDs []Rep
 		errataRepoIDs[er] = true
 	}
 
-	pkgRepos := c.PkgID2RepoIDs[pkgID]
-	utils.Log("available_repo_ids", repoIDs, "c.PkgID2RepoIDs[pkgID]", pkgRepos,
-		"errata_repo_ids", errataRepoIDs).Trace("filterRepositories")
-
 	result := make([]RepoID, 0, len(repoIDs))
 	pkgRepoIDs := make(map[RepoID]bool)
+	pkgRepos := c.PkgID2RepoIDs[pkgID]
 	for _, rid := range pkgRepos {
 		pkgRepoIDs[rid] = true
 	}
@@ -373,7 +352,6 @@ func filterPkgList(pkgs []string, latestOnly bool) []string {
 			continue
 		}
 		nameArch := NameArch{Name: nevra.Name, Arch: nevra.Arch}
-		utils.Log("nameArch", nameArch, "nevra", nevra).Trace("filterPkgList")
 		if latestPkg, ok := latestPkgs[nameArch]; ok {
 			if nevra.EVRCmp(&latestPkg.Nevra) < 1 {
 				// nevra <= latestPkg
