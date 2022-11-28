@@ -107,7 +107,6 @@ func (r *ProcessedRequest) evaluateOval(c *Cache, cves *VulnerabilitiesCvesDetai
 	//       there needs to be better fallback at least to guess correctly RHEL version,
 	//       use old VMaaS repo guessing?
 	candidateDefinitions := repos2definitions(c, r.OriginalRequest)
-	utils.Log("candidateDefinitions", candidateDefinitions).Trace("evaluateOval")
 	for pkg, parsedNevra := range r.Packages {
 		pkgNameID := c.Packagename2ID[parsedNevra.Name]
 		definitionsIDs := map[DefinitionID]bool{}
@@ -118,17 +117,13 @@ func (r *ProcessedRequest) evaluateOval(c *Cache, cves *VulnerabilitiesCvesDetai
 			}
 		}
 
-		utils.Log("definitionsIDs", definitionsIDs).Trace("evaluateOval - pkgs process")
 		for defID := range definitionsIDs {
 			definition := c.OvaldefinitionDetail[defID]
 			// Skip if unfixed CVE feature flag is disabled
 			if definition.DefinitionTypeID == OvalDefinitionTypeVulnerability && !conf.Env.OvalUnfixedEvalEnabled {
-				utils.Log("DefinitionTypeID", definition.DefinitionTypeID,
-					"OvalUnfixedEvalEnabled", conf.Env.OvalUnfixedEvalEnabled).Trace("Ovaldefinition")
 				continue
 			}
 			cvesOval := c.OvaldefinitionID2Cves[defID]
-			utils.Log("definition", defID, "cvesOval", cvesOval).Trace("evaluateOval")
 			// Skip if all CVEs from definition were already found somewhere
 			allCvesFound := true
 			for _, cve := range cvesOval {
@@ -182,7 +177,6 @@ func repos2definitions(c *Cache, r *Request) map[DefinitionID]bool {
 	contentSetIDs := make(map[ContentSetID]bool)
 	// Try to identify repos (CS+basearch+releasever) or at least CS
 	for _, label := range r.Repos {
-		utils.Log("label", label).Trace("repos2definitions")
 		if r.Basearch != nil || r.Releasever != nil {
 			for _, repoID := range c.RepoLabel2IDs[label] {
 				if r.Basearch != nil && *c.RepoDetails[repoID].BaseArch != *r.Basearch {
@@ -191,7 +185,6 @@ func repos2definitions(c *Cache, r *Request) map[DefinitionID]bool {
 				if r.Releasever != nil && *c.RepoDetails[repoID].ReleaseVer != *r.Releasever {
 					continue
 				}
-				utils.Log("label_repo_id", repoID).Trace("repos2definitions - adding")
 				repoIDs[repoID] = true
 			}
 		}
@@ -200,7 +193,6 @@ func repos2definitions(c *Cache, r *Request) map[DefinitionID]bool {
 		}
 	}
 
-	utils.Log("repoIDs", repoIDs).Trace("repos2definitions")
 	cpeIDs := make(map[CpeID]bool)
 	if len(repoIDs) > 0 { // Check CPE-Repo mapping first
 		for repoID := range repoIDs {
@@ -211,7 +203,6 @@ func repos2definitions(c *Cache, r *Request) map[DefinitionID]bool {
 			}
 		}
 	}
-	utils.Log("cpeIDs", cpeIDs, "contentSetIDs", contentSetIDs).Trace("repos2definitions")
 	if len(cpeIDs) == 0 { // No CPE-Repo mapping? Use CPE-CS mapping
 		for csID := range contentSetIDs {
 			if cpes, has := c.ContentSetID2CpeIDs[csID]; has {
@@ -222,7 +213,6 @@ func repos2definitions(c *Cache, r *Request) map[DefinitionID]bool {
 		}
 	}
 
-	utils.Log("cpeIDs", cpeIDs).Trace("repos2definitions")
 	candidateDefinitions := make(map[DefinitionID]bool)
 	for cpe := range cpeIDs {
 		if defs, has := c.CpeID2OvalDefinitionIDs[cpe]; has {
