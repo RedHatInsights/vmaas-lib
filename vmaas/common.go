@@ -73,11 +73,8 @@ func processInputPackages(c *Cache, request *Request) (map[string]utils.Nevra, U
 			continue
 		}
 		if pkgID, ok := c.Packagename2ID[nevra.Name]; ok {
-			for idx := range c.UpdatesIndex {
-				if pkgID == idx {
-					filteredPkgsToProcess[pkg] = nevra
-					break
-				}
+			if _, ok := c.UpdatesIndex[pkgID]; ok {
+				filteredPkgsToProcess[pkg] = nevra
 			}
 		}
 	}
