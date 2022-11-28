@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.2 (2022-11-28)
+### Fix
+* Don't iter UpdatesIndex in processInputPackages ([`8f2fc92`](https://github.com/RedHatInsights/vmaas-lib/commit/8f2fc92a1d39ea8ffcd59e9b77038fa1afbd571e))
+
 ## v0.1.1 (2022-11-28)
 ### Fix
 * RepoID slice, simplify intersection, gorpm build ([`1611883`](https://github.com/RedHatInsights/vmaas-lib/commit/1611883bebc2856c232b8385200990d21d1b83c3))
