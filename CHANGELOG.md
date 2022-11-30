@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.3 (2022-11-30)
+### Fix
+* Issues found with unit tests ([`43beb51`](https://github.com/RedHatInsights/vmaas-lib/commit/43beb5188c98c0d0edbdf6816fe358d516c6cdbb))
+
 ## v0.1.2 (2022-11-28)
 ### Fix
 * Don't iter UpdatesIndex in processInputPackages ([`8f2fc92`](https://github.com/RedHatInsights/vmaas-lib/commit/8f2fc92a1d39ea8ffcd59e9b77038fa1afbd571e))
