@@ -24,6 +24,7 @@ func (r *ProcessedRequest) evaluateRepositories(c *Cache) *Updates {
 	repoIDs := getRepoIDs(c, r.Updates.RepoList)
 
 	// Get list of valid repository IDs based on input parameters
+	repoIDs = filterReposByReleasever(c, r.Updates.Releasever, repoIDs)
 	repoIDs = filterReposByBasearch(c, r.Updates.BaseArch, repoIDs)
 
 	moduleIDs := getModules(c, r.Updates.ModuleList)
@@ -172,7 +173,7 @@ func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErrataID, modules map[int
 			break
 		}
 	}
-	if len(errataModules) > 0 && intersects == false {
+	if len(errataModules) > 0 && !intersects {
 		return nil
 	}
 
@@ -309,6 +310,9 @@ func pkgReleasevers(c *Cache, pkgID PkgID) map[string]bool {
 
 func nevraPkgID(c *Cache, n *NevraIDs) PkgID {
 	var nPkgID PkgID
+	if n == nil {
+		return nPkgID
+	}
 	for _, eid := range n.EvrIDs {
 		pkgID := c.Updates[n.NameID][eid]
 		nevraArchID := c.PackageDetails[pkgID].ArchID
@@ -321,6 +325,9 @@ func nevraPkgID(c *Cache, n *NevraIDs) PkgID {
 }
 
 func extractNevraIDs(c *Cache, nevra *utils.Nevra) NevraIDs {
+	if nevra == nil {
+		return NevraIDs{}
+	}
 	nameID := c.Packagename2ID[nevra.Name]
 	evr := utils.Evr{
 		Epoch:   nevra.Epoch,
@@ -370,7 +377,7 @@ func getRepoIDs(c *Cache, repos []string) []RepoID {
 	tmp := make(map[RepoID]bool, len(repos))
 	repoIDs := make([]RepoID, 0, len(repos))
 	if len(repos) == 0 {
-		for k, _ := range c.RepoDetails {
+		for k := range c.RepoDetails {
 			repoIDs = append(repoIDs, k)
 		}
 	}
@@ -390,9 +397,9 @@ func filterReposByReleasever(c *Cache, releasever *string, repoIDs []RepoID) []R
 	if releasever != nil {
 		repos := make([]RepoID, 0, len(repoIDs))
 		for _, oid := range repoIDs {
-			detailReleasever := c.RepoDetails[oid].ReleaseVer
-			if (detailReleasever == nil && strings.Contains(c.RepoDetails[oid].URL, *releasever)) ||
-				(detailReleasever != nil && *detailReleasever == *releasever) {
+			detail := c.RepoDetails[oid]
+			if (detail.ReleaseVer == nil && strings.Contains(detail.URL, *releasever)) ||
+				(detail.ReleaseVer != nil && *detail.ReleaseVer == *releasever) {
 				repos = append(repos, oid)
 			}
 		}
@@ -405,9 +412,9 @@ func filterReposByBasearch(c *Cache, basearch *string, repoIDs []RepoID) []RepoI
 	if basearch != nil {
 		repos := make([]RepoID, 0, len(repoIDs))
 		for _, oid := range repoIDs {
-			detailBasearch := c.RepoDetails[oid].BaseArch
-			if (detailBasearch == nil && strings.Contains(c.RepoDetails[oid].URL, *basearch)) ||
-				(detailBasearch != nil && *detailBasearch == *basearch) {
+			detail := c.RepoDetails[oid]
+			if (detail.BaseArch == nil && strings.Contains(detail.URL, *basearch)) ||
+				(detail.BaseArch != nil && *detail.BaseArch == *basearch) {
 				repos = append(repos, oid)
 			}
 		}
