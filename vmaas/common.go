@@ -55,6 +55,9 @@ func (r *Request) processRequest(c *Cache) (*ProcessedRequest, error) {
 
 // Parse input NEVRAs and filter out unknown (or without updates) package names
 func processInputPackages(c *Cache, request *Request) (map[string]utils.Nevra, UpdateList) {
+	if request == nil {
+		return map[string]utils.Nevra{}, UpdateList{}
+	}
 	pkgsToProcess := filterPkgList(request.Packages, request.LatestOnly)
 	filteredPkgsToProcess := make(map[string]utils.Nevra)
 	updateList := make(UpdateList)
@@ -226,7 +229,8 @@ func filterRepositories(c *Cache, pkgID PkgID, erratumID ErrataID, repoIDs []Rep
 
 func isRepoValid(c *Cache, repoID RepoID, releasevers map[string]bool) bool {
 	if len(releasevers) == 0 {
-		return true
+		_, ok := c.RepoDetails[repoID]
+		return ok
 	}
 	repoDetail := c.RepoDetails[repoID]
 	return repoDetail.ReleaseVer != nil && releasevers[*repoDetail.ReleaseVer]
