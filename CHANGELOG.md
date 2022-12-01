@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.4 (2022-12-01)
+### Fix
+* Minor fixes ([`9c06686`](https://github.com/RedHatInsights/vmaas-lib/commit/9c06686039c1386efd8948a1cef91da4e7267766))
+
 ## v0.1.3 (2022-11-30)
 ### Fix
 * Issues found with unit tests ([`43beb51`](https://github.com/RedHatInsights/vmaas-lib/commit/43beb5188c98c0d0edbdf6816fe358d516c6cdbb))
