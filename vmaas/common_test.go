@@ -67,9 +67,9 @@ func TestPassBasearch(t *testing.T) {
 	s390 := "s390"
 	c := Cache{
 		RepoDetails: map[RepoID]RepoDetail{
-			1: {BaseArch: nil},
-			2: {BaseArch: &x8664},
-			3: {BaseArch: &s390},
+			1: {Basearch: nil},
+			2: {Basearch: &x8664},
+			3: {Basearch: &s390},
 		},
 	}
 
@@ -110,9 +110,9 @@ func TestPassReleasever(t *testing.T) {
 	el9 := "el9"
 	c := Cache{
 		RepoDetails: map[RepoID]RepoDetail{
-			1: {ReleaseVer: nil},
-			2: {ReleaseVer: &el8},
-			3: {ReleaseVer: &el9},
+			1: {Releasever: nil},
+			2: {Releasever: &el8},
+			3: {Releasever: &el9},
 		},
 	}
 
@@ -156,9 +156,9 @@ func TestGetRepoIDs(t *testing.T) {
 	c := Cache{
 		RepoIDs: []RepoID{1, 2, 3},
 		RepoDetails: map[RepoID]RepoDetail{
-			1: {ReleaseVer: &x8664, BaseArch: &el9},
-			2: {ReleaseVer: &x8664, BaseArch: &el9},
-			3: {ReleaseVer: &x8664, BaseArch: &el9},
+			1: {Releasever: &x8664, Basearch: &el9},
+			2: {Releasever: &x8664, Basearch: &el9},
+			3: {Releasever: &x8664, Basearch: &el9},
 		},
 	}
 
@@ -186,17 +186,17 @@ func TestGetRepoIDs(t *testing.T) {
 
 	// releasever & basearch
 	updates.Releasever = &x8664
-	updates.BaseArch = &el9
+	updates.Basearch = &el9
 	res = getRepoIDs(&c, &updates)
 	assert.Equal(t, 3, len(res))
 	assert.False(t, hasDuplicities(res))
 
-	updates.BaseArch = nil
+	updates.Basearch = nil
 	res = getRepoIDs(&c, &updates)
 	assert.Equal(t, 3, len(res))
 	assert.False(t, hasDuplicities(res))
 
-	updates.BaseArch = &other
+	updates.Basearch = &other
 	res = getRepoIDs(&c, &updates)
 	assert.Equal(t, 0, len(res))
 	assert.False(t, hasDuplicities(res))
@@ -206,7 +206,7 @@ func TestGetRepoIDs(t *testing.T) {
 	res = getRepoIDs(&c, &updates)
 	assert.Equal(t, []RepoID{}, res)
 
-	updates.BaseArch = nil
+	updates.Basearch = nil
 	updates.Releasever = nil
 	updates.RepoList = []string{"invalid"}
 	res = getRepoIDs(&c, &updates)
@@ -312,10 +312,10 @@ func TestPkgReleasevers(t *testing.T) {
 	c := Cache{
 		PkgID2RepoIDs: map[PkgID][]RepoID{1: {1, 2, 3}, 2: {2, 3, 4}},
 		RepoDetails: map[RepoID]RepoDetail{
-			1: {ReleaseVer: nil},
-			2: {ReleaseVer: &el7},
-			3: {ReleaseVer: &el8},
-			4: {ReleaseVer: &el9},
+			1: {Releasever: nil},
+			2: {Releasever: &el7},
+			3: {Releasever: &el8},
+			4: {Releasever: &el9},
 		},
 	}
 
@@ -361,10 +361,10 @@ func TestNevraUpdates(t *testing.T) {
 		UpdatesIndex:   map[NameID]map[EvrID][]int{1: {2: []int{2, 3, 4}}},
 		PkgID2RepoIDs:  map[PkgID][]RepoID{1: {1, 2, 3}, 2: {2, 3, 4}, 3: {3, 4}},
 		RepoDetails: map[RepoID]RepoDetail{
-			1: {ReleaseVer: nil},
-			2: {ReleaseVer: &el7},
-			3: {ReleaseVer: &el8},
-			4: {ReleaseVer: &el9},
+			1: {Releasever: nil},
+			2: {Releasever: &el7},
+			3: {Releasever: &el8},
+			4: {Releasever: &el9},
 		},
 	}
 
@@ -433,8 +433,8 @@ func TestIsRepoValid(t *testing.T) {
 	el9 := "el9"
 	c := Cache{
 		RepoDetails: map[RepoID]RepoDetail{
-			1: {ReleaseVer: nil},
-			2: {ReleaseVer: &el9},
+			1: {Releasever: nil},
+			2: {Releasever: &el9},
 		},
 	}
 
@@ -466,10 +466,10 @@ func TestFilterRepositories(t *testing.T) {
 	el9 := "el9"
 	c := Cache{
 		RepoDetails: map[RepoID]RepoDetail{
-			1: {ReleaseVer: nil},
-			2: {ReleaseVer: &el7},
-			3: {ReleaseVer: &el8},
-			4: {ReleaseVer: &el9},
+			1: {Releasever: nil},
+			2: {Releasever: &el7},
+			3: {Releasever: &el8},
+			4: {Releasever: &el9},
 		},
 		ErrataID2RepoIDs: map[ErrataID][]RepoID{
 			1: {1, 2},

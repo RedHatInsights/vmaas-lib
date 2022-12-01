@@ -362,7 +362,7 @@ func loadRepoDetails(info string) ([]RepoID, map[RepoID]RepoDetail, map[string][
 		var repoID RepoID
 		var det RepoDetail
 
-		err := rows.Scan(&repoID, &det.Label, &det.Name, &det.URL, &det.BaseArch, &det.ReleaseVer,
+		err := rows.Scan(&repoID, &det.Label, &det.Name, &det.URL, &det.Basearch, &det.Releasever,
 			&det.Product, &det.ProductID, &det.Revision, &det.ThirdParty)
 		if err != nil {
 			panic(err)
