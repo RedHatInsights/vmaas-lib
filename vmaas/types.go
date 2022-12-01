@@ -56,7 +56,7 @@ type Updates struct {
 	RepoList   []string       `json:"repository_list,omitempty"`
 	ModuleList []ModuleStream `json:"modules_list,omitempty"`
 	Releasever *string        `json:"releasever,omitempty"`
-	BaseArch   *string        `json:"basearch,omitempty"`
+	Basearch   *string        `json:"basearch,omitempty"`
 	LastChange time.Time      `json:"last_change"`
 }
 
@@ -110,8 +110,8 @@ type RepoDetail struct {
 	Label      string
 	Name       string
 	URL        string
-	BaseArch   *string
-	ReleaseVer *string
+	Basearch   *string
+	Releasever *string
 	Product    string
 	ProductID  int
 	Revision   *string

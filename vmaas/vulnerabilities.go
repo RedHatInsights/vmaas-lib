@@ -179,10 +179,10 @@ func repos2definitions(c *Cache, r *Request) map[DefinitionID]bool {
 	for _, label := range r.Repos {
 		if r.Basearch != nil || r.Releasever != nil {
 			for _, repoID := range c.RepoLabel2IDs[label] {
-				if r.Basearch != nil && *c.RepoDetails[repoID].BaseArch != *r.Basearch {
+				if r.Basearch != nil && *c.RepoDetails[repoID].Basearch != *r.Basearch {
 					continue
 				}
-				if r.Releasever != nil && *c.RepoDetails[repoID].ReleaseVer != *r.Releasever {
+				if r.Releasever != nil && *c.RepoDetails[repoID].Releasever != *r.Releasever {
 					continue
 				}
 				repoIDs[repoID] = true

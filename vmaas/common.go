@@ -44,7 +44,7 @@ func (r *Request) processRequest(c *Cache) (*ProcessedRequest, error) {
 	updates := Updates{
 		UpdateList: updateList,
 		LastChange: lastChanged,
-		BaseArch:   r.Basearch,
+		Basearch:   r.Basearch,
 		Releasever: r.Releasever,
 		RepoList:   r.Repos,
 		ModuleList: r.Modules,
@@ -185,8 +185,8 @@ func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErrataID, modules map[int
 			Package:    nevra.String(),
 			Erratum:    erratumName,
 			Repository: details.Label,
-			Basearch:   details.BaseArch,
-			Releasever: details.ReleaseVer,
+			Basearch:   details.Basearch,
+			Releasever: details.Releasever,
 		})
 	}
 	return updates
@@ -233,7 +233,7 @@ func isRepoValid(c *Cache, repoID RepoID, releasevers map[string]bool) bool {
 		return ok
 	}
 	repoDetail := c.RepoDetails[repoID]
-	return repoDetail.ReleaseVer != nil && releasevers[*repoDetail.ReleaseVer]
+	return repoDetail.Releasever != nil && releasevers[*repoDetail.Releasever]
 }
 
 func buildNevra(c *Cache, pkgID PkgID) utils.Nevra {
@@ -301,7 +301,7 @@ func pkgReleasevers(c *Cache, pkgID PkgID) map[string]bool {
 	repoIDs := c.PkgID2RepoIDs[pkgID]
 	releasevers := make(map[string]bool)
 	for _, rid := range repoIDs {
-		relVer := c.RepoDetails[rid].ReleaseVer
+		relVer := c.RepoDetails[rid].Releasever
 		if relVer != nil {
 			releasevers[*relVer] = true
 		}
@@ -378,11 +378,11 @@ func getRepoIDs(c *Cache, u *Updates) []RepoID {
 	tmp := make(map[RepoID]bool, len(u.RepoList))
 	repoIDs := make([]RepoID, 0, len(u.RepoList))
 	if len(u.RepoList) == 0 {
-		if u.Releasever == nil && u.BaseArch == nil {
+		if u.Releasever == nil && u.Basearch == nil {
 			return c.RepoIDs
 		}
 		for _, r := range c.RepoIDs {
-			if passReleasever(c, u.Releasever, r) && passBasearch(c, u.BaseArch, r) {
+			if passReleasever(c, u.Releasever, r) && passBasearch(c, u.Basearch, r) {
 				repoIDs = append(repoIDs, r)
 			}
 		}
@@ -391,7 +391,7 @@ func getRepoIDs(c *Cache, u *Updates) []RepoID {
 		repoIDsCache := c.RepoLabel2IDs[label]
 		for _, r := range repoIDsCache {
 			if !tmp[r] {
-				if passReleasever(c, u.Releasever, r) && passBasearch(c, u.BaseArch, r) {
+				if passReleasever(c, u.Releasever, r) && passBasearch(c, u.Basearch, r) {
 					repoIDs = append(repoIDs, r)
 				}
 				tmp[r] = true
@@ -409,8 +409,8 @@ func passReleasever(c *Cache, releasever *string, repoID RepoID) bool {
 	if releasever == nil {
 		return true
 	}
-	return (detail.ReleaseVer == nil && strings.Contains(detail.URL, *releasever)) ||
-		(detail.ReleaseVer != nil && *detail.ReleaseVer == *releasever)
+	return (detail.Releasever == nil && strings.Contains(detail.URL, *releasever)) ||
+		(detail.Releasever != nil && *detail.Releasever == *releasever)
 }
 
 func passBasearch(c *Cache, basearch *string, repoID RepoID) bool {
@@ -421,8 +421,8 @@ func passBasearch(c *Cache, basearch *string, repoID RepoID) bool {
 	if basearch == nil {
 		return true
 	}
-	return (detail.BaseArch == nil && strings.Contains(detail.URL, *basearch)) ||
-		(detail.BaseArch != nil && *detail.BaseArch == *basearch)
+	return (detail.Basearch == nil && strings.Contains(detail.URL, *basearch)) ||
+		(detail.Basearch != nil && *detail.Basearch == *basearch)
 }
 
 func getModules(c *Cache, modules []ModuleStream) map[int]bool {
