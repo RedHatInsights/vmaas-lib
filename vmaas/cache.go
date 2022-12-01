@@ -22,6 +22,7 @@ type Cache struct {
 	PackageDetails map[PkgID]PackageDetail
 	Nevra2PkgID    map[Nevra]PkgID
 
+	RepoIDs            []RepoID
 	RepoDetails        map[RepoID]RepoDetail
 	RepoLabel2IDs      map[string][]RepoID
 	Label2ContentSetID map[string]ContentSetID

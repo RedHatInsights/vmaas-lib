@@ -53,7 +53,9 @@ func loadCache(path string) (*Cache, error) {
 
 	c.PackageDetails, c.Nevra2PkgID, c.SrcPkgID2PkgID = loadPkgDetails("PackageDetails, Nevra2PkgID, SrcPkgID2PkgID")
 
-	c.RepoDetails, c.RepoLabel2IDs, c.ProductID2RepoIDs = loadRepoDetails("RepoDetails, RepoLabel2IDs, ProductID2RepoIDs")
+	c.RepoIDs, c.RepoDetails, c.RepoLabel2IDs, c.ProductID2RepoIDs = loadRepoDetails(
+		"RepoIDs, RepoDetails, RepoLabel2IDs, ProductID2RepoIDs",
+	)
 	c.Label2ContentSetID = loadLabel2ContentSetID("Label2ContentSetID")
 
 	c.PkgID2RepoIDs = loadPkgRepos()
@@ -348,13 +350,14 @@ func loadPkgDetails(info string) (map[PkgID]PackageDetail, map[Nevra]PkgID, map[
 	return id2pkdDetail, nevra2id, srcPkgID2PkgID
 }
 
-func loadRepoDetails(info string) (map[RepoID]RepoDetail, map[string][]RepoID, map[int][]RepoID) {
+func loadRepoDetails(info string) ([]RepoID, map[RepoID]RepoDetail, map[string][]RepoID, map[int][]RepoID) {
 	defer utils.TimeTrack(time.Now(), info)
 
 	rows := getAllRows("repo_detail", "*", "label")
 	id2repoDetail := map[RepoID]RepoDetail{}
 	repoLabel2id := map[string][]RepoID{}
 	prodID2RepoIDs := map[int][]RepoID{}
+	repoIDs := []RepoID{}
 	for rows.Next() {
 		var repoID RepoID
 		var det RepoDetail
@@ -365,6 +368,7 @@ func loadRepoDetails(info string) (map[RepoID]RepoDetail, map[string][]RepoID, m
 			panic(err)
 		}
 
+		repoIDs = append(repoIDs, repoID)
 		id2repoDetail[repoID] = det
 
 		_, ok := repoLabel2id[det.Label]
@@ -379,7 +383,7 @@ func loadRepoDetails(info string) (map[RepoID]RepoDetail, map[string][]RepoID, m
 		}
 		prodID2RepoIDs[det.ProductID] = append(prodID2RepoIDs[det.ProductID], repoID)
 	}
-	return id2repoDetail, repoLabel2id, prodID2RepoIDs
+	return repoIDs, id2repoDetail, repoLabel2id, prodID2RepoIDs
 }
 
 func loadLabel2ContentSetID(info string) map[string]ContentSetID {

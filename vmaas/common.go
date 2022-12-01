@@ -21,11 +21,8 @@ func (r *ProcessedRequest) evaluateRepositories(c *Cache) *Updates {
 		return r.Updates
 	}
 
-	repoIDs := getRepoIDs(c, r.Updates.RepoList)
-
 	// Get list of valid repository IDs based on input parameters
-	repoIDs = filterReposByReleasever(c, r.Updates.Releasever, repoIDs)
-	repoIDs = filterReposByBasearch(c, r.Updates.BaseArch, repoIDs)
+	repoIDs := getRepoIDs(c, r.Updates)
 
 	moduleIDs := getModules(c, r.Updates.ModuleList)
 
@@ -373,19 +370,26 @@ func filterPkgList(pkgs []string, latestOnly bool) []string {
 	return filtered
 }
 
-func getRepoIDs(c *Cache, repos []string) []RepoID {
-	tmp := make(map[RepoID]bool, len(repos))
-	repoIDs := make([]RepoID, 0, len(repos))
-	if len(repos) == 0 {
-		for k := range c.RepoDetails {
-			repoIDs = append(repoIDs, k)
+func getRepoIDs(c *Cache, u *Updates) []RepoID {
+	tmp := make(map[RepoID]bool, len(u.RepoList))
+	repoIDs := make([]RepoID, 0, len(u.RepoList))
+	if len(u.RepoList) == 0 {
+		if u.Releasever == nil && u.BaseArch == nil {
+			return c.RepoIDs
+		}
+		for _, r := range c.RepoIDs {
+			if passReleasever(c, u.Releasever, r) && passBasearch(c, u.BaseArch, r) {
+				repoIDs = append(repoIDs, r)
+			}
 		}
 	}
-	for _, label := range repos {
+	for _, label := range u.RepoList {
 		repoIDsCache := c.RepoLabel2IDs[label]
 		for _, r := range repoIDsCache {
 			if !tmp[r] {
-				repoIDs = append(repoIDs, r)
+				if passReleasever(c, u.Releasever, r) && passBasearch(c, u.BaseArch, r) {
+					repoIDs = append(repoIDs, r)
+				}
 				tmp[r] = true
 			}
 		}
@@ -393,34 +397,28 @@ func getRepoIDs(c *Cache, repos []string) []RepoID {
 	return repoIDs
 }
 
-func filterReposByReleasever(c *Cache, releasever *string, repoIDs []RepoID) []RepoID {
-	if releasever != nil {
-		repos := make([]RepoID, 0, len(repoIDs))
-		for _, oid := range repoIDs {
-			detail := c.RepoDetails[oid]
-			if (detail.ReleaseVer == nil && strings.Contains(detail.URL, *releasever)) ||
-				(detail.ReleaseVer != nil && *detail.ReleaseVer == *releasever) {
-				repos = append(repos, oid)
-			}
-		}
-		repoIDs = repos
+func passReleasever(c *Cache, releasever *string, repoID RepoID) bool {
+	detail, ok := c.RepoDetails[repoID]
+	if !ok {
+		return false
 	}
-	return repoIDs
+	if releasever == nil {
+		return true
+	}
+	return (detail.ReleaseVer == nil && strings.Contains(detail.URL, *releasever)) ||
+		(detail.ReleaseVer != nil && *detail.ReleaseVer == *releasever)
 }
 
-func filterReposByBasearch(c *Cache, basearch *string, repoIDs []RepoID) []RepoID {
-	if basearch != nil {
-		repos := make([]RepoID, 0, len(repoIDs))
-		for _, oid := range repoIDs {
-			detail := c.RepoDetails[oid]
-			if (detail.BaseArch == nil && strings.Contains(detail.URL, *basearch)) ||
-				(detail.BaseArch != nil && *detail.BaseArch == *basearch) {
-				repos = append(repos, oid)
-			}
-		}
-		repoIDs = repos
+func passBasearch(c *Cache, basearch *string, repoID RepoID) bool {
+	detail, ok := c.RepoDetails[repoID]
+	if !ok {
+		return false
 	}
-	return repoIDs
+	if basearch == nil {
+		return true
+	}
+	return (detail.BaseArch == nil && strings.Contains(detail.URL, *basearch)) ||
+		(detail.BaseArch != nil && *detail.BaseArch == *basearch)
 }
 
 func getModules(c *Cache, modules []ModuleStream) map[int]bool {
