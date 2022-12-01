@@ -15,6 +15,10 @@ func TestNevraParse(t *testing.T) {
 	assert.Equal(t, 0, nevra.Epoch)
 	assert.Equal(t, "1.fc27", nevra.Release)
 	assert.Equal(t, "src", nevra.Arch)
+
+	nevra2, err := ParseNameEVRA("389-ds-base", "1.3.7-1.fc27.src")
+	assert.Equal(t, nil, err)
+	assert.Equal(t, nevra, nevra2)
 }
 
 func TestNevraParse2(t *testing.T) {
@@ -53,6 +57,16 @@ func TestNevraParse4(t *testing.T) {
 	assert.Equal(t, 1, cmp)
 }
 
+func TestNevraParseInvalid(t *testing.T) {
+	nevra, err := ParseNevra("1.3.7-1.fc27.src")
+	assert.NotNil(t, err)
+	assert.Equal(t, Nevra{}, nevra)
+
+	nevra, err = ParseNevra("invalid")
+	assert.NotNil(t, err)
+	assert.Equal(t, Nevra{}, nevra)
+}
+
 func TestNevraCmp(t *testing.T) {
 	ff0, err := ParseNevra("firefox-76.0.1-1.fc31.x86_64")
 	assert.NoError(t, err)
@@ -76,4 +90,15 @@ func TestNevraCmp(t *testing.T) {
 	assert.Equal(t, 1, ff4.Cmp(&ff3))
 	// name
 	assert.Equal(t, 1, ff4.Cmp(&fb4))
+}
+
+func TestNevraString(t *testing.T) {
+	pkg := "389-ds-base-1.3.7-1.fc27.src"
+	nevra, _ := ParseNevra(pkg)
+	assert.Equal(t, pkg, nevra.String())
+	assert.Equal(t, "389-ds-base-0:1.3.7-1.fc27.src", nevra.StringE(true))
+	assert.Equal(t, "0:1.3.7-1.fc27.src", nevra.EVRAStringE(true))
+	assert.Equal(t, "1.3.7-1.fc27.src", nevra.EVRAString())
+	assert.Equal(t, "0:1.3.7-1.fc27", nevra.EVRStringE(true))
+	assert.Equal(t, "1.3.7-1.fc27", nevra.EVRString())
 }
