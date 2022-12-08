@@ -3,6 +3,7 @@ package vmaas
 import (
 	"database/sql"
 	"fmt"
+	"net/url"
 	"sort"
 	"strings"
 	"sync"
@@ -53,8 +54,8 @@ func loadCache(path string) (*Cache, error) {
 
 	c.PackageDetails, c.Nevra2PkgID, c.SrcPkgID2PkgID = loadPkgDetails("PackageDetails, Nevra2PkgID, SrcPkgID2PkgID")
 
-	c.RepoIDs, c.RepoDetails, c.RepoLabel2IDs, c.ProductID2RepoIDs = loadRepoDetails(
-		"RepoIDs, RepoDetails, RepoLabel2IDs, ProductID2RepoIDs",
+	c.RepoIDs, c.RepoDetails, c.RepoLabel2IDs, c.RepoPath2IDs, c.ProductID2RepoIDs = loadRepoDetails(
+		"RepoIDs, RepoDetails, RepoLabel2IDs, RepoPath2IDs, ProductID2RepoIDs",
 	)
 	c.Label2ContentSetID = loadLabel2ContentSetID("Label2ContentSetID")
 
@@ -350,12 +351,13 @@ func loadPkgDetails(info string) (map[PkgID]PackageDetail, map[Nevra]PkgID, map[
 	return id2pkdDetail, nevra2id, srcPkgID2PkgID
 }
 
-func loadRepoDetails(info string) ([]RepoID, map[RepoID]RepoDetail, map[string][]RepoID, map[int][]RepoID) {
+func loadRepoDetails(info string) ([]RepoID, map[RepoID]RepoDetail, map[string][]RepoID, map[string][]RepoID, map[int][]RepoID) {
 	defer utils.TimeTrack(time.Now(), info)
 
 	rows := getAllRows("repo_detail", "*", "label")
 	id2repoDetail := map[RepoID]RepoDetail{}
 	repoLabel2id := map[string][]RepoID{}
+	repoPath2id := map[string][]RepoID{}
 	prodID2RepoIDs := map[int][]RepoID{}
 	repoIDs := []RepoID{}
 	for rows.Next() {
@@ -377,13 +379,26 @@ func loadRepoDetails(info string) ([]RepoID, map[RepoID]RepoDetail, map[string][
 		}
 		repoLabel2id[det.Label] = append(repoLabel2id[det.Label], repoID)
 
+		if len(det.URL) > 0 {
+			parsedURL, err := url.Parse(det.URL)
+			if err != nil {
+				utils.Log("URL", det.URL, "err", err.Error()).Warn("Malformed repository URL")
+			}
+			repoPath := strings.TrimSuffix(parsedURL.Path, "/")
+			_, ok = repoPath2id[repoPath]
+			if !ok {
+				repoPath2id[repoPath] = []RepoID{}
+			}
+			repoPath2id[repoPath] = append(repoPath2id[repoPath], repoID)
+		}
+
 		_, ok = prodID2RepoIDs[det.ProductID]
 		if !ok {
 			prodID2RepoIDs[det.ProductID] = []RepoID{}
 		}
 		prodID2RepoIDs[det.ProductID] = append(prodID2RepoIDs[det.ProductID], repoID)
 	}
-	return repoIDs, id2repoDetail, repoLabel2id, prodID2RepoIDs
+	return repoIDs, id2repoDetail, repoLabel2id, repoPath2id, prodID2RepoIDs
 }
 
 func loadLabel2ContentSetID(info string) map[string]ContentSetID {

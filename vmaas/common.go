@@ -47,6 +47,7 @@ func (r *Request) processRequest(c *Cache) (*ProcessedRequest, error) {
 		Basearch:   r.Basearch,
 		Releasever: r.Releasever,
 		RepoList:   r.Repos,
+		RepoPaths:  r.RepoPaths,
 		ModuleList: r.Modules,
 	}
 	processed := ProcessedRequest{Updates: &updates, Packages: pkgsToProcess, OriginalRequest: r}
@@ -377,26 +378,39 @@ func filterPkgList(pkgs []string, latestOnly bool) []string {
 func getRepoIDs(c *Cache, u *Updates) []RepoID {
 	tmp := make(map[RepoID]bool, len(u.RepoList))
 	repoIDs := make([]RepoID, 0, len(u.RepoList))
-	if len(u.RepoList) == 0 {
+	if len(u.RepoList) == 0 && len(u.RepoPaths) == 0 {
 		if u.Releasever == nil && u.Basearch == nil {
 			return c.RepoIDs
 		}
 		for _, r := range c.RepoIDs {
-			if passReleasever(c, u.Releasever, r) && passBasearch(c, u.Basearch, r) {
-				repoIDs = append(repoIDs, r)
-			}
+			repoIDs = appendRepoIDs(c, u, repoIDs, r)
 		}
 	}
 	for _, label := range u.RepoList {
 		repoIDsCache := c.RepoLabel2IDs[label]
 		for _, r := range repoIDsCache {
 			if !tmp[r] {
-				if passReleasever(c, u.Releasever, r) && passBasearch(c, u.Basearch, r) {
-					repoIDs = append(repoIDs, r)
-				}
+				repoIDs = appendRepoIDs(c, u, repoIDs, r)
 				tmp[r] = true
 			}
 		}
+	}
+	for _, path := range u.RepoPaths {
+		path = strings.TrimSuffix(path, "/")
+		repoIDsCache := c.RepoPath2IDs[path]
+		for _, r := range repoIDsCache {
+			if !tmp[r] {
+				repoIDs = appendRepoIDs(c, u, repoIDs, r)
+				tmp[r] = true
+			}
+		}
+	}
+	return repoIDs
+}
+
+func appendRepoIDs(c *Cache, u *Updates, repoIDs []RepoID, repo RepoID) []RepoID {
+	if passReleasever(c, u.Releasever, repo) && passBasearch(c, u.Basearch, repo) {
+		repoIDs = append(repoIDs, repo)
 	}
 	return repoIDs
 }
