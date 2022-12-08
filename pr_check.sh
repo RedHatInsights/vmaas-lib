@@ -131,8 +131,9 @@ if [[ $exit_code == 0 ]]; then
             set +e
             process_requirements_labels
             set -e
-            echo "running vmaas smoke tests"
-            run_smoke_tests
+            # echo "running vmaas smoke tests"
+            # run_smoke_tests
+            exit_code=3
         fi
     fi
 fi
