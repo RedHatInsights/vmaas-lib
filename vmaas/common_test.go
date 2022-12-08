@@ -201,6 +201,24 @@ func TestGetRepoIDs(t *testing.T) {
 	assert.Equal(t, 0, len(res))
 	assert.False(t, hasDuplicities(res))
 
+	// repository paths
+	c.RepoIDs = append(c.RepoIDs, 4)
+	c.RepoDetails[4] = RepoDetail{
+		Releasever: &x8664,
+		Basearch:   &el9,
+		URL:        "http://example.com/content/dist/rhel/rhui/server/7/7Server/x86_64/os/repodata",
+	}
+	c.RepoPath2IDs = map[string][]RepoID{
+		"/content/dist/rhel/rhui/server/7/7Server/x86_64/os": {4},
+	}
+	updates.Releasever = nil
+	updates.Basearch = nil
+	updates.RepoPaths = []string{"/content/dist/rhel/rhui/server/7/7Server/x86_64/os/"}
+	res = getRepoIDs(&c, &updates)
+	assert.Equal(t, 4, len(res))
+	assert.False(t, hasDuplicities(res))
+	updates.RepoPaths = []string{}
+
 	// invalid label
 	updates.RepoList = []string{"invalid"}
 	res = getRepoIDs(&c, &updates)

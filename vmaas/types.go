@@ -28,6 +28,7 @@ type Request struct {
 	Modules    []ModuleStream `json:"modules_list"`
 	Releasever *string        `json:"releasever"`
 	Basearch   *string        `json:"basearch"`
+	RepoPaths  []string       `json:"repository_paths"`
 
 	ThirdParty   bool `json:"thirdparty"`
 	Optimistic   bool `json:"optimistic_updates"`
@@ -54,6 +55,7 @@ type UpdateList map[string]UpdateDetail
 type Updates struct {
 	UpdateList UpdateList     `json:"update_list"`
 	RepoList   []string       `json:"repository_list,omitempty"`
+	RepoPaths  []string       `json:"repository_paths,omitempty"`
 	ModuleList []ModuleStream `json:"modules_list,omitempty"`
 	Releasever *string        `json:"releasever,omitempty"`
 	Basearch   *string        `json:"basearch,omitempty"`
