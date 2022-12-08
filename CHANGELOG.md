@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.2.1 (2022-12-08)
+### Fix
+* Arch compatibility ([`b18e816`](https://github.com/RedHatInsights/vmaas-lib/commit/b18e816f253edd3dcd580aaf5854024c7b9b3e7d))
+
 ## v0.2.0 (2022-12-08)
 ### Feature
 * **rhui:** Look up updates by repository path ([`044abab`](https://github.com/RedHatInsights/vmaas-lib/commit/044abab43674b1836874cd172ce3187293b57b80))
