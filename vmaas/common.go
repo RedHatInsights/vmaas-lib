@@ -128,7 +128,8 @@ func pkgUpdates(c *Cache, pkgID PkgID, archID ArchID, securityOnly bool, modules
 	// Filter arch compatibility
 	updatedNevraArchID := c.PackageDetails[pkgID].ArchID
 	if updatedNevraArchID != archID {
-		if _, ok := c.ArchCompat[archID]; !ok {
+		compatArchs := c.ArchCompat[archID]
+		if !compatArchs[updatedNevraArchID] {
 			return nil
 		}
 	}
