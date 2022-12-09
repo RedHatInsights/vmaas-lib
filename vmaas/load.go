@@ -354,7 +354,11 @@ func loadPkgDetails(info string) (map[PkgID]PackageDetail, map[Nevra]PkgID, map[
 func loadRepoDetails(info string) ([]RepoID, map[RepoID]RepoDetail, map[string][]RepoID, map[string][]RepoID, map[int][]RepoID) {
 	defer utils.TimeTrack(time.Now(), info)
 
-	rows := getAllRows("repo_detail", "*", "label")
+	rows := getAllRows(
+		"repo_detail",
+		"id,label,name,url,COALESCE(basearch,''),COALESCE(releasever,''),product,product_id,revision,third_party",
+		"label",
+	)
 	id2repoDetail := map[RepoID]RepoDetail{}
 	repoLabel2id := map[string][]RepoID{}
 	repoPath2id := map[string][]RepoID{}

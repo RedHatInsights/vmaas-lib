@@ -63,13 +63,11 @@ func TestGetModules(t *testing.T) {
 }
 
 func TestPassBasearch(t *testing.T) {
-	x8664 := "x86_64"
-	s390 := "s390"
 	c := Cache{
 		RepoDetails: map[RepoID]RepoDetail{
-			1: {Basearch: nil},
-			2: {Basearch: &x8664},
-			3: {Basearch: &s390},
+			1: {},
+			2: {Basearch: "x86_64"},
+			3: {Basearch: "s390"},
 		},
 	}
 
@@ -106,13 +104,11 @@ func TestPassBasearch(t *testing.T) {
 }
 
 func TestPassReleasever(t *testing.T) {
-	el8 := "el8"
-	el9 := "el9"
 	c := Cache{
 		RepoDetails: map[RepoID]RepoDetail{
-			1: {Releasever: nil},
-			2: {Releasever: &el8},
-			3: {Releasever: &el9},
+			1: {},
+			2: {Releasever: "el8"},
+			3: {Releasever: "el9"},
 		},
 	}
 
@@ -156,9 +152,9 @@ func TestGetRepoIDs(t *testing.T) {
 	c := Cache{
 		RepoIDs: []RepoID{1, 2, 3},
 		RepoDetails: map[RepoID]RepoDetail{
-			1: {Releasever: &x8664, Basearch: &el9},
-			2: {Releasever: &x8664, Basearch: &el9},
-			3: {Releasever: &x8664, Basearch: &el9},
+			1: {Releasever: x8664, Basearch: el9},
+			2: {Releasever: x8664, Basearch: el9},
+			3: {Releasever: x8664, Basearch: el9},
 		},
 	}
 
@@ -204,8 +200,8 @@ func TestGetRepoIDs(t *testing.T) {
 	// repository paths
 	c.RepoIDs = append(c.RepoIDs, 4)
 	c.RepoDetails[4] = RepoDetail{
-		Releasever: &x8664,
-		Basearch:   &el9,
+		Releasever: x8664,
+		Basearch:   el9,
 		URL:        "http://example.com/content/dist/rhel/rhui/server/7/7Server/x86_64/os/repodata",
 	}
 	c.RepoPath2IDs = map[string][]RepoID{
@@ -324,16 +320,13 @@ func TestNevraPkgID(t *testing.T) {
 }
 
 func TestPkgReleasevers(t *testing.T) {
-	el7 := "el7"
-	el8 := "el8"
-	el9 := "el9"
 	c := Cache{
 		PkgID2RepoIDs: map[PkgID][]RepoID{1: {1, 2, 3}, 2: {2, 3, 4}},
 		RepoDetails: map[RepoID]RepoDetail{
-			1: {Releasever: nil},
-			2: {Releasever: &el7},
-			3: {Releasever: &el8},
-			4: {Releasever: &el9},
+			1: {},
+			2: {Releasever: "el7"},
+			3: {Releasever: "el8"},
+			4: {Releasever: "el9"},
 		},
 	}
 
@@ -341,7 +334,7 @@ func TestPkgReleasevers(t *testing.T) {
 	assert.Equal(t, map[string]bool{}, res)
 
 	res = pkgReleasevers(&c, 1)
-	assert.Equal(t, map[string]bool{"el7": true, "el8": true}, res)
+	assert.Equal(t, map[string]bool{"": true, "el7": true, "el8": true}, res)
 
 	res = pkgReleasevers(&c, 2)
 	assert.Equal(t, map[string]bool{"el7": true, "el8": true, "el9": true}, res)
@@ -359,9 +352,6 @@ func TestNevraUpdates(t *testing.T) {
 		Version: nevra.Version,
 		Release: nevra.Release,
 	}
-	el7 := "el7"
-	el8 := "el8"
-	el9 := "el9"
 	c := Cache{
 		Updates: map[NameID][]PkgID{1: {1, 2, 3, 4, 5, 6, 7}},
 		PackageDetails: map[PkgID]PackageDetail{
@@ -379,10 +369,10 @@ func TestNevraUpdates(t *testing.T) {
 		UpdatesIndex:   map[NameID]map[EvrID][]int{1: {2: []int{2, 3, 4}}},
 		PkgID2RepoIDs:  map[PkgID][]RepoID{1: {1, 2, 3}, 2: {2, 3, 4}, 3: {3, 4}},
 		RepoDetails: map[RepoID]RepoDetail{
-			1: {Releasever: nil},
-			2: {Releasever: &el7},
-			3: {Releasever: &el8},
-			4: {Releasever: &el9},
+			1: {},
+			2: {Releasever: "el7"},
+			3: {Releasever: "el8"},
+			4: {Releasever: "el9"},
 		},
 	}
 
@@ -448,11 +438,10 @@ func TestBuildNevra(t *testing.T) {
 }
 
 func TestIsRepoValid(t *testing.T) {
-	el9 := "el9"
 	c := Cache{
 		RepoDetails: map[RepoID]RepoDetail{
-			1: {Releasever: nil},
-			2: {Releasever: &el9},
+			1: {},
+			2: {Releasever: "el9"},
 		},
 	}
 
@@ -479,15 +468,12 @@ func TestIsRepoValid(t *testing.T) {
 }
 
 func TestFilterRepositories(t *testing.T) {
-	el7 := "el7"
-	el8 := "el8"
-	el9 := "el9"
 	c := Cache{
 		RepoDetails: map[RepoID]RepoDetail{
-			1: {Releasever: nil},
-			2: {Releasever: &el7},
-			3: {Releasever: &el8},
-			4: {Releasever: &el9},
+			1: {},
+			2: {Releasever: "el7"},
+			3: {Releasever: "el8"},
+			4: {Releasever: "el9"},
 		},
 		ErrataID2RepoIDs: map[ErrataID][]RepoID{
 			1: {1, 2},

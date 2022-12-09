@@ -39,11 +39,11 @@ type Request struct {
 }
 
 type Update struct {
-	Package    string  `json:"package"`
-	Erratum    string  `json:"erratum"`
-	Repository string  `json:"repository"`
-	Basearch   *string `json:"basearch"`
-	Releasever *string `json:"releasever"`
+	Package    string `json:"package"`
+	Erratum    string `json:"erratum"`
+	Repository string `json:"repository"`
+	Basearch   string `json:"basearch"`
+	Releasever string `json:"releasever"`
 }
 
 type UpdateDetail struct {
@@ -112,8 +112,8 @@ type RepoDetail struct {
 	Label      string
 	Name       string
 	URL        string
-	Basearch   *string
-	Releasever *string
+	Basearch   string
+	Releasever string
 	Product    string
 	ProductID  int
 	Revision   *string

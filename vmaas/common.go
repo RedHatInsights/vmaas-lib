@@ -235,7 +235,7 @@ func isRepoValid(c *Cache, repoID RepoID, releasevers map[string]bool) bool {
 		return ok
 	}
 	repoDetail := c.RepoDetails[repoID]
-	return repoDetail.Releasever != nil && releasevers[*repoDetail.Releasever]
+	return releasevers[repoDetail.Releasever]
 }
 
 func buildNevra(c *Cache, pkgID PkgID) utils.Nevra {
@@ -304,9 +304,7 @@ func pkgReleasevers(c *Cache, pkgID PkgID) map[string]bool {
 	releasevers := make(map[string]bool)
 	for _, rid := range repoIDs {
 		relVer := c.RepoDetails[rid].Releasever
-		if relVer != nil {
-			releasevers[*relVer] = true
-		}
+		releasevers[relVer] = true
 	}
 	return releasevers
 }
@@ -424,8 +422,7 @@ func passReleasever(c *Cache, releasever *string, repoID RepoID) bool {
 	if releasever == nil {
 		return true
 	}
-	return (detail.Releasever == nil && strings.Contains(detail.URL, *releasever)) ||
-		(detail.Releasever != nil && *detail.Releasever == *releasever)
+	return (detail.Releasever == "" && strings.Contains(detail.URL, *releasever)) || detail.Releasever == *releasever
 }
 
 func passBasearch(c *Cache, basearch *string, repoID RepoID) bool {
@@ -436,8 +433,7 @@ func passBasearch(c *Cache, basearch *string, repoID RepoID) bool {
 	if basearch == nil {
 		return true
 	}
-	return (detail.Basearch == nil && strings.Contains(detail.URL, *basearch)) ||
-		(detail.Basearch != nil && *detail.Basearch == *basearch)
+	return (detail.Basearch == "" && strings.Contains(detail.URL, *basearch)) || detail.Basearch == *basearch
 }
 
 func getModules(c *Cache, modules []ModuleStream) map[int]bool {
