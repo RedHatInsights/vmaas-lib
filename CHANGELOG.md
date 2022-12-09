@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.2.2 (2022-12-09)
+### Fix
+* Updates when releasever in repo is empty ([`3ec8712`](https://github.com/RedHatInsights/vmaas-lib/commit/3ec8712cdaa5638902ee1d2b6aecf31b3c3de0a8))
+
 ## v0.2.1 (2022-12-08)
 ### Fix
 * Arch compatibility ([`b18e816`](https://github.com/RedHatInsights/vmaas-lib/commit/b18e816f253edd3dcd580aaf5854024c7b9b3e7d))
