@@ -5,7 +5,7 @@
 # --------------------------------------------
 APP_NAME="vulnerability"  # name of app-sre "application" folder this component lives in
 COMPONENT_NAME="vmaas"  # name of app-sre "resourceTemplate" in deploy.yaml for this component
-IMAGE="quay.io/cloudservices/vmaas-lib"  
+IMAGE="quay.io/cloudservices/vmaas-app"  
 COMPONENTS="vmaas"
 COMPONENTS_W_RESOURCES="vmaas"
 CACHE_FROM_LATEST_IMAGE="true"
@@ -113,6 +113,7 @@ else
     CICD_URL=https://raw.githubusercontent.com/RedHatInsights/bonfire/master/cicd
     curl -s $CICD_URL/bootstrap.sh > .cicd_bootstrap.sh && source .cicd_bootstrap.sh
     echo "creating PR image"
+    export IMAGE_TAG="vmaas-lib-$IMAGE_TAG"
     build_image
 fi
 
@@ -122,7 +123,10 @@ if [[ $exit_code == 0 ]]; then
         exit_code=2
     else
         echo "deploying to ephemeral"
+        orig_commit=$GIT_COMMIT
+        export GIT_COMMIT=master
         deploy_ephemeral
+        export GIT_COMMIT=$orig_commit
         if check_for_labels "skip-tests"; then
             echo "PR smoke tests skipped"
             exit_code=3
