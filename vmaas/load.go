@@ -351,7 +351,9 @@ func loadPkgDetails(info string) (map[PkgID]PackageDetail, map[Nevra]PkgID, map[
 	return id2pkdDetail, nevra2id, srcPkgID2PkgID
 }
 
-func loadRepoDetails(info string) ([]RepoID, map[RepoID]RepoDetail, map[string][]RepoID, map[string][]RepoID, map[int][]RepoID) {
+func loadRepoDetails(info string) (
+	[]RepoID, map[RepoID]RepoDetail, map[string][]RepoID, map[string][]RepoID, map[int][]RepoID,
+) {
 	defer utils.TimeTrack(time.Now(), info)
 
 	rows := getAllRows(
