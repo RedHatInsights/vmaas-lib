@@ -1,8 +1,7 @@
 name: golangci-lint
 on:
   pull_request:
-permissions:
-  contents: read
+
 jobs:
   golangci:
     name: lint
@@ -12,6 +11,7 @@ jobs:
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
+      - run: sudo apt install -y librpm-dev rpm
       - uses: actions/setup-go@v3
         with:
           go-version: ${{ matrix.go }}
