@@ -62,32 +62,31 @@ func TestGetModules(t *testing.T) {
 	assert.Equal(t, map[int]bool{1: true, 2: true}, res)
 }
 
-func TestPassBasearch(t *testing.T) {
+func testReleaseverBasearch(t *testing.T, f func(*Cache, *string, RepoID) bool, input string) {
 	c := Cache{
 		RepoDetails: map[RepoID]RepoDetail{
 			1: {},
-			2: {Basearch: "x86_64"},
-			3: {Basearch: "s390"},
+			2: {Basearch: "x86_64", Releasever: "el8"},
+			3: {Basearch: "s390", Releasever: "el9"},
 		},
 	}
 
-	// nil baserarch, return input repos
-	res := passBasearch(&c, nil, 0)
+	// nil basearch/releasever, return input repos
+	res := f(&c, nil, 0)
 	assert.False(t, res)
-	res = passBasearch(&c, nil, 1)
+	res = f(&c, nil, 1)
 	assert.True(t, res)
 
-	// filter by basearch
-	x8664input := "x86_64" // use new variable to make sure we are not comparing pointers in function
+	// filter by basearch/releasever
 	// repoID=0
-	res = passBasearch(&c, &x8664input, 0)
+	res = f(&c, &input, 0)
 	assert.False(t, res)
 
 	// repos = {1,2,3}
 	// filtered = {2}
 	repos := []RepoID{1, 2, 3}
 	for _, r := range repos {
-		res = passBasearch(&c, &x8664input, r)
+		res = f(&c, &input, r)
 		if r == 2 {
 			assert.True(t, res)
 		} else {
@@ -96,54 +95,22 @@ func TestPassBasearch(t *testing.T) {
 	}
 
 	// repo id which is not in cache
-	res = passBasearch(&c, &x8664input, 99)
+	res = f(&c, &input, 99)
 	assert.False(t, res)
 
-	res = passBasearch(&c, nil, 99)
+	res = f(&c, nil, 99)
 	assert.False(t, res)
+}
+
+func TestPassBasearch(t *testing.T) {
+	testReleaseverBasearch(t, passBasearch, "x86_64")
 }
 
 func TestPassReleasever(t *testing.T) {
-	c := Cache{
-		RepoDetails: map[RepoID]RepoDetail{
-			1: {},
-			2: {Releasever: "el8"},
-			3: {Releasever: "el9"},
-		},
-	}
-
-	// nil releasever, return input repos
-	res := passReleasever(&c, nil, 0)
-	assert.False(t, res)
-	res = passReleasever(&c, nil, 1)
-	assert.True(t, res)
-
-	// filter by Releasever
-	el8input := "el8" // use new variable to make sure we are not comparing pointers in function
-	// repoID=0
-	res = passReleasever(&c, &el8input, 0)
-	assert.False(t, res)
-
-	// repos = {1,2,3}
-	// filtered = {2}
-	repos := []RepoID{1, 2, 3}
-	for _, r := range repos {
-		res = passReleasever(&c, &el8input, r)
-		if r == 2 {
-			assert.True(t, res)
-		} else {
-			assert.False(t, res)
-		}
-	}
-
-	// repo id which is not in cache
-	res = passReleasever(&c, &el8input, 99)
-	assert.False(t, res)
-
-	res = passReleasever(&c, nil, 99)
-	assert.False(t, res)
+	testReleaseverBasearch(t, passReleasever, "el8")
 }
 
+//nolint:funlen
 func TestGetRepoIDs(t *testing.T) {
 	updates := Updates{}
 	x8664 := "x86_64"
@@ -434,7 +401,6 @@ func TestBuildNevra(t *testing.T) {
 		Arch:    "x86_64",
 	}
 	assert.Equal(t, nevra, res)
-
 }
 
 func TestIsRepoValid(t *testing.T) {
