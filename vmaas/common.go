@@ -79,7 +79,7 @@ func processInputPackages(c *Cache, request *Request) (map[string]utils.Nevra, U
 }
 
 func processUpdates(c *Cache, updateList UpdateList, packages map[string]utils.Nevra,
-	repoIDs []RepoID, moduleIDs map[int]bool, r *Request,
+	repoIDs map[RepoID]bool, moduleIDs map[int]bool, r *Request,
 ) UpdateList {
 	for pkg, nevra := range packages {
 		updateList[pkg] = processPackagesUpdates(c, nevra, repoIDs, moduleIDs, r)
@@ -87,7 +87,7 @@ func processUpdates(c *Cache, updateList UpdateList, packages map[string]utils.N
 	return updateList
 }
 
-func processPackagesUpdates(c *Cache, nevra utils.Nevra, repoIDs []RepoID, moduleIDs map[int]bool, r *Request,
+func processPackagesUpdates(c *Cache, nevra utils.Nevra, repoIDs map[RepoID]bool, moduleIDs map[int]bool, r *Request,
 ) UpdateDetail {
 	updateDetail := UpdateDetail{}
 	nevraIDs := extractNevraIDs(c, &nevra)
@@ -106,23 +106,22 @@ func processPackagesUpdates(c *Cache, nevra utils.Nevra, repoIDs []RepoID, modul
 	}
 
 	for _, u := range updatePkgIDs {
-		updates := pkgUpdates(c, u, nevraIDs.ArchID, r.SecurityOnly, moduleIDs,
+		updateDetail.updatePkgUpdates(c, u, nevraIDs.ArchID, r.SecurityOnly, moduleIDs,
 			repoIDs, validReleasevers, r.ThirdParty)
-		updateDetail.AvailableUpdates = append(updateDetail.AvailableUpdates, updates...)
 	}
 	return updateDetail
 }
 
-func pkgUpdates(c *Cache, pkgID PkgID, archID ArchID, securityOnly bool, modules map[int]bool,
-	repoIDs []RepoID, releasevers map[string]bool, thirdparty bool,
-) []Update {
+func (u *UpdateDetail) updatePkgUpdates(c *Cache, pkgID PkgID, archID ArchID, securityOnly bool, modules map[int]bool,
+	repoIDs map[RepoID]bool, releasevers map[string]bool, thirdparty bool,
+) {
 	if archID == 0 {
-		return nil
+		return
 	}
 
 	// Filter out packages without errata
 	if _, ok := c.PkgID2ErrataIDs[pkgID]; !ok {
-		return nil
+		return
 	}
 
 	// Filter arch compatibility
@@ -130,35 +129,32 @@ func pkgUpdates(c *Cache, pkgID PkgID, archID ArchID, securityOnly bool, modules
 	if updatedNevraArchID != archID {
 		compatArchs := c.ArchCompat[archID]
 		if !compatArchs[updatedNevraArchID] {
-			return nil
+			return
 		}
 	}
 
 	errataIDs := c.PkgID2ErrataIDs[pkgID]
 	nevra := buildNevra(c, pkgID)
-	updates := []Update{}
 	for _, eid := range errataIDs {
-		errataUpdates := pkgErrataUpdates(c, pkgID, eid, modules, repoIDs,
+		u.updatePkgErrataUpdates(c, pkgID, eid, modules, repoIDs,
 			releasevers, nevra, securityOnly, thirdparty)
-		updates = append(updates, errataUpdates...)
 	}
-	return updates
 }
 
-func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErrataID, modules map[int]bool,
-	repoIDs []RepoID, releasevers map[string]bool, nevra utils.Nevra, securityOnly, thirdparty bool,
-) []Update {
+func (u *UpdateDetail) updatePkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErrataID, modules map[int]bool,
+	repoIDs map[RepoID]bool, releasevers map[string]bool, nevra utils.Nevra, securityOnly, thirdparty bool,
+) {
 	erratumName := c.ErrataID2Name[erratumID]
 	erratumDetail := c.ErrataDetail[erratumName]
 
 	// Filter out non-security updates
 	if filterNonSecurity(erratumDetail, securityOnly) {
-		return nil
+		return
 	}
 
 	// If we don't want third party content, and current advisory is third party, skip it
 	if !thirdparty && erratumDetail.ThirdParty {
-		return nil
+		return
 	}
 
 	pkgErrata := PkgErrata{
@@ -176,14 +172,13 @@ func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErrataID, modules map[int
 		}
 	}
 	if len(errataModules) > 0 && !intersects {
-		return nil
+		return
 	}
 
 	repos := filterRepositories(c, pkgID, erratumID, repoIDs, releasevers)
-	updates := make([]Update, 0, len(repos))
 	for _, r := range repos {
 		details := c.RepoDetails[r]
-		updates = append(updates, Update{
+		u.AvailableUpdates = append(u.AvailableUpdates, Update{
 			Package:    nevra.String(),
 			Erratum:    erratumName,
 			Repository: details.Label,
@@ -191,7 +186,6 @@ func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErrataID, modules map[int
 			Releasever: details.Releasever,
 		})
 	}
-	return updates
 }
 
 // Decide whether the errata should be filtered base on 'security only' rule
@@ -203,29 +197,18 @@ func filterNonSecurity(errataDetail ErrataDetail, securityOnly bool) bool {
 	return !isSecurity
 }
 
-func filterRepositories(c *Cache, pkgID PkgID, erratumID ErrataID, repoIDs []RepoID,
+func filterRepositories(c *Cache, pkgID PkgID, erratumID ErrataID, repoIDs map[RepoID]bool,
 	releasevers map[string]bool,
 ) []RepoID {
-	errataRepoIDs := make(map[RepoID]bool)
-	errataRepos := c.ErrataID2RepoIDs[erratumID]
-	for _, er := range errataRepos {
-		errataRepoIDs[er] = true
-	}
-
-	result := make([]RepoID, 0, len(repoIDs))
-	pkgRepoIDs := make(map[RepoID]bool)
 	pkgRepos := c.PkgID2RepoIDs[pkgID]
+	errataRepos := c.ErrataID2RepoIDs[erratumID]
+	result := []RepoID{}
 	for _, rid := range pkgRepos {
-		pkgRepoIDs[rid] = true
-	}
-
-	for _, rid := range repoIDs {
-		if pkgRepoIDs[rid] && errataRepoIDs[rid] {
-			if isRepoValid(c, rid, releasevers) {
-				result = append(result, rid)
-			}
+		if errataRepos[rid] && repoIDs[rid] && isRepoValid(c, rid, releasevers) {
+			result = append(result, rid)
 		}
 	}
+
 	return result
 }
 
@@ -374,23 +357,20 @@ func filterPkgList(pkgs []string, latestOnly bool) []string {
 	return filtered
 }
 
-func getRepoIDs(c *Cache, u *Updates) []RepoID {
-	tmp := make(map[RepoID]bool, len(u.RepoList))
-	repoIDs := make([]RepoID, 0, len(u.RepoList))
+func getRepoIDs(c *Cache, u *Updates) map[RepoID]bool {
+	res := make(map[RepoID]bool, len(u.RepoList))
 	if len(u.RepoList) == 0 && len(u.RepoPaths) == 0 {
-		if u.Releasever == nil && u.Basearch == nil {
-			return c.RepoIDs
-		}
 		for _, r := range c.RepoIDs {
-			repoIDs = appendRepoIDs(c, u, repoIDs, r)
+			if passReleasever(c, u.Releasever, r) && passBasearch(c, u.Basearch, r) {
+				res[r] = true
+			}
 		}
 	}
 	for _, label := range u.RepoList {
 		repoIDsCache := c.RepoLabel2IDs[label]
 		for _, r := range repoIDsCache {
-			if !tmp[r] {
-				repoIDs = appendRepoIDs(c, u, repoIDs, r)
-				tmp[r] = true
+			if !res[r] && passReleasever(c, u.Releasever, r) && passBasearch(c, u.Basearch, r) {
+				res[r] = true
 			}
 		}
 	}
@@ -398,20 +378,12 @@ func getRepoIDs(c *Cache, u *Updates) []RepoID {
 		path = strings.TrimSuffix(path, "/")
 		repoIDsCache := c.RepoPath2IDs[path]
 		for _, r := range repoIDsCache {
-			if !tmp[r] {
-				repoIDs = appendRepoIDs(c, u, repoIDs, r)
-				tmp[r] = true
+			if !res[r] && passReleasever(c, u.Releasever, r) && passBasearch(c, u.Basearch, r) {
+				res[r] = true
 			}
 		}
 	}
-	return repoIDs
-}
-
-func appendRepoIDs(c *Cache, u *Updates, repoIDs []RepoID, repo RepoID) []RepoID {
-	if passReleasever(c, u.Releasever, repo) && passBasearch(c, u.Basearch, repo) {
-		repoIDs = append(repoIDs, repo)
-	}
-	return repoIDs
+	return res
 }
 
 func passReleasever(c *Cache, releasever *string, repoID RepoID) bool {

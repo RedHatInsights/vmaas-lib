@@ -33,7 +33,7 @@ type Cache struct {
 
 	ErrataID2Name    map[ErrataID]string
 	PkgID2ErrataIDs  map[PkgID][]ErrataID
-	ErrataID2RepoIDs map[ErrataID][]RepoID
+	ErrataID2RepoIDs map[ErrataID]map[RepoID]bool
 
 	CveDetail map[string]CveDetail
 	CveNames  map[int]string
