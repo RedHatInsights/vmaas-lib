@@ -185,13 +185,13 @@ func TestGetRepoIDs(t *testing.T) {
 	// invalid label
 	updates.RepoList = []string{"invalid"}
 	res = getRepoIDs(&c, &updates)
-	assert.Equal(t, []RepoID{}, res)
+	assert.Equal(t, 0, len(res))
 
 	updates.Basearch = nil
 	updates.Releasever = nil
 	updates.RepoList = []string{"invalid"}
 	res = getRepoIDs(&c, &updates)
-	assert.Equal(t, []RepoID{}, res)
+	assert.Equal(t, 0, len(res))
 }
 
 func TestFilterPkgList(t *testing.T) {
@@ -441,9 +441,9 @@ func TestFilterRepositories(t *testing.T) {
 			3: {Releasever: "el8"},
 			4: {Releasever: "el9"},
 		},
-		ErrataID2RepoIDs: map[ErrataID][]RepoID{
-			1: {1, 2},
-			2: {2, 3, 4},
+		ErrataID2RepoIDs: map[ErrataID]map[RepoID]bool{
+			1: {1: true, 2: true},
+			2: {2: true, 3: true, 4: true},
 		},
 		PkgID2RepoIDs: map[PkgID][]RepoID{
 			1: {1, 2},
@@ -451,9 +451,9 @@ func TestFilterRepositories(t *testing.T) {
 		},
 	}
 
-	repos := []RepoID{1, 2, 3, 4}
+	repos := map[RepoID]bool{1: true, 2: true, 3: true, 4: true}
 	releasevers := map[string]bool{"el7": true, "el9": true}
-	res := filterRepositories(&c, 0, 0, []RepoID{}, nil)
+	res := filterRepositories(&c, 0, 0, map[RepoID]bool{}, nil)
 	assert.Equal(t, 0, len(res))
 
 	res = filterRepositories(&c, 1, 1, repos, releasevers)

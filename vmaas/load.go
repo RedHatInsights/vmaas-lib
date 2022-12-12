@@ -92,15 +92,29 @@ func loadCache(path string) (*Cache, error) {
 	return &c, nil
 }
 
-func loadErrataRepoIDs() map[ErrataID][]RepoID {
-	res := make(map[ErrataID][]RepoID)
-	for k, v := range loadInt2Ints("errata_repo", "errata_id,repo_id", "ErrataID2RepoIDs") {
-		id := ErrataID(k)
-		for _, i := range v {
-			res[id] = append(res[id], RepoID(i))
-		}
+func loadErrataRepoIDs() map[ErrataID]map[RepoID]bool {
+	defer utils.TimeTrack(time.Now(), "ErrataID2RepoIDs")
+
+	type ErrataRepo struct {
+		ErrataID ErrataID
+		RepoID   RepoID
 	}
-	return res
+	r := ErrataRepo{}
+	m := make(map[ErrataID]map[RepoID]bool)
+	rows := getAllRows("errata_repo", "errata_id,repo_id", "errata_id,repo_id")
+
+	for rows.Next() {
+		if err := rows.Scan(&r.ErrataID, &r.RepoID); err != nil {
+			panic(err)
+		}
+		errataMap := m[r.ErrataID]
+		if errataMap == nil {
+			errataMap = map[RepoID]bool{}
+		}
+		errataMap[r.RepoID] = true
+		m[r.ErrataID] = errataMap
+	}
+	return m
 }
 
 func LoadPkgErratas() map[PkgID][]ErrataID {
