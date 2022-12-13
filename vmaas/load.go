@@ -863,21 +863,32 @@ func loadOvalCriteriaDependency(info string) (map[CriteriaID][]CriteriaID, map[C
 	}
 
 	r := OvalCriteriaDep{}
-	criteriaID2DepCriteriaIDs := make(map[CriteriaID][]CriteriaID)
-	criteriaID2DepTestIDs := make(map[CriteriaID][]TestID)
-	criteriaID2DepModuleTestIDs := make(map[CriteriaID][]ModuleTestID)
+
+	cnt := 0
+	rows, err := sqlDB.Query("SELECT count(DISTINCT parent_criteria_id) FROM oval_criteria_dependency")
+	if err != nil {
+		panic(err)
+	}
+	for rows.Next() {
+		if err := rows.Scan(&cnt); err != nil {
+			panic(err)
+		}
+	}
+	criteriaID2DepCriteriaIDs := make(map[CriteriaID][]CriteriaID, cnt)
+	criteriaID2DepTestIDs := make(map[CriteriaID][]TestID, cnt)
+	criteriaID2DepModuleTestIDs := make(map[CriteriaID][]ModuleTestID, cnt)
 
 	cols := "parent_criteria_id,COALESCE(dep_criteria_id, 0),COALESCE(dep_test_id, 0),COALESCE(dep_module_test_id, 0)"
-	rows := getAllRows("oval_criteria_dependency", cols, cols)
+	rows = getAllRows("oval_criteria_dependency", cols, cols)
 
 	for rows.Next() {
 		if err := rows.Scan(&r.ParentCriteriaID, &r.DepCriteriaID, &r.DepTestID, &r.DepModuleTestID); err != nil {
 			panic(err)
 		}
 		if _, ok := criteriaID2DepCriteriaIDs[r.ParentCriteriaID]; !ok {
-			criteriaID2DepCriteriaIDs[r.ParentCriteriaID] = []CriteriaID{}
-			criteriaID2DepTestIDs[r.ParentCriteriaID] = []TestID{}
-			criteriaID2DepModuleTestIDs[r.ParentCriteriaID] = []ModuleTestID{}
+			criteriaID2DepCriteriaIDs[r.ParentCriteriaID] = make([]CriteriaID, 0)
+			criteriaID2DepTestIDs[r.ParentCriteriaID] = make([]TestID, 0)
+			criteriaID2DepModuleTestIDs[r.ParentCriteriaID] = make([]ModuleTestID, 0)
 		}
 		if r.DepCriteriaID != 0 {
 			criteriaID2DepCriteriaIDs[r.ParentCriteriaID] = append(criteriaID2DepCriteriaIDs[r.ParentCriteriaID],
