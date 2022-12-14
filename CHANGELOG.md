@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v0.2.3 (2022-12-14)
+### Fix
+* Use nevra pointer for receiver ([`e0d8a9f`](https://github.com/RedHatInsights/vmaas-lib/commit/e0d8a9f00970cf12720f3eb1d979a3d09bdada55))
+* Close db after cache read ([`a9486e3`](https://github.com/RedHatInsights/vmaas-lib/commit/a9486e36ff8a31d5810c68511fb6b4453053e376))
+* Optimize oval load ([`b6d7e01`](https://github.com/RedHatInsights/vmaas-lib/commit/b6d7e01ddc98e4d346ed4f8c58941252a8a25738))
+* Reduce number of allocations ([`38d1be5`](https://github.com/RedHatInsights/vmaas-lib/commit/38d1be54de528b014ce8a9c1c3f30a8a8f5a3258))
+
 ## v0.2.2 (2022-12-09)
 ### Fix
 * Updates when releasever in repo is empty ([`3ec8712`](https://github.com/RedHatInsights/vmaas-lib/commit/3ec8712cdaa5638902ee1d2b6aecf31b3c3de0a8))
