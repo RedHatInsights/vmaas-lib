@@ -35,6 +35,14 @@ func openDB(path string) error {
 	return nil
 }
 
+func closeDB() {
+	if err := sqlDB.Close(); err != nil {
+		utils.Log("err", err.Error()).Warn("Could not close DB")
+	}
+	sqlDB = nil
+	db = nil
+}
+
 // Make sure only one load at a time is performed
 func loadCache(path string) (*Cache, error) {
 	lock.Lock()
@@ -43,6 +51,8 @@ func loadCache(path string) (*Cache, error) {
 	if err := openDB(path); err != nil {
 		return nil, err
 	}
+	defer closeDB()
+
 	c := Cache{}
 	c.ID2Packagename, c.Packagename2ID = loadPkgNames()
 	c.Updates = loadUpdates()
