@@ -74,40 +74,40 @@ func ParseNameEVRA(name, evra string) (Nevra, error) {
 	return ParseNevra(fmt.Sprintf("%s-%s", name, evra))
 }
 
-func (n Nevra) StringE(showEpoch bool) string {
+func (n *Nevra) StringE(showEpoch bool) string {
 	if n.Epoch != 0 || showEpoch {
 		return fmt.Sprintf("%s-%d:%s-%s.%s", n.Name, n.Epoch, n.Version, n.Release, n.Arch)
 	}
 	return fmt.Sprintf("%s-%s-%s.%s", n.Name, n.Version, n.Release, n.Arch)
 }
 
-func (n Nevra) String() string {
+func (n *Nevra) String() string {
 	return n.StringE(false)
 }
 
-func (n Nevra) EVRStringE(showEpoch bool) string {
+func (n *Nevra) EVRStringE(showEpoch bool) string {
 	if n.Epoch != 0 || showEpoch {
 		return fmt.Sprintf("%d:%s-%s", n.Epoch, n.Version, n.Release)
 	}
 	return fmt.Sprintf("%s-%s", n.Version, n.Release)
 }
 
-func (n Nevra) EVRString() string {
+func (n *Nevra) EVRString() string {
 	return n.EVRStringE(false)
 }
 
-func (n Nevra) EVRAStringE(showEpoch bool) string {
+func (n *Nevra) EVRAStringE(showEpoch bool) string {
 	if n.Epoch != 0 || showEpoch {
 		return fmt.Sprintf("%d:%s-%s.%s", n.Epoch, n.Version, n.Release, n.Arch)
 	}
 	return fmt.Sprintf("%s-%s.%s", n.Version, n.Release, n.Arch)
 }
 
-func (n Nevra) EVRAString() string {
+func (n *Nevra) EVRAString() string {
 	return n.EVRAStringE(false)
 }
 
-func (n Nevra) EVRACmp(other *Nevra) int {
+func (n *Nevra) EVRACmp(other *Nevra) int {
 	ret := n.EVRCmp(other)
 	if ret == 0 {
 		ret = strings.Compare(n.Arch, other.Arch)
@@ -115,7 +115,7 @@ func (n Nevra) EVRACmp(other *Nevra) int {
 	return ret
 }
 
-func (n Nevra) EVRCmp(other *Nevra) int {
+func (n *Nevra) EVRCmp(other *Nevra) int {
 	evr := Evr{
 		Epoch:   other.Epoch,
 		Version: other.Version,
@@ -124,14 +124,14 @@ func (n Nevra) EVRCmp(other *Nevra) int {
 	return n.NevraCmpEvr(evr)
 }
 
-func (n Nevra) NevraCmpEvr(other Evr) int {
+func (n *Nevra) NevraCmpEvr(other Evr) int {
 	return rpm.LabelCompare(
 		&rpm.EVR{Epoch: fmt.Sprint(n.Epoch), Version: n.Version, Release: n.Release},
 		&rpm.EVR{Epoch: fmt.Sprint(other.Epoch), Version: other.Version, Release: other.Release},
 	)
 }
 
-func (n Nevra) Cmp(other *Nevra) int {
+func (n *Nevra) Cmp(other *Nevra) int {
 	ret := strings.Compare(n.Name, other.Name)
 	if ret != 0 {
 		return ret
