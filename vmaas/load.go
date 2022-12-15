@@ -110,7 +110,8 @@ func loadErrataRepoIDs() map[ErrataID]map[RepoID]bool {
 		RepoID   RepoID
 	}
 	r := ErrataRepo{}
-	m := make(map[ErrataID]map[RepoID]bool)
+	cnt := getCount("errata_repo", "errata_id", "errata_id,repo_id")
+	m := make(map[ErrataID]map[RepoID]bool, cnt)
 	rows := getAllRows("errata_repo", "errata_id,repo_id", "errata_id,repo_id")
 
 	for rows.Next() {
@@ -128,7 +129,8 @@ func loadErrataRepoIDs() map[ErrataID]map[RepoID]bool {
 }
 
 func LoadPkgErratas() map[PkgID][]ErrataID {
-	pkgToErrata := make(map[PkgID][]ErrataID)
+	cnt := getCount("pkg_errata", "pkg_id", "pkg_id,errata_id")
+	pkgToErrata := make(map[PkgID][]ErrataID, cnt)
 	for k, v := range loadInt2Ints("pkg_errata", "pkg_id,errata_id", "PkgID2ErrataIDs") {
 		id := PkgID(k)
 		for _, i := range v {
@@ -142,10 +144,12 @@ func LoadPkgErratas() map[PkgID][]ErrataID {
 func loadPkgRepos() map[PkgID][]RepoID {
 	defer utils.TimeTrack(time.Now(), "PkgRepos")
 
-	res := map[PkgID][]RepoID{}
+	nPkg := getCount("pkg_repo", "pkg_id", "pkg_id")
+	res := make(map[PkgID][]RepoID, nPkg)
+	var n PkgID
+	var p RepoID
+
 	doForRows("select pkg_id, repo_id from pkg_repo", func(row *sql.Rows) {
-		var n PkgID
-		var p RepoID
 		err := row.Scan(&n, &p)
 		if err != nil {
 			panic(err)
@@ -164,8 +168,10 @@ func loadPkgNames() (map[NameID]string, map[string]NameID) {
 	}
 
 	r := PkgName{}
-	id2name := map[NameID]string{}
-	name2id := map[string]NameID{}
+	cntID := getCount("packagename", "id", "id")
+	cntName := getCount("packagename", "packagename", "id")
+	id2name := make(map[NameID]string, cntID)
+	name2id := make(map[string]NameID, cntName)
 	rows := getAllRows("packagename", "id,packagename", "id")
 
 	for rows.Next() {
@@ -181,10 +187,11 @@ func loadPkgNames() (map[NameID]string, map[string]NameID) {
 func loadUpdates() map[NameID][]PkgID {
 	defer utils.TimeTrack(time.Now(), "Updates")
 
-	res := map[NameID][]PkgID{}
+	cnt := getCount("updates", "name_id", "package_order")
+	res := make(map[NameID][]PkgID, cnt)
+	var n NameID
+	var p PkgID
 	doForRows("select name_id, package_id from updates order by package_order", func(row *sql.Rows) {
-		var n NameID
-		var p PkgID
 		err := row.Scan(&n, &p)
 		if err != nil {
 			panic(err)
@@ -196,11 +203,12 @@ func loadUpdates() map[NameID][]PkgID {
 
 func loadUpdatesIndex() map[NameID]map[EvrID][]int {
 	defer utils.TimeTrack(time.Now(), "Updates index")
-	res := map[NameID]map[EvrID][]int{}
+	cnt := getCount("updates_index", "name_id", "package_order")
+	res := make(map[NameID]map[EvrID][]int, cnt)
+	var n NameID
+	var e EvrID
+	var o int
 	doForRows("select name_id, evr_id, package_order from updates_index order by package_order", func(row *sql.Rows) {
-		var n NameID
-		var e EvrID
-		var o int
 		err := row.Scan(&n, &e, &o)
 		if err != nil {
 			panic(err)
@@ -213,6 +221,14 @@ func loadUpdatesIndex() map[NameID]map[EvrID][]int {
 		res[n] = nmap
 	})
 	return res
+}
+
+func getCount(tableName, col, orderBy string) (cnt int) {
+	row := sqlDB.QueryRow(fmt.Sprintf("select count(distinct %s) from %s order by %s", col, tableName, orderBy))
+	if err := row.Scan(&cnt); err != nil {
+		panic(err)
+	}
+	return cnt
 }
 
 func getAllRows(tableName, cols, orderBy string) *sql.Rows {
@@ -240,8 +256,8 @@ func loadIntArray(tableName, col, orderBy string) []int {
 	defer rows.Close()
 
 	var arr []int
+	var num int
 	for rows.Next() {
-		var num int
 		err := rows.Scan(&num)
 		if err != nil {
 			panic(err)
@@ -257,8 +273,8 @@ func loadStrArray(tableName, col, orderBy string) []string {
 	defer rows.Close()
 
 	var arr []string
+	var val string
 	for rows.Next() {
-		var val string
 		err := rows.Scan(&val)
 		if err != nil {
 			panic(err)
@@ -278,7 +294,8 @@ func loadEvrMaps() (map[EvrID]utils.Evr, map[utils.Evr]EvrID) {
 	}
 
 	r := IDEvr{}
-	id2evr := map[EvrID]utils.Evr{}
+	cnt := getCount("evr", "id", "id")
+	id2evr := make(map[EvrID]utils.Evr, cnt)
 	evr2id := map[utils.Evr]EvrID{}
 	rows := getAllRows("evr", "id,epoch,version,release", "id")
 
@@ -301,8 +318,10 @@ func loadArchs() (map[ArchID]string, map[string]ArchID) {
 		Arch string
 	}
 	r := Arch{}
-	id2arch := map[ArchID]string{}
-	arch2id := map[string]ArchID{}
+	cntID := getCount("arch", "id", "id")
+	cntArch := getCount("arch", "arch", "id")
+	id2arch := make(map[ArchID]string, cntID)
+	arch2id := make(map[string]ArchID, cntArch)
 	rows := getAllRows("arch", "id,arch", "id")
 
 	for rows.Next() {
@@ -323,7 +342,8 @@ func loadArchCompat() map[ArchID]map[ArchID]bool {
 		ToArchID   ArchID
 	}
 	r := ArchCompat{}
-	m := map[ArchID]map[ArchID]bool{}
+	cnt := getCount("arch_compat", "from_arch_id", "from_arch_id")
+	m := make(map[ArchID]map[ArchID]bool, cnt)
 	rows := getAllRows("arch_compat", "from_arch_id,to_arch_id", "from_arch_id,to_arch_id")
 
 	for rows.Next() {
@@ -344,12 +364,14 @@ func loadPkgDetails(info string) (map[PkgID]PackageDetail, map[Nevra]PkgID, map[
 	defer utils.TimeTrack(time.Now(), info)
 
 	rows := getAllRows("package_detail", "*", "ID")
-	id2pkdDetail := map[PkgID]PackageDetail{}
-	nevra2id := map[Nevra]PkgID{}
-	srcPkgID2PkgID := map[PkgID][]PkgID{}
+	cnt := getCount("package_detail", "id", "id")
+	cntSrc := getCount("package_detail", "source_package_id", "id")
+	id2pkdDetail := make(map[PkgID]PackageDetail, cnt)
+	nevra2id := make(map[Nevra]PkgID, cnt)
+	srcPkgID2PkgID := make(map[PkgID][]PkgID, cntSrc)
+	var pkgID PkgID
+	var det PackageDetail
 	for rows.Next() {
-		var pkgID PkgID
-		var det PackageDetail
 		err := rows.Scan(&pkgID, &det.NameID, &det.EvrID, &det.ArchID, &det.SummaryID, &det.DescriptionID,
 			&det.SrcPkgID, &det.Modified)
 		if err != nil {
@@ -385,15 +407,18 @@ func loadRepoDetails(info string) (
 		"id,label,name,url,COALESCE(basearch,''),COALESCE(releasever,''),product,product_id,revision,third_party",
 		"label",
 	)
-	id2repoDetail := map[RepoID]RepoDetail{}
-	repoLabel2id := map[string][]RepoID{}
-	repoPath2id := map[string][]RepoID{}
-	prodID2RepoIDs := map[int][]RepoID{}
+	cntRepo := getCount("repo_detail", "id", "id")
+	cntLabel := getCount("repo_detail", "label", "id")
+	cntURL := getCount("repo_detail", "url", "id")
+	cntProd := getCount("repo_detail", "product_id", "id")
+	id2repoDetail := make(map[RepoID]RepoDetail, cntRepo)
+	repoLabel2id := make(map[string][]RepoID, cntLabel)
+	repoPath2id := make(map[string][]RepoID, cntURL)
+	prodID2RepoIDs := make(map[int][]RepoID, cntProd)
 	repoIDs := []RepoID{}
+	var repoID RepoID
+	var det RepoDetail
 	for rows.Next() {
-		var repoID RepoID
-		var det RepoDetail
-
 		err := rows.Scan(&repoID, &det.Label, &det.Name, &det.URL, &det.Basearch, &det.Releasever,
 			&det.Product, &det.ProductID, &det.Revision, &det.ThirdParty)
 		if err != nil {
@@ -440,7 +465,8 @@ func loadLabel2ContentSetID(info string) map[string]ContentSetID {
 	}
 
 	r := LabelContent{}
-	label2contentSetID := make(map[string]ContentSetID)
+	cnt := getCount("content_set", "id", "id")
+	label2contentSetID := make(map[string]ContentSetID, cnt)
 	rows := getAllRows("content_set", "id,label", "id")
 
 	for rows.Next() {
@@ -466,10 +492,10 @@ func loadErrata(info string) (map[string]ErrataDetail, map[ErrataID]string) {
 	rows := getAllRows("errata_detail", cols, "ID")
 	errataDetail := map[string]ErrataDetail{}
 	errataID2Name := map[ErrataID]string{}
+	var errataID ErrataID
+	var errataName string
+	var det ErrataDetail
 	for rows.Next() {
-		var errataID ErrataID
-		var errataName string
-		var det ErrataDetail
 		err := rows.Scan(&errataID, &errataName, &det.Synopsis, &det.Summary, &det.Type, &det.Severity,
 			&det.Description, &det.Solution, &det.Issued, &det.Updated, &det.URL, &det.ThirdParty, &det.RequiresReboot)
 		if err != nil {
@@ -516,10 +542,10 @@ func loadCves(info string) (map[string]CveDetail, map[int]string) {
 	rows := getAllRows("cve_detail", "*", "id")
 	cveDetails := map[string]CveDetail{}
 	cveNames := map[int]string{}
+	var cveID int
+	var cveName string
+	var det CveDetail
 	for rows.Next() {
-		var cveID int
-		var cveName string
-		var det CveDetail
 		err := rows.Scan(&cveID, &cveName, &det.RedHatURL, &det.SecondaryURL, &det.Cvss3Score, &det.Cvss3Metrics,
 			&det.Impact, &det.PublishedDate, &det.ModifiedDate, &det.Iava, &det.Description, &det.Cvss2Score,
 			&det.Cvss2Metrics, &det.Source)
@@ -607,9 +633,9 @@ func loadString(info string) map[int]string {
 
 	rows := getAllRows("string", "*", "ID")
 	m := map[int]string{}
+	var id int
+	var str *string
 	for rows.Next() {
-		var id int
-		var str *string
 		err := rows.Scan(&id, &str)
 		if err != nil {
 			panic(err)
@@ -626,8 +652,8 @@ func loadDBChanges(info string) DBChange {
 
 	rows := getAllRows("dbchange", "*", "errata_changes")
 	arr := []DBChange{}
+	var item DBChange
 	for rows.Next() {
-		var item DBChange
 		err := rows.Scan(&item.ErrataChanges, &item.CveChanges, &item.RepoChanges,
 			&item.LastChange, &item.Exported)
 		if err != nil {
@@ -641,11 +667,13 @@ func loadDBChanges(info string) DBChange {
 func loadInt2Ints(table, cols, info string) map[int][]int {
 	defer utils.TimeTrack(time.Now(), info)
 
+	splitted := strings.Split(cols, ",")
+	cnt := getCount(table, splitted[0], cols)
 	rows := getAllRows(table, cols, cols)
-	int2ints := map[int][]int{}
+	int2ints := make(map[int][]int, cnt)
+	var key int
+	var val int
 	for rows.Next() {
-		var key int
-		var val int
 		err := rows.Scan(&key, &val)
 		if err != nil {
 			panic(err)
@@ -663,11 +691,13 @@ func loadInt2Ints(table, cols, info string) map[int][]int {
 func loadInt2Strings(table, cols, info string) map[int][]string {
 	defer utils.TimeTrack(time.Now(), info)
 
+	splitted := strings.Split(cols, ",")
+	cnt := getCount(table, splitted[0], cols)
 	rows := getAllRows(table, cols, cols)
-	int2strs := map[int][]string{}
+	int2strs := make(map[int][]string, cnt)
+	var key int
+	var val string
 	for rows.Next() {
-		var key int
-		var val string
 		err := rows.Scan(&key, &val)
 		if err != nil {
 			panic(err)
@@ -686,11 +716,13 @@ func loadInt2Strings(table, cols, info string) map[int][]string {
 func loadString2Ints(table, cols, info string) map[string][]int {
 	defer utils.TimeTrack(time.Now(), info)
 
+	splitted := strings.Split(cols, ",")
+	cnt := getCount(table, splitted[0], cols)
 	rows := getAllRows(table, cols, cols)
-	int2strs := map[string][]int{}
+	int2strs := make(map[string][]int, cnt)
+	var key string
+	var val int
 	for rows.Next() {
-		var key string
-		var val int
 		err := rows.Scan(&key, &val)
 		if err != nil {
 			panic(err)
@@ -712,9 +744,9 @@ func loadErrataModules() map[int][]Module {
 	rows := getAllRows("errata_module", "*", "errata_id")
 
 	erID2modules := map[int][]Module{}
+	var erID int
+	var mod Module
 	for rows.Next() {
-		var erID int
-		var mod Module
 		err := rows.Scan(&erID, &mod.Name, &mod.StreamID, &mod.Stream, &mod.Version, &mod.Context)
 		if err != nil {
 			panic(err)
@@ -874,22 +906,13 @@ func loadOvalCriteriaDependency(info string) (map[CriteriaID][]CriteriaID, map[C
 
 	r := OvalCriteriaDep{}
 
-	cnt := 0
-	rows, err := sqlDB.Query("SELECT count(DISTINCT parent_criteria_id) FROM oval_criteria_dependency")
-	if err != nil {
-		panic(err)
-	}
-	for rows.Next() {
-		if err := rows.Scan(&cnt); err != nil {
-			panic(err)
-		}
-	}
+	cnt := getCount("oval_criteria_dependency", "parent_criteria_id", "parent_criteria_id")
 	criteriaID2DepCriteriaIDs := make(map[CriteriaID][]CriteriaID, cnt)
 	criteriaID2DepTestIDs := make(map[CriteriaID][]TestID, cnt)
 	criteriaID2DepModuleTestIDs := make(map[CriteriaID][]ModuleTestID, cnt)
 
 	cols := "parent_criteria_id,COALESCE(dep_criteria_id, 0),COALESCE(dep_test_id, 0),COALESCE(dep_module_test_id, 0)"
-	rows = getAllRows("oval_criteria_dependency", cols, cols)
+	rows := getAllRows("oval_criteria_dependency", cols, cols)
 
 	for rows.Next() {
 		if err := rows.Scan(&r.ParentCriteriaID, &r.DepCriteriaID, &r.DepTestID, &r.DepModuleTestID); err != nil {
@@ -925,7 +948,8 @@ func loadOvalCriteriaID2Type(info string) map[CriteriaID]int {
 	}
 
 	r := OvalCriteriaType{}
-	criteriaID2Type := make(map[CriteriaID]int)
+	cnt := getCount("oval_criteria_type", "criteria_id", "criteria_id,type_id")
+	criteriaID2Type := make(map[CriteriaID]int, cnt)
 	cols := "criteria_id,type_id"
 	rows := getAllRows("oval_criteria_type", cols, cols)
 
