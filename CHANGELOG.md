@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.2.4 (2022-12-16)
+### Fix
+* Pre-alloc maps in cache ([`8f4eba6`](https://github.com/RedHatInsights/vmaas-lib/commit/8f4eba6dc2b45fea0b09b07c3f9a9d4f5a196cb7))
+
 ## v0.2.3 (2022-12-14)
 ### Fix
 * Use nevra pointer for receiver ([`e0d8a9f`](https://github.com/RedHatInsights/vmaas-lib/commit/e0d8a9f00970cf12720f3eb1d979a3d09bdada55))
