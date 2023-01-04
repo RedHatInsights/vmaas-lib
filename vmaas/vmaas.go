@@ -79,12 +79,13 @@ func (api *API) PeriodicCacheReload(interval time.Duration, latestDumpEndpoint s
 
 	go func() {
 		for range ticker.C {
+			utils.Log().Debug("TICK TOCK")
 			reloadNeeded, err := api.IsReloadNeeded(latestDumpEndpoint)
 			if err != nil {
 				utils.Log("err", err.Error()).Warn("Error getting latest dump timestamp")
 			}
 			if !reloadNeeded {
-				return
+				continue
 			}
 			utils.Log().Info("Reloading cache")
 			// invalidate cache and manually run GC to free memory
@@ -94,7 +95,7 @@ func (api *API) PeriodicCacheReload(interval time.Duration, latestDumpEndpoint s
 				if err := api.LoadCacheFromURL(url); err != nil {
 					utils.Log("err", err.Error()).Error("Cache reload failed")
 				}
-				return
+				continue
 			}
 			utils.Log("url", url, "filepath", api.path).Warn(
 				"URL not set, loading cache from last known filepath")
@@ -132,6 +133,7 @@ func (api *API) IsReloadNeeded(latestDumpEndpoint string) (bool, error) {
 	}
 
 	if latest.After(exported) {
+		utils.Log("latest", latest, "exported", exported).Debug("Reload needed")
 		return true, nil
 	}
 	utils.Log("latest", latest, "exported", exported).Debug("Reload not needed")
