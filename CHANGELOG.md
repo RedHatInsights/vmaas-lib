@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.2.5 (2023-01-04)
+### Fix
+* Cache reload ([`9a8a676`](https://github.com/RedHatInsights/vmaas-lib/commit/9a8a676485444ce77c3e4d9c2bdae62f343f88c0))
+
 ## v0.2.4 (2022-12-16)
 ### Fix
 * Pre-alloc maps in cache ([`8f4eba6`](https://github.com/RedHatInsights/vmaas-lib/commit/8f4eba6dc2b45fea0b09b07c3f9a9d4f5a196cb7))
