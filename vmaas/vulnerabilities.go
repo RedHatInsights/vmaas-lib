@@ -78,8 +78,13 @@ func evaluate(c *Cache, request *Request) (*VulnerabilitiesCvesDetails, error) {
 
 	// Repositories
 	updates := processed.evaluateRepositories(c)
+	seenErrata := map[string]bool{}
 	for pkg, upDetail := range updates.UpdateList {
 		for _, update := range upDetail.AvailableUpdates {
+			if seenErrata[update.Erratum] {
+				continue
+			}
+			seenErrata[update.Erratum] = true
 			for _, cve := range c.ErrataDetail[update.Erratum].CVEs {
 				updateCves(cves.Cves, cve, pkg, &update.Erratum)
 			}

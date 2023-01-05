@@ -370,8 +370,8 @@ func loadPkgDetails(info string) (map[PkgID]PackageDetail, map[Nevra]PkgID, map[
 	nevra2id := make(map[Nevra]PkgID, cnt)
 	srcPkgID2PkgID := make(map[PkgID][]PkgID, cntSrc)
 	var pkgID PkgID
-	var det PackageDetail
 	for rows.Next() {
+		var det PackageDetail
 		err := rows.Scan(&pkgID, &det.NameID, &det.EvrID, &det.ArchID, &det.SummaryID, &det.DescriptionID,
 			&det.SrcPkgID, &det.Modified)
 		if err != nil {
@@ -417,8 +417,8 @@ func loadRepoDetails(info string) (
 	prodID2RepoIDs := make(map[int][]RepoID, cntProd)
 	repoIDs := []RepoID{}
 	var repoID RepoID
-	var det RepoDetail
 	for rows.Next() {
+		var det RepoDetail
 		err := rows.Scan(&repoID, &det.Label, &det.Name, &det.URL, &det.Basearch, &det.Releasever,
 			&det.Product, &det.ProductID, &det.Revision, &det.ThirdParty)
 		if err != nil {
@@ -494,8 +494,8 @@ func loadErrata(info string) (map[string]ErrataDetail, map[ErrataID]string) {
 	errataID2Name := map[ErrataID]string{}
 	var errataID ErrataID
 	var errataName string
-	var det ErrataDetail
 	for rows.Next() {
+		var det ErrataDetail
 		err := rows.Scan(&errataID, &errataName, &det.Synopsis, &det.Summary, &det.Type, &det.Severity,
 			&det.Description, &det.Solution, &det.Issued, &det.Updated, &det.URL, &det.ThirdParty, &det.RequiresReboot)
 		if err != nil {
@@ -544,8 +544,8 @@ func loadCves(info string) (map[string]CveDetail, map[int]string) {
 	cveNames := map[int]string{}
 	var cveID int
 	var cveName string
-	var det CveDetail
 	for rows.Next() {
+		var det CveDetail
 		err := rows.Scan(&cveID, &cveName, &det.RedHatURL, &det.SecondaryURL, &det.Cvss3Score, &det.Cvss3Metrics,
 			&det.Impact, &det.PublishedDate, &det.ModifiedDate, &det.Iava, &det.Description, &det.Cvss2Score,
 			&det.Cvss2Metrics, &det.Source)
