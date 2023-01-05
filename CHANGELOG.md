@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.2.6 (2023-01-05)
+### Fix
+* Detail load, unnecessary cve iteration ([`a83a6e6`](https://github.com/RedHatInsights/vmaas-lib/commit/a83a6e6895e3a21666c9169e29bf8c369baacc08))
+
 ## v0.2.5 (2023-01-04)
 ### Fix
 * Cache reload ([`9a8a676`](https://github.com/RedHatInsights/vmaas-lib/commit/9a8a676485444ce77c3e4d9c2bdae62f343f88c0))
