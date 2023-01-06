@@ -136,25 +136,26 @@ func (u *UpdateDetail) updatePkgUpdates(c *Cache, pkgID PkgID, archID ArchID, se
 	errataIDs := c.PkgID2ErrataIDs[pkgID]
 	nevra := buildNevra(c, pkgID)
 	for _, eid := range errataIDs {
-		u.updatePkgErrataUpdates(c, pkgID, eid, modules, repoIDs,
+		updates := pkgErrataUpdates(c, pkgID, eid, modules, repoIDs,
 			releasevers, nevra, securityOnly, thirdparty)
+		u.AvailableUpdates = append(u.AvailableUpdates, updates...)
 	}
 }
 
-func (u *UpdateDetail) updatePkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErrataID, modules map[int]bool,
+func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErrataID, modules map[int]bool,
 	repoIDs map[RepoID]bool, releasevers map[string]bool, nevra utils.Nevra, securityOnly, thirdparty bool,
-) {
+) []Update {
 	erratumName := c.ErrataID2Name[erratumID]
 	erratumDetail := c.ErrataDetail[erratumName]
 
 	// Filter out non-security updates
 	if filterNonSecurity(erratumDetail, securityOnly) {
-		return
+		return nil
 	}
 
 	// If we don't want third party content, and current advisory is third party, skip it
 	if !thirdparty && erratumDetail.ThirdParty {
-		return
+		return nil
 	}
 
 	pkgErrata := PkgErrata{
@@ -172,13 +173,14 @@ func (u *UpdateDetail) updatePkgErrataUpdates(c *Cache, pkgID PkgID, erratumID E
 		}
 	}
 	if len(errataModules) > 0 && !intersects {
-		return
+		return nil
 	}
 
 	repos := filterRepositories(c, pkgID, erratumID, repoIDs, releasevers)
+	updates := make([]Update, 0, len(repos))
 	for _, r := range repos {
 		details := c.RepoDetails[r]
-		u.AvailableUpdates = append(u.AvailableUpdates, Update{
+		updates = append(updates, Update{
 			Package:    nevra.String(),
 			Erratum:    erratumName,
 			Repository: details.Label,
@@ -186,6 +188,7 @@ func (u *UpdateDetail) updatePkgErrataUpdates(c *Cache, pkgID PkgID, erratumID E
 			Releasever: details.Releasever,
 		})
 	}
+	return updates
 }
 
 // Decide whether the errata should be filtered base on 'security only' rule
