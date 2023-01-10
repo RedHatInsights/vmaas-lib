@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/redhatinsights/vmaas-lib/vmaas/conf"
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
 
 	"gorm.io/driver/sqlite"
@@ -21,6 +22,16 @@ var (
 	db    *gorm.DB
 	sqlDB *sql.DB
 )
+
+var loadFuncs = []func(c *Cache){
+	loadPkgNames, loadUpdates, loadUpdatesIndex, loadEvrMaps, loadArchs, loadArchCompat, loadPkgDetails,
+	loadRepoDetails, loadLabel2ContentSetID, loadPkgRepos, loadErrata, loadPkgErrata, loadErrataRepoIDs,
+	loadCves, loadPkgErrataModule, loadModule2IDs, loadModuleRequires, loadDBChanges, loadString,
+	// OVAL
+	loadOvalDefinitionDetail, loadOvalDefinitionCves, loadPackagenameID2DefinitionIDs, loadRepoCpes,
+	loadContentSet2Cpes, loadCpeID2DefinitionIDs, loadOvalCriteriaDependency, loadOvalCriteriaID2Type,
+	loadOvalStateID2Arches, loadOvalModuleTestDetail, loadOvalTestDetail, loadOvalTestID2States,
+}
 
 func openDB(path string) error {
 	tmpDB, err := gorm.Open(sqlite.Open(path), &gorm.Config{})
@@ -54,55 +65,26 @@ func loadCache(path string) (*Cache, error) {
 	defer closeDB()
 
 	c := Cache{}
-	c.ID2Packagename, c.Packagename2ID = loadPkgNames()
-	c.Updates = loadUpdates()
-	c.UpdatesIndex = loadUpdatesIndex()
 
-	c.ID2Evr, c.Evr2ID = loadEvrMaps()
-	c.ID2Arch, c.Arch2ID = loadArchs()
-	c.ArchCompat = loadArchCompat()
+	var wg sync.WaitGroup
+	guard := make(chan struct{}, conf.Env.MaxGoroutines)
+	for _, fn := range loadFuncs {
+		wg.Add(1)
+		guard <- struct{}{}
+		go func(fn func(c *Cache)) {
+			fn(&c)
+			<-guard
+			wg.Done()
+		}(fn)
+	}
 
-	c.PackageDetails, c.Nevra2PkgID, c.SrcPkgID2PkgID = loadPkgDetails("PackageDetails, Nevra2PkgID, SrcPkgID2PkgID")
-
-	c.RepoIDs, c.RepoDetails, c.RepoLabel2IDs, c.RepoPath2IDs, c.ProductID2RepoIDs = loadRepoDetails(
-		"RepoIDs, RepoDetails, RepoLabel2IDs, RepoPath2IDs, ProductID2RepoIDs",
-	)
-	c.Label2ContentSetID = loadLabel2ContentSetID("Label2ContentSetID")
-
-	c.PkgID2RepoIDs = loadPkgRepos()
-	c.ErrataDetail, c.ErrataID2Name = loadErrata("ErrataDetail, ErrataID2Name")
-	c.PkgID2ErrataIDs = LoadPkgErratas()
-	c.ErrataID2RepoIDs = loadErrataRepoIDs()
-	c.CveDetail, c.CveNames = loadCves("CveDetail")
-	c.PkgErrata2Module = loadPkgErrataModule("PkgErrata2Module")
-	c.Module2IDs = loadModule2IDs("ModuleName2IDs")
-	c.ModuleRequires = loadModuleRequires("ModuleRequire")
-	c.DBChange = loadDBChanges("DBChange")
-	c.String = loadString("String")
-
-	// OVAL
-	c.OvaldefinitionDetail = loadOvalDefinitionDetail()
-	c.OvaldefinitionID2Cves = loadOvalDefinitionCves("oval_definition_cve")
-	c.PackagenameID2definitionIDs = loadPackagenameID2DefinitionIDs("PackagenameID2definitionIDs")
-	c.RepoID2CpeIDs = loadRepoCpes("RepoID2CpeIDs")
-	c.ContentSetID2CpeIDs = loadContentSet2Cpes("ContentSetID2CpeIDs")
-	c.CpeID2OvalDefinitionIDs = loadCpeID2DefinitionIDs("CpeID2OvalDefinitionIDs")
-	c.OvalCriteriaID2DepCriteriaIDs, c.OvalCriteriaID2DepTestIDs, c.OvalCriteriaID2DepModuleTestIDs = loadOvalCriteriaDependency( //nolint:lll,nolintlint
-		"OvalCriteriaID2DepCriteriaIDs, OvalCriteriaID2DepTestIDs, OvalCriteriaID2DepModuleTestIDs",
-	)
-
-	c.OvalCriteriaID2Type = loadOvalCriteriaID2Type("OvalCriteriaID2Type")
-	c.OvalStateID2Arches = loadOvalStateID2Arches("OvalStateID2Arches")
-	c.OvalModuleTestDetail = loadOvalModuleTestDetail("OvalModuleTestDetail")
-	c.OvalTestDetail = loadOvalTestDetail("OvalTestDetail")
-	c.OvalTestID2States = loadOvalTestID2States("OvalTestID2States")
-
+	wg.Wait()
 	utils.Log("elapsed", time.Since(start)).Info("Cache loaded successfully")
 	lock.Unlock()
 	return &c, nil
 }
 
-func loadErrataRepoIDs() map[ErrataID]map[RepoID]bool {
+func loadErrataRepoIDs(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "ErrataID2RepoIDs")
 
 	type ErrataRepo struct {
@@ -125,10 +107,10 @@ func loadErrataRepoIDs() map[ErrataID]map[RepoID]bool {
 		errataMap[r.RepoID] = true
 		m[r.ErrataID] = errataMap
 	}
-	return m
+	c.ErrataID2RepoIDs = m
 }
 
-func LoadPkgErratas() map[PkgID][]ErrataID {
+func loadPkgErrata(c *Cache) {
 	cnt := getCount("pkg_errata", "pkg_id", "pkg_id,errata_id")
 	pkgToErrata := make(map[PkgID][]ErrataID, cnt)
 	for k, v := range loadInt2Ints("pkg_errata", "pkg_id,errata_id", "PkgID2ErrataIDs") {
@@ -137,11 +119,10 @@ func LoadPkgErratas() map[PkgID][]ErrataID {
 			pkgToErrata[id] = append(pkgToErrata[id], ErrataID(i))
 		}
 	}
-
-	return pkgToErrata
+	c.PkgID2ErrataIDs = pkgToErrata
 }
 
-func loadPkgRepos() map[PkgID][]RepoID {
+func loadPkgRepos(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "PkgRepos")
 
 	nPkg := getCount("pkg_repo", "pkg_id", "pkg_id")
@@ -156,10 +137,10 @@ func loadPkgRepos() map[PkgID][]RepoID {
 		}
 		res[n] = append(res[n], p)
 	})
-	return res
+	c.PkgID2RepoIDs = res
 }
 
-func loadPkgNames() (map[NameID]string, map[string]NameID) {
+func loadPkgNames(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "PkgNames")
 
 	type PkgName struct {
@@ -181,10 +162,11 @@ func loadPkgNames() (map[NameID]string, map[string]NameID) {
 		id2name[r.ID] = r.Packagename
 		name2id[r.Packagename] = r.ID
 	}
-	return id2name, name2id
+	c.ID2Packagename = id2name
+	c.Packagename2ID = name2id
 }
 
-func loadUpdates() map[NameID][]PkgID {
+func loadUpdates(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "Updates")
 
 	cnt := getCount("updates", "name_id", "package_order")
@@ -198,10 +180,10 @@ func loadUpdates() map[NameID][]PkgID {
 		}
 		res[n] = append(res[n], p)
 	})
-	return res
+	c.Updates = res
 }
 
-func loadUpdatesIndex() map[NameID]map[EvrID][]int {
+func loadUpdatesIndex(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "Updates index")
 	cnt := getCount("updates_index", "name_id", "package_order")
 	res := make(map[NameID]map[EvrID][]int, cnt)
@@ -220,7 +202,7 @@ func loadUpdatesIndex() map[NameID]map[EvrID][]int {
 		nmap[e] = append(nmap[e], o)
 		res[n] = nmap
 	})
-	return res
+	c.UpdatesIndex = res
 }
 
 func getCount(tableName, col, orderBy string) (cnt int) {
@@ -285,7 +267,7 @@ func loadStrArray(tableName, col, orderBy string) []string {
 	return arr
 }
 
-func loadEvrMaps() (map[EvrID]utils.Evr, map[utils.Evr]EvrID) {
+func loadEvrMaps(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "EVR")
 
 	type IDEvr struct {
@@ -307,10 +289,11 @@ func loadEvrMaps() (map[EvrID]utils.Evr, map[utils.Evr]EvrID) {
 		id2evr[r.ID] = r.Evr
 		evr2id[r.Evr] = r.ID
 	}
-	return id2evr, evr2id
+	c.ID2Evr = id2evr
+	c.Evr2ID = evr2id
 }
 
-func loadArchs() (map[ArchID]string, map[string]ArchID) {
+func loadArchs(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "Arch")
 
 	type Arch struct {
@@ -331,10 +314,11 @@ func loadArchs() (map[ArchID]string, map[string]ArchID) {
 		id2arch[r.ID] = r.Arch
 		arch2id[r.Arch] = r.ID
 	}
-	return id2arch, arch2id
+	c.ID2Arch = id2arch
+	c.Arch2ID = arch2id
 }
 
-func loadArchCompat() map[ArchID]map[ArchID]bool {
+func loadArchCompat(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "ArchCompat")
 
 	type ArchCompat struct {
@@ -357,11 +341,11 @@ func loadArchCompat() map[ArchID]map[ArchID]bool {
 		fromMap[r.ToArchID] = true
 		m[r.FromArchID] = fromMap
 	}
-	return m
+	c.ArchCompat = m
 }
 
-func loadPkgDetails(info string) (map[PkgID]PackageDetail, map[Nevra]PkgID, map[PkgID][]PkgID) {
-	defer utils.TimeTrack(time.Now(), info)
+func loadPkgDetails(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "PackageDetails, Nevra2PkgID, SrcPkgID2PkgID")
 
 	rows := getAllRows("package_detail", "*", "ID")
 	cnt := getCount("package_detail", "id", "id")
@@ -393,14 +377,14 @@ func loadPkgDetails(info string) (map[PkgID]PackageDetail, map[Nevra]PkgID, map[
 
 		srcPkgID2PkgID[*det.SrcPkgID] = append(srcPkgID2PkgID[*det.SrcPkgID], pkgID)
 	}
-	// FIXME: build ModifiedID index
-	return id2pkdDetail, nevra2id, srcPkgID2PkgID
+	// FIXME: build ModifiedID index (probably not needed for vulnerabilities/updates)
+	c.PackageDetails = id2pkdDetail
+	c.Nevra2PkgID = nevra2id
+	c.SrcPkgID2PkgID = srcPkgID2PkgID
 }
 
-func loadRepoDetails(info string) (
-	[]RepoID, map[RepoID]RepoDetail, map[string][]RepoID, map[string][]RepoID, map[int][]RepoID,
-) {
-	defer utils.TimeTrack(time.Now(), info)
+func loadRepoDetails(c *Cache) { //nolint: funlen
+	defer utils.TimeTrack(time.Now(), "RepoIDs, RepoDetails, RepoLabel2IDs, RepoPath2IDs, ProductID2RepoIDs")
 
 	rows := getAllRows(
 		"repo_detail",
@@ -453,11 +437,15 @@ func loadRepoDetails(info string) (
 		}
 		prodID2RepoIDs[det.ProductID] = append(prodID2RepoIDs[det.ProductID], repoID)
 	}
-	return repoIDs, id2repoDetail, repoLabel2id, repoPath2id, prodID2RepoIDs
+	c.RepoIDs = repoIDs
+	c.RepoDetails = id2repoDetail
+	c.RepoLabel2IDs = repoLabel2id
+	c.RepoPath2IDs = repoPath2id
+	c.ProductID2RepoIDs = prodID2RepoIDs
 }
 
-func loadLabel2ContentSetID(info string) map[string]ContentSetID {
-	defer utils.TimeTrack(time.Now(), info)
+func loadLabel2ContentSetID(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "Label2ContentSetID")
 
 	type LabelContent struct {
 		ID    ContentSetID
@@ -475,11 +463,11 @@ func loadLabel2ContentSetID(info string) map[string]ContentSetID {
 		}
 		label2contentSetID[r.Label] = r.ID
 	}
-	return label2contentSetID
+	c.Label2ContentSetID = label2contentSetID
 }
 
-func loadErrata(info string) (map[string]ErrataDetail, map[ErrataID]string) {
-	defer utils.TimeTrack(time.Now(), info)
+func loadErrata(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "ErrataDetail, ErrataID2Name")
 
 	erID2cves := loadInt2Strings("errata_cve", "errata_id,cve", "erID2cves")
 	erID2pkgIDs := loadInt2Ints("pkg_errata", "errata_id,pkg_id", "erID2pkgID")
@@ -529,11 +517,12 @@ func loadErrata(info string) (map[string]ErrataDetail, map[ErrataID]string) {
 		}
 		errataDetail[errataName] = det
 	}
-	return errataDetail, errataID2Name
+	c.ErrataDetail = errataDetail
+	c.ErrataID2Name = errataID2Name
 }
 
-func loadCves(info string) (map[string]CveDetail, map[int]string) {
-	defer utils.TimeTrack(time.Now(), info)
+func loadCves(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "CveDetail")
 
 	cveID2cwes := loadInt2Strings("cve_cwe", "cve_id,cwe", "cveID2cwes")
 	cveID2pkg := loadInt2Ints("cve_pkg", "cve_id,pkg_id", "cveID2pkg")
@@ -571,11 +560,12 @@ func loadCves(info string) (map[string]CveDetail, map[int]string) {
 		cveDetails[cveName] = det
 		cveNames[cveID] = cveName
 	}
-	return cveDetails, cveNames
+	c.CveDetail = cveDetails
+	c.CveNames = cveNames
 }
 
-func loadPkgErrataModule(info string) map[PkgErrata][]int {
-	defer utils.TimeTrack(time.Now(), info)
+func loadPkgErrataModule(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "PkgErrata2Module")
 
 	orderBy := "pkg_id,errata_id,module_stream_id"
 	table := "errata_modulepkg"
@@ -594,11 +584,11 @@ func loadPkgErrataModule(info string) map[PkgErrata][]int {
 
 		m[pkgErrata] = append(m[pkgErrata], moduleStreamIDs[i])
 	}
-	return m
+	c.PkgErrata2Module = m
 }
 
-func loadModule2IDs(info string) map[ModuleStream][]int {
-	defer utils.TimeTrack(time.Now(), info)
+func loadModule2IDs(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "ModuleName2IDs")
 
 	orderBy := "module,stream"
 	table := "module_stream"
@@ -617,19 +607,19 @@ func loadModule2IDs(info string) map[ModuleStream][]int {
 
 		m[pkgErrata] = append(m[pkgErrata], streamIDs[i])
 	}
-	return m
+	c.Module2IDs = m
 }
 
-func loadModuleRequires(info string) map[int][]int {
-	defer utils.TimeTrack(time.Now(), info)
+func loadModuleRequires(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "ModuleRequire")
 
 	table := "module_stream_require"
 	moduleRequires := loadInt2Ints(table, "stream_id,require_id", "module2requires")
-	return moduleRequires
+	c.ModuleRequires = moduleRequires
 }
 
-func loadString(info string) map[int]string {
-	defer utils.TimeTrack(time.Now(), info)
+func loadString(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "String")
 
 	rows := getAllRows("string", "*", "ID")
 	m := map[int]string{}
@@ -644,11 +634,11 @@ func loadString(info string) map[int]string {
 			m[id] = *str
 		}
 	}
-	return m
+	c.String = m
 }
 
-func loadDBChanges(info string) DBChange {
-	defer utils.TimeTrack(time.Now(), info)
+func loadDBChanges(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "DBChange")
 
 	rows := getAllRows("dbchange", "*", "errata_changes")
 	arr := []DBChange{}
@@ -661,7 +651,7 @@ func loadDBChanges(info string) DBChange {
 		}
 		arr = append(arr, item)
 	}
-	return arr[0]
+	c.DBChange = arr[0]
 }
 
 func loadInt2Ints(table, cols, info string) map[int][]int {
@@ -762,7 +752,7 @@ func loadErrataModules() map[int][]Module {
 	return erID2modules
 }
 
-func loadOvalDefinitionDetail() map[DefinitionID]DefinitionDetail {
+func loadOvalDefinitionDetail(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "oval_definition_detail")
 
 	type OvalDefinitionDetail struct {
@@ -784,11 +774,11 @@ func loadOvalDefinitionDetail() map[DefinitionID]DefinitionDetail {
 			CriteriaID:       row.CriteriaID,
 		}
 	}
-	return defDetail
+	c.OvaldefinitionDetail = defDetail
 }
 
-func loadOvalDefinitionCves(info string) map[DefinitionID][]string {
-	defer utils.TimeTrack(time.Now(), info)
+func loadOvalDefinitionCves(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "oval_definition_cve")
 
 	type OvalDefinitionCve struct {
 		DefinitionID DefinitionID
@@ -805,11 +795,11 @@ func loadOvalDefinitionCves(info string) map[DefinitionID][]string {
 		}
 		ret[r.DefinitionID] = append(ret[r.DefinitionID], r.Cve)
 	}
-	return ret
+	c.OvaldefinitionID2Cves = ret
 }
 
-func loadPackagenameID2DefinitionIDs(info string) map[NameID][]DefinitionID {
-	defer utils.TimeTrack(time.Now(), info)
+func loadPackagenameID2DefinitionIDs(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "PackagenameID2definitionIDs")
 
 	type NameDefinition struct {
 		NameID       NameID
@@ -826,11 +816,11 @@ func loadPackagenameID2DefinitionIDs(info string) map[NameID][]DefinitionID {
 		}
 		ret[r.NameID] = append(ret[r.NameID], r.DefinitionID)
 	}
-	return ret
+	c.PackagenameID2definitionIDs = ret
 }
 
-func loadRepoCpes(info string) map[RepoID][]CpeID {
-	defer utils.TimeTrack(time.Now(), info)
+func loadRepoCpes(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "RepoID2CpeIDs")
 
 	type CpeRepo struct {
 		RepoID RepoID
@@ -847,11 +837,11 @@ func loadRepoCpes(info string) map[RepoID][]CpeID {
 		}
 		ret[r.RepoID] = append(ret[r.RepoID], r.CpeID)
 	}
-	return ret
+	c.RepoID2CpeIDs = ret
 }
 
-func loadContentSet2Cpes(info string) map[ContentSetID][]CpeID {
-	defer utils.TimeTrack(time.Now(), info)
+func loadContentSet2Cpes(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "ContentSetID2CpeIDs")
 
 	type CpeCS struct {
 		ContentSetID ContentSetID
@@ -868,11 +858,11 @@ func loadContentSet2Cpes(info string) map[ContentSetID][]CpeID {
 		}
 		ret[r.ContentSetID] = append(ret[r.ContentSetID], r.CpeID)
 	}
-	return ret
+	c.ContentSetID2CpeIDs = ret
 }
 
-func loadCpeID2DefinitionIDs(info string) map[CpeID][]DefinitionID {
-	defer utils.TimeTrack(time.Now(), info)
+func loadCpeID2DefinitionIDs(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "CpeID2OvalDefinitionIDs")
 
 	type DefinitionCpe struct {
 		CpeID        CpeID
@@ -889,13 +879,14 @@ func loadCpeID2DefinitionIDs(info string) map[CpeID][]DefinitionID {
 		}
 		ret[r.CpeID] = append(ret[r.CpeID], r.DefinitionID)
 	}
-	return ret
+	c.CpeID2OvalDefinitionIDs = ret
 }
 
-func loadOvalCriteriaDependency(info string) (map[CriteriaID][]CriteriaID, map[CriteriaID][]TestID,
-	map[CriteriaID][]ModuleTestID,
-) {
-	defer utils.TimeTrack(time.Now(), info)
+func loadOvalCriteriaDependency(c *Cache) {
+	defer utils.TimeTrack(
+		time.Now(),
+		"OvalCriteriaID2DepCriteriaIDs, OvalCriteriaID2DepTestIDs, OvalCriteriaID2DepModuleTestIDs",
+	)
 
 	type OvalCriteriaDep struct {
 		ParentCriteriaID CriteriaID
@@ -935,12 +926,13 @@ func loadOvalCriteriaDependency(info string) (map[CriteriaID][]CriteriaID, map[C
 				r.DepModuleTestID)
 		}
 	}
-
-	return criteriaID2DepCriteriaIDs, criteriaID2DepTestIDs, criteriaID2DepModuleTestIDs
+	c.OvalCriteriaID2DepCriteriaIDs = criteriaID2DepCriteriaIDs
+	c.OvalCriteriaID2DepTestIDs = criteriaID2DepTestIDs
+	c.OvalCriteriaID2DepModuleTestIDs = criteriaID2DepModuleTestIDs
 }
 
-func loadOvalCriteriaID2Type(info string) map[CriteriaID]int {
-	defer utils.TimeTrack(time.Now(), info)
+func loadOvalCriteriaID2Type(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "OvalCriteriaID2Type")
 
 	type OvalCriteriaType struct {
 		CriteriaID CriteriaID
@@ -959,11 +951,11 @@ func loadOvalCriteriaID2Type(info string) map[CriteriaID]int {
 		}
 		criteriaID2Type[r.CriteriaID] = r.TypeID
 	}
-	return criteriaID2Type
+	c.OvalCriteriaID2Type = criteriaID2Type
 }
 
-func loadOvalStateID2Arches(info string) map[OvalStateID][]ArchID {
-	defer utils.TimeTrack(time.Now(), info)
+func loadOvalStateID2Arches(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "OvalModuleTestDetail")
 
 	type StateArch struct {
 		StateID OvalStateID
@@ -980,11 +972,11 @@ func loadOvalStateID2Arches(info string) map[OvalStateID][]ArchID {
 		}
 		ret[r.StateID] = append(ret[r.StateID], r.ArchID)
 	}
-	return ret
+	c.OvalStateID2Arches = ret
 }
 
-func loadOvalModuleTestDetail(info string) map[ModuleTestID]OvalModuleTestDetail {
-	defer utils.TimeTrack(time.Now(), info)
+func loadOvalModuleTestDetail(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "OvalModuleTestDetail")
 
 	type ModuleTestDetail struct {
 		ID           ModuleTestID
@@ -1005,11 +997,11 @@ func loadOvalModuleTestDetail(info string) map[ModuleTestID]OvalModuleTestDetail
 			ModuleStream: ModuleStream{Module: splitted[0], Stream: splitted[1]},
 		}
 	}
-	return details
+	c.OvalModuleTestDetail = details
 }
 
-func loadOvalTestDetail(info string) map[TestID]OvalTestDetail {
-	defer utils.TimeTrack(time.Now(), info)
+func loadOvalTestDetail(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "OvalTestDetail")
 
 	type TestDetail struct {
 		ID               TestID
@@ -1028,11 +1020,11 @@ func loadOvalTestDetail(info string) map[TestID]OvalTestDetail {
 		}
 		testDetail[r.ID] = OvalTestDetail{PkgNameID: r.PackageNameID, CheckExistence: r.CheckExistenceID}
 	}
-	return testDetail
+	c.OvalTestDetail = testDetail
 }
 
-func loadOvalTestID2States(info string) map[TestID][]OvalState {
-	defer utils.TimeTrack(time.Now(), info)
+func loadOvalTestID2States(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "OvalTestID2States")
 
 	type TestState struct {
 		TestID         TestID
@@ -1056,5 +1048,5 @@ func loadOvalTestID2States(info string) map[TestID][]OvalState {
 			OperationEvr: r.EvrOperationID,
 		})
 	}
-	return test2State
+	c.OvalTestID2States = test2State
 }

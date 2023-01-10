@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -24,4 +25,19 @@ func GetBoolEnvOrDefault(envname string, defval bool) bool {
 func TimeTrack(start time.Time, eventName string) {
 	elapsed := time.Since(start)
 	Log("event", eventName, "elapsed", elapsed).Info()
+}
+
+// GetIntEnvOrDefault Load int environment variable or load default
+func GetIntEnvOrDefault(envname string, defval int) int {
+	valueStr := os.Getenv(envname)
+	if valueStr == "" {
+		return defval
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if err != nil {
+		panic(fmt.Sprintf("Unable convert '%s' env var '%s' to int!", envname, valueStr))
+	}
+
+	return value
 }

@@ -2,9 +2,11 @@ package vmaas
 
 import (
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/redhatinsights/vmaas-lib/vmaas/conf"
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
 )
 
@@ -105,15 +107,32 @@ func processPackagesUpdates(c *Cache, nevra utils.Nevra, repoIDs map[RepoID]bool
 		return UpdateDetail{}
 	}
 
+	// get pkgUpdates concurrently
+	updates := make(chan Update)
+	wg := sync.WaitGroup{}
+	maxGoroutines := make(chan struct{}, conf.Env.MaxGoroutines)
 	for _, u := range updatePkgIDs {
-		updateDetail.updatePkgUpdates(c, u, nevraIDs.ArchID, r.SecurityOnly, moduleIDs,
-			repoIDs, validReleasevers, r.ThirdParty)
+		wg.Add(1)
+		go func(u PkgID) {
+			defer wg.Done()
+			maxGoroutines <- struct{}{}
+			pkgUpdates(c, u, nevraIDs.ArchID, r.SecurityOnly, moduleIDs,
+				repoIDs, validReleasevers, r.ThirdParty, updates)
+			<-maxGoroutines
+		}(u)
+	}
+	go func() {
+		wg.Wait()
+		close(updates)
+	}()
+	for u := range updates {
+		updateDetail.AvailableUpdates = append(updateDetail.AvailableUpdates, u)
 	}
 	return updateDetail
 }
 
-func (u *UpdateDetail) updatePkgUpdates(c *Cache, pkgID PkgID, archID ArchID, securityOnly bool, modules map[int]bool,
-	repoIDs map[RepoID]bool, releasevers map[string]bool, thirdparty bool,
+func pkgUpdates(c *Cache, pkgID PkgID, archID ArchID, securityOnly bool, modules map[int]bool,
+	repoIDs map[RepoID]bool, releasevers map[string]bool, thirdparty bool, updates chan Update,
 ) {
 	if archID == 0 {
 		return
@@ -136,13 +155,14 @@ func (u *UpdateDetail) updatePkgUpdates(c *Cache, pkgID PkgID, archID ArchID, se
 	errataIDs := c.PkgID2ErrataIDs[pkgID]
 	nevra := buildNevra(c, pkgID)
 	for _, eid := range errataIDs {
-		u.updatePkgErrataUpdates(c, pkgID, eid, modules, repoIDs,
-			releasevers, nevra, securityOnly, thirdparty)
+		pkgErrataUpdates(c, pkgID, eid, modules, repoIDs,
+			releasevers, nevra, securityOnly, thirdparty, updates)
 	}
 }
 
-func (u *UpdateDetail) updatePkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErrataID, modules map[int]bool,
+func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErrataID, modules map[int]bool,
 	repoIDs map[RepoID]bool, releasevers map[string]bool, nevra utils.Nevra, securityOnly, thirdparty bool,
+	updates chan Update,
 ) {
 	erratumName := c.ErrataID2Name[erratumID]
 	erratumDetail := c.ErrataDetail[erratumName]
@@ -178,13 +198,13 @@ func (u *UpdateDetail) updatePkgErrataUpdates(c *Cache, pkgID PkgID, erratumID E
 	repos := filterRepositories(c, pkgID, erratumID, repoIDs, releasevers)
 	for _, r := range repos {
 		details := c.RepoDetails[r]
-		u.AvailableUpdates = append(u.AvailableUpdates, Update{
+		updates <- Update{
 			Package:    nevra.String(),
 			Erratum:    erratumName,
 			Repository: details.Label,
 			Basearch:   details.Basearch,
 			Releasever: details.Releasever,
-		})
+		}
 	}
 }
 
