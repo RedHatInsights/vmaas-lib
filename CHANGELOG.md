@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.3.0 (2023-01-11)
+### Feature
+* Add goroutines ([`7eb7548`](https://github.com/RedHatInsights/vmaas-lib/commit/7eb754806bc4885df09b49d4d1b5563822d1d065))
+
 ## v0.2.6 (2023-01-05)
 ### Fix
 * Detail load, unnecessary cve iteration ([`a83a6e6`](https://github.com/RedHatInsights/vmaas-lib/commit/a83a6e6895e3a21666c9169e29bf8c369baacc08))
