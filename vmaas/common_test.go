@@ -125,24 +125,31 @@ func TestGetRepoIDs(t *testing.T) {
 		},
 	}
 
-	// empty repolist, return all repos available in cache
+	// missing repolist, return all repos available in cache
 	res := getRepoIDs(&c, &updates)
 	assert.Equal(t, 3, len(res))
 	assert.False(t, hasDuplicities(res))
 
-	// empty repolist, with releasever
+	// missing repolist, with releasever
 	updates.Releasever = &x8664
 	res = getRepoIDs(&c, &updates)
 	assert.Equal(t, 3, len(res))
 	assert.False(t, hasDuplicities(res))
 	updates.Releasever = nil
 
+	// empty repolist, empty response
+	repolist := []string{}
+	updates.RepoList = &repolist
+	res = getRepoIDs(&c, &updates)
+	assert.Equal(t, 0, len(res))
+
 	// labels to ids
 	c.RepoLabel2IDs = map[string][]RepoID{
 		"repo1": {1, 2},
 		"repo2": {2, 3},
 	}
-	updates.RepoList = []string{"repo1", "repo2"}
+	repolist = []string{"repo1", "repo2"}
+	updates.RepoList = &repolist
 	res = getRepoIDs(&c, &updates)
 	assert.Equal(t, 3, len(res))
 	assert.False(t, hasDuplicities(res))
@@ -183,13 +190,14 @@ func TestGetRepoIDs(t *testing.T) {
 	updates.RepoPaths = []string{}
 
 	// invalid label
-	updates.RepoList = []string{"invalid"}
+	invalidRepolist := []string{"invalid"}
+	updates.RepoList = &invalidRepolist
 	res = getRepoIDs(&c, &updates)
 	assert.Equal(t, 0, len(res))
 
 	updates.Basearch = nil
 	updates.Releasever = nil
-	updates.RepoList = []string{"invalid"}
+	updates.RepoList = &invalidRepolist
 	res = getRepoIDs(&c, &updates)
 	assert.Equal(t, 0, len(res))
 }

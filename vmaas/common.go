@@ -378,19 +378,22 @@ func filterPkgList(pkgs []string, latestOnly bool) []string {
 }
 
 func getRepoIDs(c *Cache, u *Updates) map[RepoID]bool {
-	res := make(map[RepoID]bool, len(u.RepoList))
-	if len(u.RepoList) == 0 && len(u.RepoPaths) == 0 {
+	res := map[RepoID]bool{}
+	if u.RepoList == nil && len(u.RepoPaths) == 0 {
 		for _, r := range c.RepoIDs {
 			if passReleasever(c, u.Releasever, r) && passBasearch(c, u.Basearch, r) {
 				res[r] = true
 			}
 		}
 	}
-	for _, label := range u.RepoList {
-		repoIDsCache := c.RepoLabel2IDs[label]
-		for _, r := range repoIDsCache {
-			if !res[r] && passReleasever(c, u.Releasever, r) && passBasearch(c, u.Basearch, r) {
-				res[r] = true
+	if u.RepoList != nil {
+		res = make(map[RepoID]bool, len(*u.RepoList))
+		for _, label := range *u.RepoList {
+			repoIDsCache := c.RepoLabel2IDs[label]
+			for _, r := range repoIDsCache {
+				if !res[r] && passReleasever(c, u.Releasever, r) && passBasearch(c, u.Basearch, r) {
+					res[r] = true
+				}
 			}
 		}
 	}
