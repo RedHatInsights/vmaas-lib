@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.3.1 (2023-01-19)
+### Fix
+* Allow nil repolist ([`96f4b79`](https://github.com/RedHatInsights/vmaas-lib/commit/96f4b79c8efff5095fb0059d8fa2423d9d5377c8))
+
 ## v0.3.0 (2023-01-11)
 ### Feature
 * Add goroutines ([`7eb7548`](https://github.com/RedHatInsights/vmaas-lib/commit/7eb754806bc4885df09b49d4d1b5563822d1d065))
