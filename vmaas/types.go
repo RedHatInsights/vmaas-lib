@@ -24,7 +24,7 @@ type (
 
 type Request struct {
 	Packages   []string       `json:"package_list"`
-	Repos      []string       `json:"repository_list"`
+	Repos      *[]string      `json:"repository_list"`
 	Modules    []ModuleStream `json:"modules_list"`
 	Releasever *string        `json:"releasever"`
 	Basearch   *string        `json:"basearch"`
@@ -54,7 +54,7 @@ type UpdateList map[string]UpdateDetail
 
 type Updates struct {
 	UpdateList UpdateList     `json:"update_list"`
-	RepoList   []string       `json:"repository_list,omitempty"`
+	RepoList   *[]string      `json:"repository_list,omitempty"`
 	RepoPaths  []string       `json:"repository_paths,omitempty"`
 	ModuleList []ModuleStream `json:"modules_list,omitempty"`
 	Releasever *string        `json:"releasever,omitempty"`

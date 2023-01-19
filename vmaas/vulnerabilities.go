@@ -112,6 +112,9 @@ func (r *ProcessedRequest) evaluateOval(c *Cache, cves *VulnerabilitiesCvesDetai
 	//       there needs to be better fallback at least to guess correctly RHEL version,
 	//       use old VMaaS repo guessing?
 	candidateDefinitions := repos2definitions(c, r.OriginalRequest)
+	if candidateDefinitions == nil {
+		return nil
+	}
 	for pkg, parsedNevra := range r.Packages {
 		pkgNameID := c.Packagename2ID[parsedNevra.Name]
 		definitionsIDs := map[DefinitionID]bool{}
@@ -178,10 +181,14 @@ func (r *ProcessedRequest) evaluateOval(c *Cache, cves *VulnerabilitiesCvesDetai
 //nolint:gocognit,nolintlint
 func repos2definitions(c *Cache, r *Request) map[DefinitionID]bool {
 	// TODO: some CPEs are not matching because they are substrings/subtrees
+	if r.Repos == nil {
+		return nil
+	}
+
 	repoIDs := make(map[RepoID]bool)
 	contentSetIDs := make(map[ContentSetID]bool)
 	// Try to identify repos (CS+basearch+releasever) or at least CS
-	for _, label := range r.Repos {
+	for _, label := range *r.Repos {
 		if r.Basearch != nil || r.Releasever != nil {
 			for _, repoID := range c.RepoLabel2IDs[label] {
 				if r.Basearch != nil && c.RepoDetails[repoID].Basearch != *r.Basearch {
