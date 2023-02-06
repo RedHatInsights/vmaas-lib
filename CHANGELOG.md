@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.3.2 (2023-02-06)
+### Fix
+* Return errata: [] instead of null ([`9549f8a`](https://github.com/RedHatInsights/vmaas-lib/commit/9549f8a5d1ef160e942d6557b79ede50ac6d4c95))
+
 ## v0.3.1 (2023-01-19)
 ### Fix
 * Allow nil repolist ([`96f4b79`](https://github.com/RedHatInsights/vmaas-lib/commit/96f4b79c8efff5095fb0059d8fa2423d9d5377c8))
