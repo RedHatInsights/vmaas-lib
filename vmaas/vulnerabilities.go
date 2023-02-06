@@ -364,6 +364,7 @@ func updateCves(cves map[string]VulnerabilityDetail, cve, pkg string, erratum *s
 		cveDetail := VulnerabilityDetail{
 			CVE:      cve,
 			Packages: []string{pkg},
+			Errata:   []string{},
 		}
 		if erratum != nil {
 			cveDetail.Errata = []string{*erratum}
