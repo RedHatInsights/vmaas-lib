@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.3.3 (2023-02-07)
+### Fix
+* Third_party json field ([`c991822`](https://github.com/RedHatInsights/vmaas-lib/commit/c991822e1aba9a6be8a4f290e089b8d07fdd76ba))
+
 ## v0.3.2 (2023-02-06)
 ### Fix
 * Return errata: [] instead of null ([`9549f8a`](https://github.com/RedHatInsights/vmaas-lib/commit/9549f8a5d1ef160e942d6557b79ede50ac6d4c95))
