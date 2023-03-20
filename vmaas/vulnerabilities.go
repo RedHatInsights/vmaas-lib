@@ -254,7 +254,7 @@ func evaluateCriteria(c *Cache, criteriaID CriteriaID, pkgNameID NameID, nevra u
 		requiredMatches = int(math.Min(1, float64((len(moduleTestDeps) + len(testDeps) + len(criteriaDeps)))))
 		mustMatch = false
 	default:
-		utils.Log("operator", criteriaType).Error("Unsupported operator")
+		utils.LogError("operator", criteriaType, "Unsupported operator")
 		return false
 	}
 	matches := 0
@@ -305,7 +305,7 @@ func evaluateState(c *Cache, state OvalState, nevra utils.Nevra) (matched bool) 
 	case OvalOperationEvrLessThan:
 		matched = nevra.NevraCmpEvr(candidateEvr) < 0
 	default:
-		utils.Log("OvalOperationEvr", state.OperationEvr).Error("Unsupported OvalOperationEvr")
+		utils.LogError("OvalOperationEvr", state.OperationEvr, "Unsupported OvalOperationEvr")
 		return false
 	}
 
@@ -313,7 +313,7 @@ func evaluateState(c *Cache, state OvalState, nevra utils.Nevra) (matched bool) 
 	if len(candidateArches) > 0 {
 		archID, ok := c.Arch2ID[nevra.Arch]
 		if !ok {
-			utils.Log("arch", nevra.Arch).Error("Invalid arch name")
+			utils.LogError("arch", nevra.Arch, "Invalid arch name")
 			return false
 		}
 		if matched {
@@ -353,7 +353,7 @@ func evaluateTest(c *Cache, testID TestID, pkgNameID NameID, nevra utils.Nevra) 
 	case OvalCheckExistenceNone:
 		matched = !pkgNameMatched
 	default:
-		utils.Log("check_existence", candidate.CheckExistence).Error("Unsupported check_existence")
+		utils.LogError("check_existence", candidate.CheckExistence, "Unsupported check_existence")
 		return false
 	}
 	return matched

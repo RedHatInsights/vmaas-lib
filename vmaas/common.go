@@ -68,7 +68,7 @@ func processInputPackages(c *Cache, request *Request) (map[string]utils.Nevra, U
 		updateList[pkg] = UpdateDetail{}
 		nevra, err := utils.ParseNevra(pkg)
 		if err != nil {
-			utils.Log("nevra", pkg).Warn("Cannot parse")
+			utils.LogWarn("nevra", pkg, "Cannot parse")
 			continue
 		}
 		if pkgID, ok := c.Packagename2ID[nevra.Name]; ok {
@@ -359,7 +359,7 @@ func filterPkgList(pkgs []string, latestOnly bool) []string {
 	for _, pkg := range pkgs {
 		nevra, err := utils.ParseNevra(pkg)
 		if err != nil {
-			utils.Log("nevra", pkg).Warn("Cannot parse")
+			utils.LogWarn("nevra", pkg, "Cannot parse")
 			continue
 		}
 		nameArch := NameArch{Name: nevra.Name, Arch: nevra.Arch}

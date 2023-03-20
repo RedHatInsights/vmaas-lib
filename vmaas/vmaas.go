@@ -78,25 +78,25 @@ func (api *API) PeriodicCacheReload(interval time.Duration, latestDumpEndpoint s
 		for range ticker.C {
 			reloadNeeded, err := api.IsReloadNeeded(latestDumpEndpoint)
 			if err != nil {
-				utils.Log("err", err.Error()).Warn("Error getting latest dump timestamp")
+				utils.LogWarn("err", err.Error(), "Error getting latest dump timestamp")
 			}
 			if !reloadNeeded {
 				continue
 			}
-			utils.Log().Info("Reloading cache")
+			utils.LogInfo("Reloading cache")
 			// invalidate cache and manually run GC to free memory
 			api.Cache = nil
 			utils.RunGC()
 			if len(url) > 0 {
 				if err := api.LoadCacheFromURL(url); err != nil {
-					utils.Log("err", err.Error()).Error("Cache reload failed")
+					utils.LogError("err", err.Error(), "Cache reload failed")
 				}
 				continue
 			}
-			utils.Log("url", url, "filepath", api.path).Warn(
+			utils.LogWarn("url", url, "filepath", api.path,
 				"URL not set, loading cache from last known filepath")
 			if err := api.LoadCacheFromFile(api.path); err != nil {
-				utils.Log("err", err.Error()).Error("Cache reload failed")
+				utils.LogError("err", err.Error(), "Cache reload failed")
 			}
 		}
 	}()
@@ -129,15 +129,15 @@ func (api *API) IsReloadNeeded(latestDumpEndpoint string) (bool, error) {
 	}
 
 	if latest.After(exported) {
-		utils.Log("latest", latest, "exported", exported).Debug("Reload needed")
+		utils.LogDebug("latest", latest, "exported", exported, "Reload needed")
 		return true, nil
 	}
-	utils.Log("latest", latest, "exported", exported).Debug("Reload not needed")
+	utils.LogDebug("latest", latest, "exported", exported, "Reload not needed")
 	return false, nil
 }
 
 func DownloadCache(url, dest string) error {
-	utils.Log().Info("Downloading cache")
+	utils.LogInfo("Downloading cache")
 	resp, err := http.Get(url) //nolint:gosec // url is user's input
 	if err != nil {
 		return errors.Wrap(err, "couldn't download cache")
@@ -155,6 +155,6 @@ func DownloadCache(url, dest string) error {
 		return errors.Wrap(err, "couldn't stream response to a file")
 	}
 
-	utils.Log("size", size).Info("Cache downloaded - URL")
+	utils.LogInfo("size", size, "Cache downloaded - URL")
 	return nil
 }
