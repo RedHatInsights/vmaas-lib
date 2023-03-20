@@ -62,7 +62,7 @@ func (api *API) LoadCacheFromFile(cachePath string) error {
 
 func (api *API) LoadCacheFromURL(cacheURL string) error {
 	useRsync := strings.Contains(cacheURL, "rsync")
-	if err := DownloadCache(cacheURL, Dump, useRsync); err != nil {
+	if err := DownloadCache(cacheURL, api.path, useRsync); err != nil {
 		return errors.Wrap(err, "couldn't download cache")
 	}
 	err := api.LoadCacheFromFile(api.path)
@@ -155,15 +155,17 @@ func DownloadCache(url, dest string, useRsync bool) error {
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	fd, err := os.Create(dest)
 	if err != nil {
-		return errors.Wrap(err, "couldn't read response body")
+		return errors.Wrap(err, "couldn't create file")
+	}
+	defer fd.Close()
+
+	size, err := io.Copy(fd, resp.Body)
+	if err != nil {
+		return errors.Wrap(err, "couldn't stream response to a file")
 	}
 
-	err = os.WriteFile(dest, body, 0o644) //nolint:gosec // file needs 0644 permissions
-	if err != nil {
-		return errors.Wrap(err, "couldn't write file")
-	}
-	utils.Log().Info("Cache downloaded - URL")
+	utils.Log("size", size).Info("Cache downloaded - URL")
 	return nil
 }
