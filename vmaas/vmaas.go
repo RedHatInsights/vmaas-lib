@@ -4,8 +4,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -61,8 +59,7 @@ func (api *API) LoadCacheFromFile(cachePath string) error {
 }
 
 func (api *API) LoadCacheFromURL(cacheURL string) error {
-	useRsync := strings.Contains(cacheURL, "rsync")
-	if err := DownloadCache(cacheURL, api.path, useRsync); err != nil {
+	if err := DownloadCache(cacheURL, api.path); err != nil {
 		return errors.Wrap(err, "couldn't download cache")
 	}
 	err := api.LoadCacheFromFile(api.path)
@@ -139,16 +136,8 @@ func (api *API) IsReloadNeeded(latestDumpEndpoint string) (bool, error) {
 	return false, nil
 }
 
-func DownloadCache(url, dest string, useRsync bool) error {
+func DownloadCache(url, dest string) error {
 	utils.Log().Info("Downloading cache")
-	if useRsync {
-		cmd := exec.Command("/usr/bin/rsync", "-a", "--copy-links", "--quiet", url, dest)
-		if err := cmd.Run(); err != nil {
-			return errors.Wrap(err, "couldn't rsync cache")
-		}
-		utils.Log().Info("Cache downloaded - rsync")
-		return nil
-	}
 	resp, err := http.Get(url) //nolint:gosec // url is user's input
 	if err != nil {
 		return errors.Wrap(err, "couldn't download cache")
