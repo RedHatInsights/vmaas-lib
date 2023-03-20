@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.3.5 (2023-03-20)
+### Fix
+* Re-use logging logic from patchman ([`e5af24b`](https://github.com/RedHatInsights/vmaas-lib/commit/e5af24b2ec71e6aa86c97a7f60620d58155aa37f))
+
 ## v0.3.4 (2023-03-20)
 ### Fix
 * Stream downloaded dump to a file ([`0f49948`](https://github.com/RedHatInsights/vmaas-lib/commit/0f4994885461be647548c0cd137132cd88540803))
