@@ -24,7 +24,7 @@ func GetBoolEnvOrDefault(envname string, defval bool) bool {
 
 func TimeTrack(start time.Time, eventName string) {
 	elapsed := time.Since(start)
-	Log("event", eventName, "elapsed", elapsed).Info()
+	LogInfo("event", eventName, "elapsed", elapsed)
 }
 
 // GetIntEnvOrDefault Load int environment variable or load default

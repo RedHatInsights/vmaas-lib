@@ -48,7 +48,7 @@ func openDB(path string) error {
 
 func closeDB() {
 	if err := sqlDB.Close(); err != nil {
-		utils.Log("err", err.Error()).Warn("Could not close DB")
+		utils.LogWarn("err", err.Error(), "Could not close DB")
 	}
 	sqlDB = nil
 	db = nil
@@ -79,7 +79,7 @@ func loadCache(path string) (*Cache, error) {
 	}
 
 	wg.Wait()
-	utils.Log("elapsed", time.Since(start)).Info("Cache loaded successfully")
+	utils.LogInfo("elapsed", time.Since(start), "Cache loaded successfully")
 	lock.Unlock()
 	return &c, nil
 }
@@ -421,7 +421,7 @@ func loadRepoDetails(c *Cache) { //nolint: funlen
 		if len(det.URL) > 0 {
 			parsedURL, err := url.Parse(det.URL)
 			if err != nil {
-				utils.Log("URL", det.URL, "err", err.Error()).Warn("Malformed repository URL")
+				utils.LogWarn("URL", det.URL, "err", err.Error(), "Malformed repository URL")
 			}
 			repoPath := strings.TrimSuffix(parsedURL.Path, "/")
 			_, ok = repoPath2id[repoPath]
