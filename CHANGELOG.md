@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.3.4 (2023-03-20)
+### Fix
+* Stream downloaded dump to a file ([`0f49948`](https://github.com/RedHatInsights/vmaas-lib/commit/0f4994885461be647548c0cd137132cd88540803))
+
 ## v0.3.3 (2023-02-07)
 ### Fix
 * Third_party json field ([`c991822`](https://github.com/RedHatInsights/vmaas-lib/commit/c991822e1aba9a6be8a4f290e089b8d07fdd76ba))
