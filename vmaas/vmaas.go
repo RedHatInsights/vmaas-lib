@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -12,10 +13,14 @@ import (
 
 const Dump = "/data/vmaas.db"
 
+var refreshLock = &sync.Mutex{}
+
 type API struct {
 	Cache *Cache
 	path  string
 	url   string
+	// helper to know whether api is initialized and cache loaded at least once
+	initialized bool
 }
 
 func InitFromFile(cachePath string) (*API, error) {
@@ -55,6 +60,7 @@ func (api *API) LoadCacheFromFile(cachePath string) error {
 	if err != nil {
 		return errors.Wrap(err, "couldn't load cache from file")
 	}
+	api.initialized = true
 	return nil
 }
 
@@ -68,6 +74,7 @@ func (api *API) LoadCacheFromURL(cacheURL string) error {
 
 func (api *API) PeriodicCacheReload(interval time.Duration, latestDumpEndpoint string, cacheURL *string) {
 	ticker := time.NewTicker(interval)
+	minuteTicker := time.NewTicker(time.Minute)
 	// preserve api.url set by InitFromURL
 	url := api.url
 	if cacheURL != nil {
@@ -75,28 +82,19 @@ func (api *API) PeriodicCacheReload(interval time.Duration, latestDumpEndpoint s
 	}
 
 	go func() {
-		for range ticker.C {
-			reloadNeeded, err := api.IsReloadNeeded(latestDumpEndpoint)
-			if err != nil {
-				utils.LogWarn("err", err.Error(), "Error getting latest dump timestamp")
-			}
-			if !reloadNeeded {
-				continue
-			}
-			utils.LogInfo("Reloading cache")
-			// invalidate cache and manually run GC to free memory
-			api.Cache = nil
-			utils.RunGC()
-			if len(url) > 0 {
-				if err := api.LoadCacheFromURL(url); err != nil {
-					utils.LogError("err", err.Error(), "Cache reload failed")
+		for {
+			select {
+			case <-ticker.C:
+				refreshLock.Lock()
+				refreshCache(api, url, latestDumpEndpoint)
+				refreshLock.Unlock()
+			case <-minuteTicker.C:
+				refreshLock.Lock()
+				if !api.initialized {
+					// try to load cache every minute when cache is not loaded since the start
+					refreshCache(api, url, latestDumpEndpoint)
 				}
-				continue
-			}
-			utils.LogWarn("url", url, "filepath", api.path,
-				"URL not set, loading cache from last known filepath")
-			if err := api.LoadCacheFromFile(api.path); err != nil {
-				utils.LogError("err", err.Error(), "Cache reload failed")
+				refreshLock.Unlock()
 			}
 		}
 	}()
@@ -157,4 +155,29 @@ func DownloadCache(url, dest string) error {
 
 	utils.LogInfo("size", size, "Cache downloaded - URL")
 	return nil
+}
+
+func refreshCache(api *API, url, latestDumpEndpoint string) {
+	reloadNeeded, err := api.IsReloadNeeded(latestDumpEndpoint)
+	if err != nil {
+		utils.LogWarn("err", err.Error(), "Error getting latest dump timestamp")
+	}
+	if !reloadNeeded {
+		return
+	}
+	utils.LogInfo("Reloading cache")
+	// invalidate cache and manually run GC to free memory
+	api.Cache = nil
+	utils.RunGC()
+	if len(url) > 0 {
+		if err := api.LoadCacheFromURL(url); err != nil {
+			utils.LogError("err", err.Error(), "Cache reload failed")
+		}
+		return
+	}
+	utils.LogWarn("url", url, "filepath", api.path,
+		"URL not set, loading cache from last known filepath")
+	if err := api.LoadCacheFromFile(api.path); err != nil {
+		utils.LogError("err", err.Error(), "Cache reload failed")
+	}
 }
