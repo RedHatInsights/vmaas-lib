@@ -31,6 +31,7 @@ var loadFuncs = []func(c *Cache){
 	loadOvalDefinitionDetail, loadOvalDefinitionCves, loadPackagenameID2DefinitionIDs, loadRepoCpes,
 	loadContentSet2Cpes, loadCpeID2DefinitionIDs, loadOvalCriteriaDependency, loadOvalCriteriaID2Type,
 	loadOvalStateID2Arches, loadOvalModuleTestDetail, loadOvalTestDetail, loadOvalTestID2States,
+	loadOvalDefinitionErratas,
 }
 
 func openDB(path string) error {
@@ -1049,4 +1050,27 @@ func loadOvalTestID2States(c *Cache) {
 		})
 	}
 	c.OvalTestID2States = test2State
+}
+
+func loadOvalDefinitionErratas(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "oval_definition_errata")
+
+	type OvalDefinitionErrataSelect struct {
+		DefinitionID DefinitionID
+		ErrataID     ErrataID
+	}
+
+	cols := "definition_id,errata_id"
+	rows := getAllRows("oval_definition_errata", cols, cols)
+	row := OvalDefinitionErrataSelect{}
+	cnt := getCount("oval_definition_errata", "definition_id", cols)
+	definitionErratas := make(map[DefinitionID]ErrataID, cnt)
+
+	for rows.Next() {
+		if err := rows.Scan(&row.DefinitionID, &row.ErrataID); err != nil {
+			panic(err)
+		}
+		definitionErratas[row.DefinitionID] = row.ErrataID
+	}
+	c.OvalDefinitionID2ErrataID = definitionErratas
 }
