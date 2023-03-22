@@ -1053,7 +1053,7 @@ func loadOvalTestID2States(c *Cache) {
 }
 
 func loadOvalDefinitionErratas(c *Cache) {
-	defer utils.TimeTrack(time.Now(), "oval_definition_errata")
+	defer utils.TimeTrack(time.Now(), "OvalDefinitionID2ErrataID")
 
 	type OvalDefinitionErrataSelect struct {
 		DefinitionID DefinitionID
