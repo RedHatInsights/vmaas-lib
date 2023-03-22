@@ -154,8 +154,9 @@ func (r *ProcessedRequest) evaluateOval(c *Cache, cves *VulnerabilitiesCvesDetai
 						if _, has := cves.Cves[cve]; has {
 							continue
 						}
-						// no erratum directly mappable to CVE in OVAL
-						updateCves(cves.ManualCves, cve, pkg, nil)
+						errataID := c.OvalDefinitionID2ErrataID[defID]
+						errataName := c.ErrataID2Name[errataID]
+						updateCves(cves.ManualCves, cve, pkg, &errataName)
 					}
 				case OvalDefinitionTypeVulnerability:
 					for _, cve := range cvesOval {
@@ -375,7 +376,7 @@ func updateCves(cves map[string]VulnerabilityDetail, cve, pkg string, erratum *s
 	// update list of packages and errata
 	vulnDetail := cves[cve]
 	vulnDetail.Packages = append(vulnDetail.Packages, pkg)
-	if erratum != nil {
+	if erratum != nil && *erratum != "" {
 		vulnDetail.Errata = append(vulnDetail.Errata, *erratum)
 	}
 }
