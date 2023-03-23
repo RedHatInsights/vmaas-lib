@@ -62,5 +62,5 @@ type Cache struct {
 	OvalModuleTestDetail            map[ModuleTestID]OvalModuleTestDetail
 	OvalTestDetail                  map[TestID]OvalTestDetail
 	OvalTestID2States               map[TestID][]OvalState
-	OvalDefinitionID2ErrataID       map[DefinitionID]ErrataID
+	OvalDefinitionID2ErrataID       map[DefinitionID][]ErrataID
 }

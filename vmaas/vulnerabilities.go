@@ -86,7 +86,7 @@ func evaluate(c *Cache, request *Request) (*VulnerabilitiesCvesDetails, error) {
 			}
 			seenErrata[update.Erratum] = true
 			for _, cve := range c.ErrataDetail[update.Erratum].CVEs {
-				updateCves(cves.Cves, cve, pkg, &update.Erratum)
+				updateCves(cves.Cves, cve, pkg, []string{update.Erratum})
 			}
 		}
 	}
@@ -154,9 +154,11 @@ func (r *ProcessedRequest) evaluateOval(c *Cache, cves *VulnerabilitiesCvesDetai
 						if _, has := cves.Cves[cve]; has {
 							continue
 						}
-						errataID := c.OvalDefinitionID2ErrataID[defID]
-						errataName := c.ErrataID2Name[errataID]
-						updateCves(cves.ManualCves, cve, pkg, &errataName)
+						errataNames := make([]string, 0)
+						for _, errataID := range c.OvalDefinitionID2ErrataID[defID] {
+							errataNames = append(errataNames, c.ErrataID2Name[errataID])
+						}
+						updateCves(cves.ManualCves, cve, pkg, errataNames)
 					}
 				case OvalDefinitionTypeVulnerability:
 					for _, cve := range cvesOval {
@@ -167,7 +169,7 @@ func (r *ProcessedRequest) evaluateOval(c *Cache, cves *VulnerabilitiesCvesDetai
 							continue
 						}
 						// no erratum for unpatched CVEs
-						updateCves(cves.UnpatchedCves, cve, pkg, nil)
+						updateCves(cves.UnpatchedCves, cve, pkg, []string{})
 					}
 				default:
 					return fmt.Errorf("unsupported definition type: %d", definition.DefinitionTypeID)
@@ -360,15 +362,12 @@ func evaluateTest(c *Cache, testID TestID, pkgNameID NameID, nevra utils.Nevra) 
 	return matched
 }
 
-func updateCves(cves map[string]VulnerabilityDetail, cve, pkg string, erratum *string) {
+func updateCves(cves map[string]VulnerabilityDetail, cve, pkg string, erratum []string) {
 	if _, has := cves[cve]; !has {
 		cveDetail := VulnerabilityDetail{
 			CVE:      cve,
 			Packages: []string{pkg},
-			Errata:   []string{},
-		}
-		if erratum != nil {
-			cveDetail.Errata = []string{*erratum}
+			Errata:   erratum,
 		}
 		cves[cve] = cveDetail
 		return
@@ -376,7 +375,5 @@ func updateCves(cves map[string]VulnerabilityDetail, cve, pkg string, erratum *s
 	// update list of packages and errata
 	vulnDetail := cves[cve]
 	vulnDetail.Packages = append(vulnDetail.Packages, pkg)
-	if erratum != nil && *erratum != "" {
-		vulnDetail.Errata = append(vulnDetail.Errata, *erratum)
-	}
+	vulnDetail.Errata = append(vulnDetail.Errata, erratum...)
 }
