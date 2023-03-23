@@ -1063,14 +1063,13 @@ func loadOvalDefinitionErratas(c *Cache) {
 	cols := "definition_id,errata_id"
 	rows := getAllRows("oval_definition_errata", cols, cols)
 	row := OvalDefinitionErrataSelect{}
-	cnt := getCount("oval_definition_errata", "definition_id", cols)
-	definitionErratas := make(map[DefinitionID]ErrataID, cnt)
+	definitionErratas := make(map[DefinitionID][]ErrataID)
 
 	for rows.Next() {
 		if err := rows.Scan(&row.DefinitionID, &row.ErrataID); err != nil {
 			panic(err)
 		}
-		definitionErratas[row.DefinitionID] = row.ErrataID
+		definitionErratas[row.DefinitionID] = append(definitionErratas[row.DefinitionID], row.ErrataID)
 	}
 	c.OvalDefinitionID2ErrataID = definitionErratas
 }
