@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.4.0 (2023-03-27)
+### Feature
+* Return multiple erratas for manually fixable cve ([`14b59ed`](https://github.com/RedHatInsights/vmaas-lib/commit/14b59ed3de5b9ab2d8adc63650db2e10e4b5fb6b))
+* Update vmaas.db with oval_definition_errata feed ([`8588b31`](https://github.com/RedHatInsights/vmaas-lib/commit/8588b31c6f4ee5022aeacf69e94c65372bfb72b2))
+* Return errata for manually fixable cves ([`972a273`](https://github.com/RedHatInsights/vmaas-lib/commit/972a273b36ee12bb02fcfe81a34fba56290eba62))
+
 ## v0.3.5 (2023-03-20)
 ### Fix
 * Re-use logging logic from patchman ([`e5af24b`](https://github.com/RedHatInsights/vmaas-lib/commit/e5af24b2ec71e6aa86c97a7f60620d58155aa37f))
