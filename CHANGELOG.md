@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.4.1 (2023-03-30)
+### Fix
+* Make sure lock is unlocked in case of error ([`a3af86a`](https://github.com/RedHatInsights/vmaas-lib/commit/a3af86a15766a6c71bc6cf698f3fb2e5b6b3d2c4))
+
 ## v0.4.0 (2023-03-27)
 ### Feature
 * Return multiple erratas for manually fixable cve ([`14b59ed`](https://github.com/RedHatInsights/vmaas-lib/commit/14b59ed3de5b9ab2d8adc63650db2e10e4b5fb6b))
