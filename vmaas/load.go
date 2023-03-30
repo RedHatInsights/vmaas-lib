@@ -58,6 +58,7 @@ func closeDB() {
 // Make sure only one load at a time is performed
 func loadCache(path string) (*Cache, error) {
 	lock.Lock()
+	defer lock.Unlock()
 	start := time.Now()
 
 	if err := openDB(path); err != nil {
@@ -81,7 +82,6 @@ func loadCache(path string) (*Cache, error) {
 
 	wg.Wait()
 	utils.LogInfo("elapsed", time.Since(start), "Cache loaded successfully")
-	lock.Unlock()
 	return &c, nil
 }
 
