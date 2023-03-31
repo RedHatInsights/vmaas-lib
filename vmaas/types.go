@@ -155,8 +155,8 @@ type Module struct {
 }
 
 type ModuleStream struct {
-	Module string `json:"module_name"`
-	Stream string `json:"module_stream"`
+	Module *string `json:"module_name"`
+	Stream *string `json:"module_stream"`
 }
 
 type DBChange struct {
