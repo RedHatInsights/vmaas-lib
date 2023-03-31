@@ -102,7 +102,7 @@ func evaluate(c *Cache, request *Request) (*VulnerabilitiesCvesDetails, error) {
 
 //nolint:funlen,gocognit,nolintlint
 func (r *ProcessedRequest) evaluateOval(c *Cache, cves *VulnerabilitiesCvesDetails) error {
-	modules := make(map[string]string)
+	modules := make(map[*string]*string)
 	for _, m := range r.OriginalRequest.Modules {
 		modules[m.Module] = m.Stream
 	}
@@ -240,7 +240,7 @@ func repos2definitions(c *Cache, r *Request) map[DefinitionID]bool {
 }
 
 func evaluateCriteria(c *Cache, criteriaID CriteriaID, pkgNameID NameID, nevra utils.Nevra,
-	modules map[string]string,
+	modules map[*string]*string,
 ) bool {
 	moduleTestDeps := c.OvalCriteriaID2DepModuleTestIDs[criteriaID]
 	testDeps := c.OvalCriteriaID2DepTestIDs[criteriaID]
@@ -331,7 +331,7 @@ func evaluateState(c *Cache, state OvalState, nevra utils.Nevra) (matched bool) 
 	return matched
 }
 
-func evaluateModuleTest(c *Cache, moduleTestID ModuleTestID, modules map[string]string) bool {
+func evaluateModuleTest(c *Cache, moduleTestID ModuleTestID, modules map[*string]*string) bool {
 	testDetail := c.OvalModuleTestDetail[moduleTestID]
 	_, ok := modules[testDetail.ModuleStream.Module]
 	return ok
