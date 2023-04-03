@@ -23,12 +23,14 @@ type (
 )
 
 type Request struct {
-	Packages   []string       `json:"package_list"`
-	Repos      *[]string      `json:"repository_list"`
-	Modules    []ModuleStream `json:"modules_list"`
-	Releasever *string        `json:"releasever"`
-	Basearch   *string        `json:"basearch"`
-	RepoPaths  []string       `json:"repository_paths"`
+	Packages []string  `json:"package_list"`
+	Repos    *[]string `json:"repository_list"`
+	// we need to use pointers to modules to distinguish between nil and ""
+	// to keep consistency with python implementation
+	Modules    []ModuleStreamPtrs `json:"modules_list"`
+	Releasever *string            `json:"releasever"`
+	Basearch   *string            `json:"basearch"`
+	RepoPaths  []string           `json:"repository_paths"`
 
 	ThirdParty   bool `json:"third_party"`
 	Optimistic   bool `json:"optimistic_updates"`
@@ -155,6 +157,11 @@ type Module struct {
 }
 
 type ModuleStream struct {
+	Module string `json:"module_name"`
+	Stream string `json:"module_stream"`
+}
+
+type ModuleStreamPtrs struct {
 	Module *string `json:"module_name"`
 	Stream *string `json:"module_stream"`
 }

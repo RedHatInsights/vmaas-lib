@@ -8,12 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	firefox = "firefox"
-	kernel  = "kernel"
-	str1    = "1"
-)
-
 func hasDuplicities(in ...interface{}) bool {
 	seen := map[string]bool{}
 	for _, v := range in {
@@ -53,8 +47,8 @@ func TestGetModules(t *testing.T) {
 	assert.Equal(t, 0, len(emptyRes))
 
 	c.Module2IDs = map[ModuleStream][]int{
-		{&firefox, &str1}: {1, 2, 3},
-		{&kernel, &str1}:  {2, 3, 4},
+		{"firefox", "1"}: {1, 2, 3},
+		{"kernel", "1"}:  {2, 3, 4},
 	}
 	c.ModuleRequires = map[int][]int{
 		1: {2, 3},
@@ -62,7 +56,7 @@ func TestGetModules(t *testing.T) {
 		3: {5},
 		4: {3, 5},
 	}
-	modules := []ModuleStream{{&firefox, &str1}, {&kernel, &str1}}
+	modules := []ModuleStream{{"firefox", "1"}, {"kernel", "1"}}
 	res := getModules(&c, modules)
 	assert.Equal(t, 2, len(res))
 	assert.Equal(t, map[int]bool{1: true, 2: true}, res)
