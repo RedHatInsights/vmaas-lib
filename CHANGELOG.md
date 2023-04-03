@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.4.3 (2023-04-03)
+### Fix
+* Allow empty string for modules only in request ([`427829d`](https://github.com/RedHatInsights/vmaas-lib/commit/427829dc423a353c066e7e54009faa32155d42af))
+
 ## v0.4.2 (2023-04-03)
 ### Fix
 * Use *string for module name and stream to allow empty strings ([`ca5be5f`](https://github.com/RedHatInsights/vmaas-lib/commit/ca5be5fc9619544a6088b54b84b655e64ec7a83b))
