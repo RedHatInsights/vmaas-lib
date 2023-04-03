@@ -600,7 +600,7 @@ func loadModule2IDs(c *Cache) {
 	m := map[ModuleStream][]int{}
 
 	for i := 0; i < len(modules); i++ {
-		pkgErrata := ModuleStream{&modules[i], &streams[i]}
+		pkgErrata := ModuleStream{modules[i], streams[i]}
 		_, ok := m[pkgErrata]
 		if !ok {
 			m[pkgErrata] = []int{}
@@ -995,7 +995,7 @@ func loadOvalModuleTestDetail(c *Cache) {
 		}
 		splitted := strings.Split(r.ModuleStream, ":")
 		details[r.ID] = OvalModuleTestDetail{
-			ModuleStream: ModuleStream{Module: &splitted[0], Stream: &splitted[1]},
+			ModuleStream: ModuleStream{Module: splitted[0], Stream: splitted[1]},
 		}
 	}
 	c.OvalModuleTestDetail = details

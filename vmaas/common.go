@@ -43,6 +43,10 @@ func (r *Request) processRequest(c *Cache) (*ProcessedRequest, error) {
 	}
 
 	pkgsToProcess, updateList := processInputPackages(c, r)
+	modules, err := processModules(r.Modules)
+	if err != nil {
+		return nil, errors.Wrap(err, "processing modules from request")
+	}
 	updates := Updates{
 		UpdateList: updateList,
 		LastChange: lastChanged,
@@ -50,10 +54,22 @@ func (r *Request) processRequest(c *Cache) (*ProcessedRequest, error) {
 		Releasever: r.Releasever,
 		RepoList:   r.Repos,
 		RepoPaths:  r.RepoPaths,
-		ModuleList: r.Modules,
+		ModuleList: modules,
 	}
 	processed := ProcessedRequest{Updates: &updates, Packages: pkgsToProcess, OriginalRequest: r}
 	return &processed, nil
+}
+
+// Convert input []ModuleStreamPtrs to []ModuleStream
+func processModules(modules []ModuleStreamPtrs) ([]ModuleStream, error) {
+	res := make([]ModuleStream, 0, len(modules))
+	for _, m := range modules {
+		if m.Module == nil || m.Stream == nil {
+			return nil, errors.New("`module_name` and `module_stream` can't be `nil`")
+		}
+		res = append(res, ModuleStream{*m.Module, *m.Stream})
+	}
+	return res, nil
 }
 
 // Parse input NEVRAs and filter out unknown (or without updates) package names
