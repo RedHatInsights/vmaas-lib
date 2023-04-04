@@ -33,7 +33,6 @@ type Request struct {
 	RepoPaths  []string           `json:"repository_paths"`
 
 	ThirdParty   bool `json:"third_party"`
-	Optimistic   bool `json:"optimistic_updates"`
 	LatestOnly   bool `json:"latest_only"`
 	SecurityOnly bool `json:"security_only"`
 

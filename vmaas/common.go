@@ -112,15 +112,20 @@ func processPackagesUpdates(c *Cache, nevra utils.Nevra, repoIDs map[RepoID]bool
 
 	var updatePkgIDs []PkgID
 	var validReleasevers map[string]bool
-	switch {
-	case len(nevraIDs.EvrIDs) > 0:
+	var filteredRepos []RepoID
+	if len(nevraIDs.EvrIDs) > 0 {
 		// nevraUpdates
 		updatePkgIDs, validReleasevers = nevraUpdates(c, &nevraIDs)
-	case r.Optimistic:
+		filteredRepos = repositoriesByPkgs(c, updatePkgIDs, repoIDs, validReleasevers)
+	}
+	if len(filteredRepos) == 0 {
+		// no nevra updates, try optimistic updates
 		updatePkgIDs = optimisticUpdates(c, &nevraIDs, &nevra)
-		validReleasevers = nil
-	default:
-		return UpdateDetail{}
+		filteredRepos = repositoriesByPkgs(c, updatePkgIDs, repoIDs, nil)
+	}
+	if len(updatePkgIDs) == 0 {
+		// still no updates, return empty UpdateDetail
+		return updateDetail
 	}
 
 	// get pkgUpdates concurrently
@@ -133,7 +138,7 @@ func processPackagesUpdates(c *Cache, nevra utils.Nevra, repoIDs map[RepoID]bool
 			defer wg.Done()
 			maxGoroutines <- struct{}{}
 			pkgUpdates(c, u, nevraIDs.ArchID, r.SecurityOnly, moduleIDs,
-				repoIDs, validReleasevers, r.ThirdParty, updates)
+				filteredRepos, r.ThirdParty, updates)
 			<-maxGoroutines
 		}(u)
 	}
@@ -148,7 +153,7 @@ func processPackagesUpdates(c *Cache, nevra utils.Nevra, repoIDs map[RepoID]bool
 }
 
 func pkgUpdates(c *Cache, pkgID PkgID, archID ArchID, securityOnly bool, modules map[int]bool,
-	repoIDs map[RepoID]bool, releasevers map[string]bool, thirdparty bool, updates chan Update,
+	repoIDs []RepoID, thirdparty bool, updates chan Update,
 ) {
 	if archID == 0 {
 		return
@@ -172,12 +177,12 @@ func pkgUpdates(c *Cache, pkgID PkgID, archID ArchID, securityOnly bool, modules
 	nevra := buildNevra(c, pkgID)
 	for _, eid := range errataIDs {
 		pkgErrataUpdates(c, pkgID, eid, modules, repoIDs,
-			releasevers, nevra, securityOnly, thirdparty, updates)
+			nevra, securityOnly, thirdparty, updates)
 	}
 }
 
 func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErrataID, modules map[int]bool,
-	repoIDs map[RepoID]bool, releasevers map[string]bool, nevra utils.Nevra, securityOnly, thirdparty bool,
+	repoIDs []RepoID, nevra utils.Nevra, securityOnly, thirdparty bool,
 	updates chan Update,
 ) {
 	erratumName := c.ErrataID2Name[erratumID]
@@ -211,7 +216,7 @@ func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErrataID, modules map[int
 		return
 	}
 
-	repos := filterRepositories(c, pkgID, erratumID, repoIDs, releasevers)
+	repos := filterErrataRepos(c, erratumID, repoIDs)
 	for _, r := range repos {
 		details := c.RepoDetails[r]
 		updates <- Update{
@@ -233,14 +238,48 @@ func filterNonSecurity(errataDetail ErrataDetail, securityOnly bool) bool {
 	return !isSecurity
 }
 
-func filterRepositories(c *Cache, pkgID PkgID, erratumID ErrataID, repoIDs map[RepoID]bool,
-	releasevers map[string]bool,
-) []RepoID {
+func repositoriesByPkgs(c *Cache, pkgIDs []PkgID, repoIDs map[RepoID]bool, releasevers map[string]bool) []RepoID {
+	res := []RepoID{}
+	seen := map[RepoID]bool{}
+	repos := make(chan RepoID)
+	wg := sync.WaitGroup{}
+	maxGoroutines := make(chan struct{}, conf.Env.MaxGoroutines)
+	for _, p := range pkgIDs {
+		wg.Add(1)
+		go func(p PkgID) {
+			defer wg.Done()
+			maxGoroutines <- struct{}{}
+			filterPkgRepos(c, p, repoIDs, releasevers, repos)
+			<-maxGoroutines
+		}(p)
+	}
+	go func() {
+		wg.Wait()
+		close(repos)
+	}()
+	for r := range repos {
+		if !seen[r] {
+			seen[r] = true
+			res = append(res, r)
+		}
+	}
+	return res
+}
+
+func filterPkgRepos(c *Cache, pkgID PkgID, repoIDs map[RepoID]bool, releasevers map[string]bool, res chan RepoID) {
 	pkgRepos := c.PkgID2RepoIDs[pkgID]
+	for _, r := range pkgRepos {
+		if repoIDs[r] && isRepoValid(c, r, releasevers) {
+			res <- r
+		}
+	}
+}
+
+func filterErrataRepos(c *Cache, erratumID ErrataID, pkgRepos []RepoID) []RepoID {
 	errataRepos := c.ErrataID2RepoIDs[erratumID]
 	result := []RepoID{}
 	for _, rid := range pkgRepos {
-		if errataRepos[rid] && repoIDs[rid] && isRepoValid(c, rid, releasevers) {
+		if errataRepos[rid] {
 			result = append(result, rid)
 		}
 	}
@@ -322,6 +361,7 @@ func pkgReleasevers(c *Cache, pkgID PkgID) map[string]bool {
 	repoIDs := c.PkgID2RepoIDs[pkgID]
 	releasevers := make(map[string]bool)
 	for _, rid := range repoIDs {
+		utils.LogInfo("repo", c.RepoDetails[rid], "DEBUG")
 		relVer := c.RepoDetails[rid].Releasever
 		releasevers[relVer] = true
 	}
