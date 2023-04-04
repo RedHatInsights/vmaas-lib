@@ -66,9 +66,6 @@ func evaluate(c *Cache, request *Request) (*VulnerabilitiesCvesDetails, error) {
 		UnpatchedCves: make(map[string]VulnerabilityDetail),
 	}
 
-	// always use optimistic updates
-	request.Optimistic = true
-
 	// process request
 	processed, err := request.processRequest(c)
 	if err != nil {
