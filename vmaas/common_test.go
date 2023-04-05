@@ -294,31 +294,9 @@ func TestNevraPkgID(t *testing.T) {
 	assert.Equal(t, PkgID(0), res)
 }
 
-func TestPkgReleasevers(t *testing.T) {
-	c := Cache{
-		PkgID2RepoIDs: map[PkgID][]RepoID{1: {1, 2, 3}, 2: {2, 3, 4}},
-		RepoDetails: map[RepoID]RepoDetail{
-			1: {},
-			2: {Releasever: "el7"},
-			3: {Releasever: "el8"},
-			4: {Releasever: "el9"},
-		},
-	}
-
-	res := pkgReleasevers(&c, 0)
-	assert.Equal(t, map[string]bool{}, res)
-
-	res = pkgReleasevers(&c, 1)
-	assert.Equal(t, map[string]bool{"": true, "el7": true, "el8": true}, res)
-
-	res = pkgReleasevers(&c, 2)
-	assert.Equal(t, map[string]bool{"el7": true, "el8": true, "el9": true}, res)
-}
-
 func TestNevraUpdates(t *testing.T) {
-	updates, releasevers := nevraUpdates(nil, nil)
+	updates := nevraUpdates(nil, nil)
 	assert.Nil(t, updates)
-	assert.Nil(t, releasevers)
 
 	// cache init
 	nevra, _ := utils.ParseNevra("bash-0:5.4.20-1.el8_4.x86_64")
@@ -352,9 +330,7 @@ func TestNevraUpdates(t *testing.T) {
 	}
 
 	ids := extractNevraIDs(&c, &nevra) // ids.NameID=1, EvrIDs=[2, 3, 4], ArchID=3
-	updates, releasevers = nevraUpdates(&c, &ids)
-	// releasevers for PkgID=3
-	assert.Equal(t, map[string]bool{"el8": true, "el9": true}, releasevers)
+	updates = nevraUpdates(&c, &ids)
 	// update for PkgID=3
 	assert.Equal(t, []PkgID{6, 7}, updates)
 }
@@ -411,36 +387,6 @@ func TestBuildNevra(t *testing.T) {
 	assert.Equal(t, nevra, res)
 }
 
-func TestIsRepoValid(t *testing.T) {
-	c := Cache{
-		RepoDetails: map[RepoID]RepoDetail{
-			1: {},
-			2: {Releasever: "el9"},
-		},
-	}
-
-	res := isRepoValid(&c, 0, nil)
-	assert.False(t, res)
-
-	res = isRepoValid(&c, 0, map[string]bool{"el8": true})
-	assert.False(t, res)
-
-	res = isRepoValid(&c, 0, map[string]bool{"el9": true})
-	assert.False(t, res)
-
-	res = isRepoValid(&c, 1, map[string]bool{"el8": true})
-	assert.False(t, res)
-
-	res = isRepoValid(&c, 2, map[string]bool{"el8": true})
-	assert.False(t, res)
-
-	res = isRepoValid(&c, 2, map[string]bool{"el9": true})
-	assert.True(t, res)
-
-	res = isRepoValid(&c, 2, nil)
-	assert.True(t, res)
-}
-
 func TestFilterRepositories(t *testing.T) {
 	c := Cache{
 		RepoDetails: map[RepoID]RepoDetail{
@@ -460,19 +406,17 @@ func TestFilterRepositories(t *testing.T) {
 	}
 
 	repos := map[RepoID]bool{1: true, 2: true, 3: true, 4: true}
-	releasevers := map[string]bool{"el7": true, "el9": true}
-	res := filterRepositories(&c, 0, 0, map[RepoID]bool{}, nil)
+	repoIDs := repositoriesByPkgs(&c, []PkgID{0}, map[RepoID]bool{})
+	res := filterErrataRepos(&c, 0, repoIDs)
 	assert.Equal(t, 0, len(res))
 
-	res = filterRepositories(&c, 1, 1, repos, releasevers)
-	// only el7 repo for pkg=1, erratum=1
-	assert.Equal(t, []RepoID{2}, res)
+	repoIDs = repositoriesByPkgs(&c, []PkgID{1}, repos)
+	res = filterErrataRepos(&c, 1, repoIDs)
+	// el7 repo and repo without releasever for pkg=1, erratum=1
+	assert.Equal(t, []RepoID{1, 2}, res)
 
-	res = filterRepositories(&c, 2, 2, repos, releasevers)
-	// only el9 repo for pkg=2, erratum=2, because of el7, el9 in releasevers
-	assert.Equal(t, []RepoID{4}, res)
-
-	res = filterRepositories(&c, 2, 2, repos, nil)
+	repoIDs = repositoriesByPkgs(&c, []PkgID{2}, repos)
+	res = filterErrataRepos(&c, 2, repoIDs)
 	// el8, el9 repo for pkg=2, erratum=2
 	assert.Equal(t, []RepoID{3, 4}, res)
 }
