@@ -111,22 +111,22 @@ func processPackagesUpdates(c *Cache, nevra utils.Nevra, repoIDs map[RepoID]bool
 	nevraIDs := extractNevraIDs(c, &nevra)
 
 	var updatePkgIDs []PkgID
-	var validReleasevers map[string]bool
 	var filteredRepos []RepoID
 	if len(nevraIDs.EvrIDs) > 0 {
 		// nevraUpdates
-		updatePkgIDs, validReleasevers = nevraUpdates(c, &nevraIDs)
-		filteredRepos = repositoriesByPkgs(c, updatePkgIDs, repoIDs, validReleasevers)
+		updatePkgIDs = nevraUpdates(c, &nevraIDs)
 	}
-	if len(filteredRepos) == 0 {
+	if len(updatePkgIDs) == 0 {
 		// no nevra updates, try optimistic updates
 		updatePkgIDs = optimisticUpdates(c, &nevraIDs, &nevra)
-		filteredRepos = repositoriesByPkgs(c, updatePkgIDs, repoIDs, nil)
 	}
 	if len(updatePkgIDs) == 0 {
 		// still no updates, return empty UpdateDetail
 		return updateDetail
 	}
+
+	// get repositories for update packages
+	filteredRepos = repositoriesByPkgs(c, updatePkgIDs, repoIDs)
 
 	// get pkgUpdates concurrently
 	updates := make(chan Update)
@@ -238,7 +238,7 @@ func filterNonSecurity(errataDetail ErrataDetail, securityOnly bool) bool {
 	return !isSecurity
 }
 
-func repositoriesByPkgs(c *Cache, pkgIDs []PkgID, repoIDs map[RepoID]bool, releasevers map[string]bool) []RepoID {
+func repositoriesByPkgs(c *Cache, pkgIDs []PkgID, repoIDs map[RepoID]bool) []RepoID {
 	res := []RepoID{}
 	seen := map[RepoID]bool{}
 	repos := make(chan RepoID)
@@ -249,7 +249,7 @@ func repositoriesByPkgs(c *Cache, pkgIDs []PkgID, repoIDs map[RepoID]bool, relea
 		go func(p PkgID) {
 			defer wg.Done()
 			maxGoroutines <- struct{}{}
-			filterPkgRepos(c, p, repoIDs, releasevers, repos)
+			filterPkgRepos(c, p, repoIDs, repos)
 			<-maxGoroutines
 		}(p)
 	}
@@ -266,10 +266,10 @@ func repositoriesByPkgs(c *Cache, pkgIDs []PkgID, repoIDs map[RepoID]bool, relea
 	return res
 }
 
-func filterPkgRepos(c *Cache, pkgID PkgID, repoIDs map[RepoID]bool, releasevers map[string]bool, res chan RepoID) {
+func filterPkgRepos(c *Cache, pkgID PkgID, repoIDs map[RepoID]bool, res chan RepoID) {
 	pkgRepos := c.PkgID2RepoIDs[pkgID]
 	for _, r := range pkgRepos {
-		if repoIDs[r] && isRepoValid(c, r, releasevers) {
+		if repoIDs[r] {
 			res <- r
 		}
 	}
@@ -285,15 +285,6 @@ func filterErrataRepos(c *Cache, erratumID ErrataID, pkgRepos []RepoID) []RepoID
 	}
 
 	return result
-}
-
-func isRepoValid(c *Cache, repoID RepoID, releasevers map[string]bool) bool {
-	if len(releasevers) == 0 {
-		_, ok := c.RepoDetails[repoID]
-		return ok
-	}
-	repoDetail := c.RepoDetails[repoID]
-	return releasevers[repoDetail.Releasever]
 }
 
 func buildNevra(c *Cache, pkgID PkgID) utils.Nevra {
@@ -336,36 +327,22 @@ func optimisticUpdates(c *Cache, nevraIDs *NevraIDs, nevra *utils.Nevra) []PkgID
 	return filteredUpdates
 }
 
-func nevraUpdates(c *Cache, n *NevraIDs) ([]PkgID, map[string]bool) {
+func nevraUpdates(c *Cache, n *NevraIDs) []PkgID {
 	currentNevraPkgID := nevraPkgID(c, n)
 	// Package with given NEVRA not found in cache/DB
 	if currentNevraPkgID == 0 {
-		return nil, nil
+		return nil
 	}
 
 	// No updates found for given NEVRA
 	lastVersionPkgID := c.Updates[n.NameID][len(c.Updates[n.NameID])-1]
 	if lastVersionPkgID == currentNevraPkgID {
-		return nil, nil
+		return nil
 	}
 
 	// Get candidate package IDs
 	updatePkgIDs := c.Updates[n.NameID][n.EvrIDs[len(n.EvrIDs)-1]+1:]
-
-	// Get associated product IDs
-	validReleasevers := pkgReleasevers(c, currentNevraPkgID)
-	return updatePkgIDs, validReleasevers
-}
-
-func pkgReleasevers(c *Cache, pkgID PkgID) map[string]bool {
-	repoIDs := c.PkgID2RepoIDs[pkgID]
-	releasevers := make(map[string]bool)
-	for _, rid := range repoIDs {
-		utils.LogInfo("repo", c.RepoDetails[rid], "DEBUG")
-		relVer := c.RepoDetails[rid].Releasever
-		releasevers[relVer] = true
-	}
-	return releasevers
+	return updatePkgIDs
 }
 
 func nevraPkgID(c *Cache, n *NevraIDs) PkgID {
