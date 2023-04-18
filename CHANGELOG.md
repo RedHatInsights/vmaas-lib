@@ -2,6 +2,11 @@
 
 <!--next-version-placeholder-->
 
+## v0.5.0 (2023-04-18)
+### Feature
+* Remove releasever check when finding updates ([`009fc1b`](https://github.com/RedHatInsights/vmaas-lib/commit/009fc1b2992312ea3795faccfe7ea117c9604f9f))
+* Always use optimistic updates ([`a892a8b`](https://github.com/RedHatInsights/vmaas-lib/commit/a892a8b2bbbfd63afa99279f5726dfe034d6b724))
+
 ## v0.4.3 (2023-04-03)
 ### Fix
 * Allow empty string for modules only in request ([`427829d`](https://github.com/RedHatInsights/vmaas-lib/commit/427829dc423a353c066e7e54009faa32155d42af))
