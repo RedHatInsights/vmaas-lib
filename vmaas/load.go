@@ -81,7 +81,7 @@ func loadCache(path string) (*Cache, error) {
 	}
 
 	wg.Wait()
-	utils.LogInfo("elapsed", time.Since(start), "Cache loaded successfully")
+	utils.LogInfo("elapsed", fmt.Sprint(time.Since(start)), "Cache loaded successfully")
 	return &c, nil
 }
 

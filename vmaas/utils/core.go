@@ -23,7 +23,7 @@ func GetBoolEnvOrDefault(envname string, defval bool) bool {
 }
 
 func TimeTrack(start time.Time, eventName string) {
-	elapsed := time.Since(start)
+	elapsed := fmt.Sprint(time.Since(start))
 	LogInfo("event", eventName, "elapsed", elapsed)
 }
 
