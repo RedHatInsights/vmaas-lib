@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.5.1 (2023-05-03)
+### Fix
+* **oval:** Check module stream in evaluateModuleTest ([`20be8ac`](https://github.com/RedHatInsights/vmaas-lib/commit/20be8ac36741fd6bb462a3089107cba4250458c3))
+* **oval:** Remove duplicates from UnpatchedCves list ([`9c48307`](https://github.com/RedHatInsights/vmaas-lib/commit/9c48307753f149815ff5c16975f89ba0a3db4003))
+* **modules:** Find updates in modular errata for package from module when module is enabled ([`cd99eef`](https://github.com/RedHatInsights/vmaas-lib/commit/cd99eef927a5d1457921169c66b46f75de557a0c))
+
 ## v0.5.0 (2023-04-18)
 ### Feature
 * Remove releasever check when finding updates ([`009fc1b`](https://github.com/RedHatInsights/vmaas-lib/commit/009fc1b2992312ea3795faccfe7ea117c9604f9f))
