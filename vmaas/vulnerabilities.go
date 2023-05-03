@@ -334,8 +334,7 @@ func evaluateState(c *Cache, state OvalState, nevra utils.Nevra) (matched bool) 
 
 func evaluateModuleTest(c *Cache, moduleTestID ModuleTestID, modules map[string]string) bool {
 	testDetail := c.OvalModuleTestDetail[moduleTestID]
-	_, ok := modules[testDetail.ModuleStream.Module]
-	return ok
+	return modules[testDetail.ModuleStream.Module] == testDetail.ModuleStream.Stream
 }
 
 func evaluateTest(c *Cache, testID TestID, pkgNameID NameID, nevra utils.Nevra) (matched bool) {
