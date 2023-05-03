@@ -146,9 +146,9 @@ func (r *ProcessedRequest) evaluateOval(c *Cache, cves *VulnerabilitiesCvesDetai
 
 			if evaluateCriteria(c, definition.CriteriaID, pkgNameID, parsedNevra, modules) {
 				// Vulnerable
-				switch definition.DefinitionTypeID {
-				case OvalDefinitionTypePatch:
-					for _, cve := range cvesOval {
+				for _, cve := range cvesOval {
+					switch definition.DefinitionTypeID {
+					case OvalDefinitionTypePatch:
 						if _, has := cves.Cves[cve]; has {
 							continue
 						}
@@ -156,10 +156,13 @@ func (r *ProcessedRequest) evaluateOval(c *Cache, cves *VulnerabilitiesCvesDetai
 						for _, errataID := range c.OvalDefinitionID2ErrataID[defID] {
 							errataNames = append(errataNames, c.ErrataID2Name[errataID])
 						}
+
+						// CVE can be added to Unpatched list sooner than to Manual list
+						// we need to remove it from Unpatched list
+						delete(cves.UnpatchedCves, cve)
+
 						updateCves(cves.ManualCves, cve, pkg, errataNames)
-					}
-				case OvalDefinitionTypeVulnerability:
-					for _, cve := range cvesOval {
+					case OvalDefinitionTypeVulnerability:
 						_, inCves := cves.Cves[cve]
 						_, inManualCves := cves.ManualCves[cve]
 						// Skip fixable CVEs (should never happen, just in case)
@@ -168,9 +171,9 @@ func (r *ProcessedRequest) evaluateOval(c *Cache, cves *VulnerabilitiesCvesDetai
 						}
 						// no erratum for unpatched CVEs
 						updateCves(cves.UnpatchedCves, cve, pkg, []string{})
+					default:
+						return fmt.Errorf("unsupported definition type: %d", definition.DefinitionTypeID)
 					}
-				default:
-					return fmt.Errorf("unsupported definition type: %d", definition.DefinitionTypeID)
 				}
 			}
 		}
