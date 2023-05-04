@@ -31,6 +31,23 @@ type VulnerabilitiesCvesDetails struct {
 	LastChange    *time.Time
 }
 
+type ProcessedDefinitions struct {
+	Patch         map[DefinitionID]ProcessedDefinition
+	Vulnerability map[DefinitionID]ProcessedDefinition
+}
+
+type ProcessedDefinition struct {
+	DefinitionID DefinitionID
+	CriteriaID   CriteriaID
+	Packages     []Package
+}
+
+type Package struct {
+	utils.Nevra
+	String string
+	NameID NameID
+}
+
 func (r *Request) Vulnerabilities(c *Cache) (*Vulnerabilities, error) {
 	cves, err := evaluate(c, r)
 	if err != nil {
@@ -59,6 +76,7 @@ func (r *Request) VulnerabilitiesExtended(c *Cache) (*VulnerabilitiesExtended, e
 	return &vuln, nil
 }
 
+//nolint:funlen
 func evaluate(c *Cache, request *Request) (*VulnerabilitiesCvesDetails, error) {
 	cves := VulnerabilitiesCvesDetails{
 		Cves:          make(map[string]VulnerabilityDetail),
@@ -73,7 +91,24 @@ func evaluate(c *Cache, request *Request) (*VulnerabilitiesCvesDetails, error) {
 	}
 	cves.LastChange = &processed.Updates.LastChange
 
-	// Repositories
+	definitions, err := processed.processDefinitions(c)
+	if err != nil {
+		return &cves, errors.Wrap(err, "couldn't evaluate OVAL")
+	}
+
+	modules := make(map[string]string)
+	for _, m := range processed.Updates.ModuleList {
+		modules[m.Module] = m.Stream
+	}
+
+	// 1. evaluate Unpatched CVEs
+	for defID, definition := range definitions.Vulnerability {
+		cvesOval := c.OvaldefinitionID2Cves[defID]
+		definition.evaluate(c, modules, cvesOval, &cves, cves.UnpatchedCves)
+	}
+
+	// 2. evaluate CVEs from Repositories
+	// if CVE is already in Unpatched list -> skip it
 	updates := processed.evaluateRepositories(c)
 	seenErrata := map[string]bool{}
 	for pkg, upDetail := range updates.UpdateList {
@@ -83,103 +118,115 @@ func evaluate(c *Cache, request *Request) (*VulnerabilitiesCvesDetails, error) {
 			}
 			seenErrata[update.Erratum] = true
 			for _, cve := range c.ErrataDetail[update.Erratum].CVEs {
+				if _, inUnpatchedCves := cves.UnpatchedCves[cve]; inUnpatchedCves {
+					continue
+				}
 				updateCves(cves.Cves, cve, pkg, []string{update.Erratum})
 			}
 		}
 	}
 
-	// OVAL
-	err = processed.evaluateOval(c, &cves)
-	if err != nil {
-		return &cves, errors.Wrap(err, "couldn't evaluate OVAL")
+	// 3. evaluate Manually Fixable CVEs
+	// if CVE is already in Unpatched or CVE list -> skip it
+	for defID, definition := range definitions.Patch {
+		cvesOval := c.OvaldefinitionID2Cves[defID]
+		// Skip if all CVEs from definition were already found somewhere
+		allCvesFound := true
+		for _, cve := range cvesOval {
+			_, inCves := cves.Cves[cve]
+			_, inManualCves := cves.ManualCves[cve]
+			_, inUnpatchedCves := cves.UnpatchedCves[cve]
+			if !(inCves || inManualCves || inUnpatchedCves) {
+				allCvesFound = false
+			}
+		}
+		if allCvesFound {
+			continue
+		}
+		definition.evaluate(c, modules, cvesOval, &cves, cves.ManualCves)
 	}
 
 	return &cves, nil
 }
 
-//nolint:funlen,gocognit,nolintlint
-func (r *ProcessedRequest) evaluateOval(c *Cache, cves *VulnerabilitiesCvesDetails) error {
-	modules := make(map[string]string)
-
-	for _, m := range r.Updates.ModuleList {
-		modules[m.Module] = m.Stream
+func (d *ProcessedDefinition) evaluate(
+	c *Cache, modules map[string]string, cvesOval []string, cves *VulnerabilitiesCvesDetails,
+	dst map[string]VulnerabilityDetail,
+) {
+	for _, p := range d.Packages {
+		if evaluateCriteria(c, d.CriteriaID, p.NameID, p.Nevra, modules) {
+			for _, cve := range cvesOval {
+				_, inCves := cves.Cves[cve]
+				_, inUnpatchedCves := cves.UnpatchedCves[cve]
+				// Fixable and Unpatched CVEs take precedence over Manually fixable
+				if inCves || inUnpatchedCves {
+					continue
+				}
+				errataNames := make([]string, 0)
+				for _, errataID := range c.OvalDefinitionID2ErrataID[d.DefinitionID] {
+					errataNames = append(errataNames, c.ErrataID2Name[errataID])
+				}
+				updateCves(dst, cve, p.String, errataNames)
+			}
+		}
 	}
+}
 
+func (r *ProcessedRequest) processDefinitions(c *Cache) (*ProcessedDefinitions, error) {
 	// Get CPEs for affected repos/content sets
 	// TODO: currently OVAL doesn't evaluate when there is not correct input repo list mapped to CPEs
 	//       there needs to be better fallback at least to guess correctly RHEL version,
 	//       use old VMaaS repo guessing?
 	candidateDefinitions := repos2definitions(c, r.OriginalRequest)
-	if candidateDefinitions == nil {
-		return nil
+	definitions := ProcessedDefinitions{
+		make(map[DefinitionID]ProcessedDefinition),
+		make(map[DefinitionID]ProcessedDefinition),
 	}
+
 	for pkg, parsedNevra := range r.Packages {
 		pkgNameID := c.Packagename2ID[parsedNevra.Name]
-		definitionsIDs := map[DefinitionID]bool{}
 		allDefinitionsIDs := c.PackagenameID2definitionIDs[pkgNameID]
 		for _, defID := range allDefinitionsIDs {
 			if candidateDefinitions[defID] {
-				definitionsIDs[defID] = true
-			}
-		}
-
-		for defID := range definitionsIDs {
-			definition := c.OvaldefinitionDetail[defID]
-			// Skip if unfixed CVE feature flag is disabled
-			if definition.DefinitionTypeID == OvalDefinitionTypeVulnerability && !conf.Env.OvalUnfixedEvalEnabled {
-				continue
-			}
-			cvesOval := c.OvaldefinitionID2Cves[defID]
-			// Skip if all CVEs from definition were already found somewhere
-			allCvesFound := true
-			for _, cve := range cvesOval {
-				_, inCves := cves.Cves[cve]
-				_, inManualCves := cves.ManualCves[cve]
-				_, inUnpatchedCves := cves.UnpatchedCves[cve]
-				if !(inCves || inManualCves || inUnpatchedCves) {
-					allCvesFound = false
-				}
-			}
-			if allCvesFound {
-				continue
-			}
-
-			if evaluateCriteria(c, definition.CriteriaID, pkgNameID, parsedNevra, modules) {
-				// Vulnerable
-				for _, cve := range cvesOval {
-					switch definition.DefinitionTypeID {
-					case OvalDefinitionTypePatch:
-						if _, has := cves.Cves[cve]; has {
-							continue
-						}
-						errataNames := make([]string, 0)
-						for _, errataID := range c.OvalDefinitionID2ErrataID[defID] {
-							errataNames = append(errataNames, c.ErrataID2Name[errataID])
-						}
-
-						// CVE can be added to Unpatched list sooner than to Manual list
-						// we need to remove it from Unpatched list
-						delete(cves.UnpatchedCves, cve)
-
-						updateCves(cves.ManualCves, cve, pkg, errataNames)
-					case OvalDefinitionTypeVulnerability:
-						_, inCves := cves.Cves[cve]
-						_, inManualCves := cves.ManualCves[cve]
-						// Skip fixable CVEs (should never happen, just in case)
-						if inCves || inManualCves {
-							continue
-						}
-						// no erratum for unpatched CVEs
-						updateCves(cves.UnpatchedCves, cve, pkg, []string{})
-					default:
-						return fmt.Errorf("unsupported definition type: %d", definition.DefinitionTypeID)
+				definition := c.OvaldefinitionDetail[defID]
+				switch definition.DefinitionTypeID {
+				case OvalDefinitionTypePatch:
+					if _, ok := definitions.Patch[defID]; !ok {
+						definitions.Patch[defID] = ProcessedDefinition{}
 					}
+					definitions.Patch[defID] = ProcessedDefinition{
+						DefinitionID: definition.ID,
+						CriteriaID:   definition.CriteriaID,
+						Packages: append(definitions.Patch[defID].Packages, Package{
+							Nevra:  parsedNevra,
+							NameID: pkgNameID,
+							String: pkg,
+						}),
+					}
+				case OvalDefinitionTypeVulnerability:
+					// Skip if unfixed CVE feature flag is disabled
+					if !conf.Env.OvalUnfixedEvalEnabled {
+						continue
+					}
+					if _, ok := definitions.Vulnerability[defID]; !ok {
+						definitions.Vulnerability[defID] = ProcessedDefinition{}
+					}
+					definitions.Vulnerability[defID] = ProcessedDefinition{
+						DefinitionID: definition.ID,
+						CriteriaID:   definition.CriteriaID,
+						Packages: append(definitions.Vulnerability[defID].Packages, Package{
+							Nevra:  parsedNevra,
+							NameID: pkgNameID,
+							String: pkg,
+						}),
+					}
+				default:
+					return nil, fmt.Errorf("unsupported definition type: %d", definition.DefinitionTypeID)
 				}
 			}
 		}
 	}
-
-	return nil
+	return &definitions, nil
 }
 
 //nolint:gocognit,nolintlint
