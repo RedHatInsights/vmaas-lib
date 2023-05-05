@@ -756,13 +756,7 @@ func loadErrataModules() map[int][]Module {
 func loadOvalDefinitionDetail(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "oval_definition_detail")
 
-	type OvalDefinitionDetail struct {
-		ID               DefinitionID
-		DefinitionTypeID int
-		CriteriaID       CriteriaID
-	}
-
-	row := OvalDefinitionDetail{}
+	row := DefinitionDetail{}
 	defDetail := make(map[DefinitionID]DefinitionDetail)
 	rows := getAllRows("oval_definition_detail", "id,definition_type_id,criteria_id", "id")
 
@@ -770,10 +764,7 @@ func loadOvalDefinitionDetail(c *Cache) {
 		if err := rows.Scan(&row.ID, &row.DefinitionTypeID, &row.CriteriaID); err != nil {
 			panic(err)
 		}
-		defDetail[row.ID] = DefinitionDetail{
-			DefinitionTypeID: row.DefinitionTypeID,
-			CriteriaID:       row.CriteriaID,
-		}
+		defDetail[row.ID] = row
 	}
 	c.OvaldefinitionDetail = defDetail
 }
