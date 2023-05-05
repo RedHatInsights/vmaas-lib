@@ -118,7 +118,7 @@ func evaluate(c *Cache, request *Request) (*VulnerabilitiesCvesDetails, error) {
 				continue
 			}
 			seenErrata[update.Erratum] = true
-			for _, cve := range c.ErrataDetail[update.Erratum].CVEs {
+			for _, cve := range c.ErratumDetails[update.Erratum].CVEs {
 				if _, inUnpatchedCves := cves.UnpatchedCves[cve]; inUnpatchedCves {
 					continue
 				}
@@ -164,8 +164,8 @@ func (d *ProcessedDefinition) evaluate(
 					continue
 				}
 				errataNames := make([]string, 0)
-				for _, errataID := range c.OvalDefinitionID2ErrataID[d.DefinitionID] {
-					errataNames = append(errataNames, c.ErrataID2Name[errataID])
+				for _, erratumID := range c.OvalDefinitionID2ErrataIDs[d.DefinitionID] {
+					errataNames = append(errataNames, c.ErratumID2Name[erratumID])
 				}
 				updateCves(dst, cve, p, errataNames, d.Cpe)
 			}
@@ -412,12 +412,12 @@ func evaluateTest(c *Cache, testID TestID, pkgNameID NameID, nevra utils.Nevra) 
 	return matched
 }
 
-func updateCves(cves map[string]VulnerabilityDetail, cve string, pkg Package, erratum []string, cpe string) {
+func updateCves(cves map[string]VulnerabilityDetail, cve string, pkg Package, errata []string, cpe string) {
 	if _, has := cves[cve]; !has {
 		cveDetail := VulnerabilityDetail{
 			CVE:      cve,
 			Packages: []string{pkg.String},
-			Errata:   erratum,
+			Errata:   errata,
 		}
 		if len(cpe) > 0 {
 			cveDetail.Affected = []AffectedPackage{{
@@ -432,7 +432,7 @@ func updateCves(cves map[string]VulnerabilityDetail, cve string, pkg Package, er
 	// update list of packages and errata
 	vulnDetail := cves[cve]
 	vulnDetail.Packages = append(vulnDetail.Packages, pkg.String)
-	vulnDetail.Errata = append(vulnDetail.Errata, erratum...)
+	vulnDetail.Errata = append(vulnDetail.Errata, errata...)
 	if len(cpe) > 0 {
 		vulnDetail.Affected = append(vulnDetail.Affected, AffectedPackage{
 			Name: pkg.Name,

@@ -25,13 +25,13 @@ var (
 
 var loadFuncs = []func(c *Cache){
 	loadPkgNames, loadUpdates, loadUpdatesIndex, loadEvrMaps, loadArchs, loadArchCompat, loadPkgDetails,
-	loadRepoDetails, loadLabel2ContentSetID, loadPkgRepos, loadErrata, loadPkgErrata, loadErrataRepoIDs,
-	loadCves, loadPkgErrataModule, loadModule2IDs, loadModuleRequires, loadDBChanges, loadString,
+	loadRepoDetails, loadLabel2ContentSetID, loadPkgRepos, loadErrata, loadPkgErratum, loadErrataRepoIDs,
+	loadCves, loadPkgErratumModule, loadModule2IDs, loadModuleRequires, loadDBChanges, loadString,
 	// OVAL
 	loadOvalDefinitionDetail, loadOvalDefinitionCves, loadPackagenameID2DefinitionIDs, loadRepoCpes,
 	loadContentSet2Cpes, loadCpeID2DefinitionIDs, loadOvalCriteriaDependency, loadOvalCriteriaID2Type,
 	loadOvalStateID2Arches, loadOvalModuleTestDetail, loadOvalTestDetail, loadOvalTestID2States,
-	loadOvalDefinitionErratas, loadCpeID2Label,
+	loadOvalDefinitionErrata, loadCpeID2Label,
 }
 
 func openDB(path string) error {
@@ -86,38 +86,38 @@ func loadCache(path string) (*Cache, error) {
 }
 
 func loadErrataRepoIDs(c *Cache) {
-	defer utils.TimeTrack(time.Now(), "ErrataID2RepoIDs")
+	defer utils.TimeTrack(time.Now(), "ErratumID2RepoIDs")
 
 	type ErrataRepo struct {
-		ErrataID ErrataID
-		RepoID   RepoID
+		ErratumID ErratumID
+		RepoID    RepoID
 	}
 	r := ErrataRepo{}
 	cnt := getCount("errata_repo", "errata_id", "errata_id,repo_id")
-	m := make(map[ErrataID]map[RepoID]bool, cnt)
+	m := make(map[ErratumID]map[RepoID]bool, cnt)
 	rows := getAllRows("errata_repo", "errata_id,repo_id", "errata_id,repo_id")
 
 	for rows.Next() {
-		if err := rows.Scan(&r.ErrataID, &r.RepoID); err != nil {
+		if err := rows.Scan(&r.ErratumID, &r.RepoID); err != nil {
 			panic(err)
 		}
-		errataMap := m[r.ErrataID]
+		errataMap := m[r.ErratumID]
 		if errataMap == nil {
 			errataMap = map[RepoID]bool{}
 		}
 		errataMap[r.RepoID] = true
-		m[r.ErrataID] = errataMap
+		m[r.ErratumID] = errataMap
 	}
-	c.ErrataID2RepoIDs = m
+	c.ErratumID2RepoIDs = m
 }
 
-func loadPkgErrata(c *Cache) {
+func loadPkgErratum(c *Cache) {
 	cnt := getCount("pkg_errata", "pkg_id", "pkg_id,errata_id")
-	pkgToErrata := make(map[PkgID][]ErrataID, cnt)
+	pkgToErrata := make(map[PkgID][]ErratumID, cnt)
 	for k, v := range loadInt2Ints("pkg_errata", "pkg_id,errata_id", "PkgID2ErrataIDs") {
 		id := PkgID(k)
 		for _, i := range v {
-			pkgToErrata[id] = append(pkgToErrata[id], ErrataID(i))
+			pkgToErrata[id] = append(pkgToErrata[id], ErratumID(i))
 		}
 	}
 	c.PkgID2ErrataIDs = pkgToErrata
@@ -468,7 +468,7 @@ func loadLabel2ContentSetID(c *Cache) {
 }
 
 func loadErrata(c *Cache) {
-	defer utils.TimeTrack(time.Now(), "ErrataDetail, ErrataID2Name")
+	defer utils.TimeTrack(time.Now(), "ErratumDetails, ErratumID2Name")
 
 	erID2cves := loadInt2Strings("errata_cve", "errata_id,cve", "erID2cves")
 	erID2pkgIDs := loadInt2Ints("pkg_errata", "errata_id,pkg_id", "erID2pkgID")
@@ -479,47 +479,47 @@ func loadErrata(c *Cache) {
 
 	cols := "ID,name,synopsis,summary,type,severity,description,solution,issued,updated,url,third_party,requires_reboot" //nolint:lll,nolintlint
 	rows := getAllRows("errata_detail", cols, "ID")
-	errataDetail := map[string]ErrataDetail{}
-	errataID2Name := map[ErrataID]string{}
-	var errataID ErrataID
+	erratumDetails := map[string]ErratumDetail{}
+	erratumID2Name := map[ErratumID]string{}
+	var erratumID ErratumID
 	var errataName string
 	for rows.Next() {
-		var det ErrataDetail
-		err := rows.Scan(&errataID, &errataName, &det.Synopsis, &det.Summary, &det.Type, &det.Severity,
+		var det ErratumDetail
+		err := rows.Scan(&erratumID, &errataName, &det.Synopsis, &det.Summary, &det.Type, &det.Severity,
 			&det.Description, &det.Solution, &det.Issued, &det.Updated, &det.URL, &det.ThirdParty, &det.RequiresReboot)
 		if err != nil {
 			panic(err)
 		}
-		errataID2Name[errataID] = errataName
+		erratumID2Name[erratumID] = errataName
 
-		det.ID = errataID
-		if cves, ok := erID2cves[int(errataID)]; ok {
+		det.ID = erratumID
+		if cves, ok := erID2cves[int(erratumID)]; ok {
 			det.CVEs = cves
 		}
 
-		if pkgIDs, ok := erID2pkgIDs[int(errataID)]; ok {
+		if pkgIDs, ok := erID2pkgIDs[int(erratumID)]; ok {
 			det.PkgIDs = pkgIDs
 		}
 
-		if modulePkgIDs, ok := erID2modulePkgIDs[int(errataID)]; ok {
+		if modulePkgIDs, ok := erID2modulePkgIDs[int(erratumID)]; ok {
 			det.ModulePkgIDs = modulePkgIDs
 		}
 
-		if bzs, ok := erID2bzs[int(errataID)]; ok {
+		if bzs, ok := erID2bzs[int(erratumID)]; ok {
 			det.Bugzillas = bzs
 		}
 
-		if refs, ok := erID2refs[int(errataID)]; ok {
+		if refs, ok := erID2refs[int(erratumID)]; ok {
 			det.Refs = refs
 		}
 
-		if modules, ok := erID2modules[int(errataID)]; ok {
+		if modules, ok := erID2modules[int(erratumID)]; ok {
 			det.Modules = modules
 		}
-		errataDetail[errataName] = det
+		erratumDetails[errataName] = det
 	}
-	c.ErrataDetail = errataDetail
-	c.ErrataID2Name = errataID2Name
+	c.ErratumDetails = erratumDetails
+	c.ErratumID2Name = erratumID2Name
 }
 
 func loadCves(c *Cache) {
@@ -565,8 +565,8 @@ func loadCves(c *Cache) {
 	c.CveNames = cveNames
 }
 
-func loadPkgErrataModule(c *Cache) {
-	defer utils.TimeTrack(time.Now(), "PkgErrata2Module")
+func loadPkgErratumModule(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "PkgErratum2Module")
 
 	orderBy := "pkg_id,errata_id,module_stream_id"
 	table := "errata_modulepkg"
@@ -574,10 +574,10 @@ func loadPkgErrataModule(c *Cache) {
 	errataIDs := loadIntArray(table, "errata_id", orderBy)
 	moduleStreamIDs := loadIntArray(table, "module_stream_id", orderBy)
 
-	m := map[PkgErrata][]int{}
+	m := map[PkgErratum][]int{}
 
 	for i := 0; i < len(pkgIDs); i++ {
-		pkgErrata := PkgErrata{pkgIDs[i], errataIDs[i]}
+		pkgErrata := PkgErratum{PkgID(pkgIDs[i]), ErratumID(errataIDs[i])}
 		_, ok := m[pkgErrata]
 		if !ok {
 			m[pkgErrata] = []int{}
@@ -585,7 +585,7 @@ func loadPkgErrataModule(c *Cache) {
 
 		m[pkgErrata] = append(m[pkgErrata], moduleStreamIDs[i])
 	}
-	c.PkgErrata2Module = m
+	c.PkgErratum2Module = m
 }
 
 func loadModule2IDs(c *Cache) {
@@ -1043,26 +1043,26 @@ func loadOvalTestID2States(c *Cache) {
 	c.OvalTestID2States = test2State
 }
 
-func loadOvalDefinitionErratas(c *Cache) {
-	defer utils.TimeTrack(time.Now(), "OvalDefinitionID2ErrataID")
+func loadOvalDefinitionErrata(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "OvalDefinitionID2ErrataIDs")
 
 	type OvalDefinitionErrataSelect struct {
 		DefinitionID DefinitionID
-		ErrataID     ErrataID
+		ErratumID    ErratumID
 	}
 
 	cols := "definition_id,errata_id"
 	rows := getAllRows("oval_definition_errata", cols, cols)
 	row := OvalDefinitionErrataSelect{}
-	definitionErratas := make(map[DefinitionID][]ErrataID)
+	definitionErrata := make(map[DefinitionID][]ErratumID)
 
 	for rows.Next() {
-		if err := rows.Scan(&row.DefinitionID, &row.ErrataID); err != nil {
+		if err := rows.Scan(&row.DefinitionID, &row.ErratumID); err != nil {
 			panic(err)
 		}
-		definitionErratas[row.DefinitionID] = append(definitionErratas[row.DefinitionID], row.ErrataID)
+		definitionErrata[row.DefinitionID] = append(definitionErrata[row.DefinitionID], row.ErratumID)
 	}
-	c.OvalDefinitionID2ErrataID = definitionErratas
+	c.OvalDefinitionID2ErrataIDs = definitionErrata
 }
 
 func loadCpeID2Label(c *Cache) {

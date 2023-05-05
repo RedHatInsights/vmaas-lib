@@ -31,20 +31,20 @@ type Cache struct {
 	ProductID2RepoIDs map[int][]RepoID
 	PkgID2RepoIDs     map[PkgID][]RepoID
 
-	ErrataID2Name    map[ErrataID]string
-	PkgID2ErrataIDs  map[PkgID][]ErrataID
-	ErrataID2RepoIDs map[ErrataID]map[RepoID]bool
+	ErratumID2Name    map[ErratumID]string
+	PkgID2ErrataIDs   map[PkgID][]ErratumID
+	ErratumID2RepoIDs map[ErratumID]map[RepoID]bool
 
 	CveDetail map[string]CveDetail
 	CveNames  map[int]string
 
-	PkgErrata2Module map[PkgErrata][]int
-	Module2IDs       map[ModuleStream][]int
-	ModuleRequires   map[int][]int
-	DBChange         DBChange
-	ErrataDetail     map[string]ErrataDetail
-	SrcPkgID2PkgID   map[PkgID][]PkgID
-	String           map[int]string
+	PkgErratum2Module map[PkgErratum][]int
+	Module2IDs        map[ModuleStream][]int
+	ModuleRequires    map[int][]int
+	DBChange          DBChange
+	ErratumDetails    map[string]ErratumDetail
+	SrcPkgID2PkgID    map[PkgID][]PkgID
+	String            map[int]string
 
 	// OVAL
 	PackagenameID2definitionIDs map[NameID][]DefinitionID
@@ -62,6 +62,6 @@ type Cache struct {
 	OvalModuleTestDetail            map[ModuleTestID]OvalModuleTestDetail
 	OvalTestDetail                  map[TestID]OvalTestDetail
 	OvalTestID2States               map[TestID][]OvalState
-	OvalDefinitionID2ErrataID       map[DefinitionID][]ErrataID
+	OvalDefinitionID2ErrataIDs      map[DefinitionID][]ErratumID
 	CpeID2Label                     map[CpeID]string
 }
