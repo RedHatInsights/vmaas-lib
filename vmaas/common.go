@@ -182,12 +182,12 @@ func pkgUpdates(c *Cache, pkgID PkgID, archID ArchID, securityOnly bool, modules
 	}
 }
 
-func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErrataID, modules map[int]bool,
+func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErratumID, modules map[int]bool,
 	repoIDs []RepoID, nevra utils.Nevra, securityOnly, thirdparty bool, currentPkgFromModule bool,
 	updates chan Update,
 ) {
-	erratumName := c.ErrataID2Name[erratumID]
-	erratumDetail := c.ErrataDetail[erratumName]
+	erratumName := c.ErratumID2Name[erratumID]
+	erratumDetail := c.ErratumDetails[erratumName]
 
 	// Filter out non-security updates
 	if filterNonSecurity(erratumDetail, securityOnly) {
@@ -199,11 +199,8 @@ func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErrataID, modules map[int
 		return
 	}
 
-	pkgErrata := PkgErrata{
-		PkgID:    int(pkgID),
-		ErrataID: int(erratumID),
-	}
-	errataModules := c.PkgErrata2Module[pkgErrata]
+	pkgErrata := PkgErratum{pkgID, erratumID}
+	errataModules := c.PkgErratum2Module[pkgErrata]
 	// return nil if errataModules and modules intersection is empty
 	intersects := false
 	for _, em := range errataModules {
@@ -231,7 +228,7 @@ func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErrataID, modules map[int
 }
 
 // Decide whether the errata should be filtered base on 'security only' rule
-func filterNonSecurity(errataDetail ErrataDetail, securityOnly bool) bool {
+func filterNonSecurity(errataDetail ErratumDetail, securityOnly bool) bool {
 	if !securityOnly {
 		return false
 	}
@@ -276,11 +273,11 @@ func filterPkgRepos(c *Cache, pkgID PkgID, repoIDs map[RepoID]bool, res chan Rep
 	}
 }
 
-func filterErrataRepos(c *Cache, erratumID ErrataID, pkgRepos []RepoID) []RepoID {
-	errataRepos := c.ErrataID2RepoIDs[erratumID]
+func filterErrataRepos(c *Cache, erratumID ErratumID, pkgRepos []RepoID) []RepoID {
+	erratumRepos := c.ErratumID2RepoIDs[erratumID]
 	result := []RepoID{}
 	for _, rid := range pkgRepos {
-		if errataRepos[rid] {
+		if erratumRepos[rid] {
 			result = append(result, rid)
 		}
 	}
@@ -366,8 +363,8 @@ func nevraPkgID(c *Cache, n *NevraIDs) PkgID {
 func isPkgFromEnabledModule(c *Cache, pkgID PkgID, modules map[int]bool) bool {
 	errata := c.PkgID2ErrataIDs[pkgID]
 	for _, eid := range errata {
-		pkgErrata := PkgErrata{PkgID: int(pkgID), ErrataID: int(eid)}
-		errataModules := c.PkgErrata2Module[pkgErrata]
+		pkgErrata := PkgErratum{pkgID, eid}
+		errataModules := c.PkgErratum2Module[pkgErrata]
 		for _, em := range errataModules {
 			if modules[em] {
 				return true

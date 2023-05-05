@@ -395,7 +395,7 @@ func TestFilterRepositories(t *testing.T) {
 			3: {Releasever: "el8"},
 			4: {Releasever: "el9"},
 		},
-		ErrataID2RepoIDs: map[ErrataID]map[RepoID]bool{
+		ErratumID2RepoIDs: map[ErratumID]map[RepoID]bool{
 			1: {1: true, 2: true},
 			2: {2: true, 3: true, 4: true},
 		},
@@ -422,22 +422,22 @@ func TestFilterRepositories(t *testing.T) {
 }
 
 func TestFilterNonSecurity(t *testing.T) {
-	res := filterNonSecurity(ErrataDetail{}, false)
+	res := filterNonSecurity(ErratumDetail{}, false)
 	assert.False(t, res)
 
-	res = filterNonSecurity(ErrataDetail{}, true)
+	res = filterNonSecurity(ErratumDetail{}, true)
 	assert.True(t, res)
 
-	res = filterNonSecurity(ErrataDetail{Type: "security"}, true)
+	res = filterNonSecurity(ErratumDetail{Type: "security"}, true)
 	assert.False(t, res)
 
-	res = filterNonSecurity(ErrataDetail{CVEs: []string{"cve"}}, true)
+	res = filterNonSecurity(ErratumDetail{CVEs: []string{"cve"}}, true)
 	assert.False(t, res)
 
-	res = filterNonSecurity(ErrataDetail{Type: "bugfix"}, true)
+	res = filterNonSecurity(ErratumDetail{Type: "bugfix"}, true)
 	assert.True(t, res)
 
-	res = filterNonSecurity(ErrataDetail{Type: "bugfix", CVEs: []string{"cve"}}, true)
+	res = filterNonSecurity(ErratumDetail{Type: "bugfix", CVEs: []string{"cve"}}, true)
 	assert.False(t, res)
 }
 

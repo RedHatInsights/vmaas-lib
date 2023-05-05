@@ -12,7 +12,7 @@ type (
 	NameID       int
 	EvrID        int
 	ArchID       int
-	ErrataID     int
+	ErratumID    int
 	ContentSetID int
 	DefinitionID int
 	CpeID        int
@@ -147,9 +147,9 @@ type CveDetail struct {
 	ErrataIDs []int
 }
 
-type PkgErrata struct {
-	PkgID    int
-	ErrataID int
+type PkgErratum struct {
+	PkgID     PkgID
+	ErratumID ErratumID
 }
 
 type Module struct {
@@ -180,8 +180,8 @@ type DBChange struct {
 	Exported      string `json:"exported"`
 }
 
-type ErrataDetail struct {
-	ID             ErrataID
+type ErratumDetail struct {
+	ID             ErratumID
 	Synopsis       string
 	Summary        *string
 	Type           string
