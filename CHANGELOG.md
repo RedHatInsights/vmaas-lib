@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v0.6.0 (2023-05-09)
+### Feature
+* **oval:** Unpatched cves take precedence over fixable and manually fixable ([`d01c877`](https://github.com/RedHatInsights/vmaas-lib/commit/d01c87705a368025c95abb16855f30f2912dbaf4))
+
+### Fix
+* **load:** Load oval definition id ([`04e746b`](https://github.com/RedHatInsights/vmaas-lib/commit/04e746b8e1a5f5d927676a66fc376d96d0948bb0))
+
 ## v0.5.1 (2023-05-03)
 ### Fix
 * **oval:** Check module stream in evaluateModuleTest ([`20be8ac`](https://github.com/RedHatInsights/vmaas-lib/commit/20be8ac36741fd6bb462a3089107cba4250458c3))
