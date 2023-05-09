@@ -31,7 +31,7 @@ var loadFuncs = []func(c *Cache){
 	loadOvalDefinitionDetail, loadOvalDefinitionCves, loadPackagenameID2DefinitionIDs, loadRepoCpes,
 	loadContentSet2Cpes, loadCpeID2DefinitionIDs, loadOvalCriteriaDependency, loadOvalCriteriaID2Type,
 	loadOvalStateID2Arches, loadOvalModuleTestDetail, loadOvalTestDetail, loadOvalTestID2States,
-	loadOvalDefinitionErratas,
+	loadOvalDefinitionErratas, loadCpeID2Label,
 }
 
 func openDB(path string) error {
@@ -1063,4 +1063,25 @@ func loadOvalDefinitionErratas(c *Cache) {
 		definitionErratas[row.DefinitionID] = append(definitionErratas[row.DefinitionID], row.ErrataID)
 	}
 	c.OvalDefinitionID2ErrataID = definitionErratas
+}
+
+func loadCpeID2Label(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "CpeID2Label")
+
+	type CpeID2Label struct {
+		CpeID CpeID
+		Label string
+	}
+	r := CpeID2Label{}
+	cnt := getCount("cpe", "id", "id")
+	rows := getAllRows("cpe", "id,label", "id")
+	ret := make(map[CpeID]string, cnt)
+
+	for rows.Next() {
+		if err := rows.Scan(&r.CpeID, &r.Label); err != nil {
+			panic(err)
+		}
+		ret[r.CpeID] = r.Label
+	}
+	c.CpeID2Label = ret
 }

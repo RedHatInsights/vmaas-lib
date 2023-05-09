@@ -44,7 +44,7 @@ func TestVulnerabilitiesExtendedManuallyFixableCVEs(t *testing.T) {
 
 func TestUpdateCvesNilErratum(t *testing.T) {
 	vulns := map[string]VulnerabilityDetail{}
-	updateCves(vulns, "CVE", "pkg", nil)
+	updateCves(vulns, "CVE", Package{String: "pkg"}, nil, "")
 	assert.Equal(t, len(vulns), 1)
 }
 

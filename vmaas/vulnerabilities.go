@@ -40,6 +40,7 @@ type ProcessedDefinition struct {
 	DefinitionID DefinitionID
 	CriteriaID   CriteriaID
 	Packages     []Package
+	Cpe          string
 }
 
 type Package struct {
@@ -121,7 +122,7 @@ func evaluate(c *Cache, request *Request) (*VulnerabilitiesCvesDetails, error) {
 				if _, inUnpatchedCves := cves.UnpatchedCves[cve]; inUnpatchedCves {
 					continue
 				}
-				updateCves(cves.Cves, cve, pkg, []string{update.Erratum})
+				updateCves(cves.Cves, cve, Package{String: pkg}, []string{update.Erratum}, "")
 			}
 		}
 	}
@@ -166,7 +167,7 @@ func (d *ProcessedDefinition) evaluate(
 				for _, errataID := range c.OvalDefinitionID2ErrataID[d.DefinitionID] {
 					errataNames = append(errataNames, c.ErrataID2Name[errataID])
 				}
-				updateCves(dst, cve, p.String, errataNames)
+				updateCves(dst, cve, p, errataNames, d.Cpe)
 			}
 		}
 	}
@@ -187,7 +188,7 @@ func (r *ProcessedRequest) processDefinitions(c *Cache) (*ProcessedDefinitions, 
 		pkgNameID := c.Packagename2ID[parsedNevra.Name]
 		allDefinitionsIDs := c.PackagenameID2definitionIDs[pkgNameID]
 		for _, defID := range allDefinitionsIDs {
-			if candidateDefinitions[defID] {
+			if cpe, ok := candidateDefinitions[defID]; ok {
 				definition := c.OvaldefinitionDetail[defID]
 				switch definition.DefinitionTypeID {
 				case OvalDefinitionTypePatch:
@@ -197,6 +198,7 @@ func (r *ProcessedRequest) processDefinitions(c *Cache) (*ProcessedDefinitions, 
 					definitions.Patch[defID] = ProcessedDefinition{
 						DefinitionID: definition.ID,
 						CriteriaID:   definition.CriteriaID,
+						// store CPE only for Vulnerability type, field omitted intentionally
 						Packages: append(definitions.Patch[defID].Packages, Package{
 							Nevra:  parsedNevra,
 							NameID: pkgNameID,
@@ -214,6 +216,7 @@ func (r *ProcessedRequest) processDefinitions(c *Cache) (*ProcessedDefinitions, 
 					definitions.Vulnerability[defID] = ProcessedDefinition{
 						DefinitionID: definition.ID,
 						CriteriaID:   definition.CriteriaID,
+						Cpe:          c.CpeID2Label[cpe],
 						Packages: append(definitions.Vulnerability[defID].Packages, Package{
 							Nevra:  parsedNevra,
 							NameID: pkgNameID,
@@ -230,7 +233,7 @@ func (r *ProcessedRequest) processDefinitions(c *Cache) (*ProcessedDefinitions, 
 }
 
 //nolint:gocognit,nolintlint
-func repos2definitions(c *Cache, r *Request) map[DefinitionID]bool {
+func repos2definitions(c *Cache, r *Request) map[DefinitionID]CpeID {
 	// TODO: some CPEs are not matching because they are substrings/subtrees
 	if r.Repos == nil {
 		return nil
@@ -276,11 +279,11 @@ func repos2definitions(c *Cache, r *Request) map[DefinitionID]bool {
 		}
 	}
 
-	candidateDefinitions := make(map[DefinitionID]bool)
+	candidateDefinitions := make(map[DefinitionID]CpeID)
 	for cpe := range cpeIDs {
 		if defs, has := c.CpeID2OvalDefinitionIDs[cpe]; has {
 			for _, def := range defs {
-				candidateDefinitions[def] = true
+				candidateDefinitions[def] = cpe
 			}
 		}
 	}
@@ -409,18 +412,32 @@ func evaluateTest(c *Cache, testID TestID, pkgNameID NameID, nevra utils.Nevra) 
 	return matched
 }
 
-func updateCves(cves map[string]VulnerabilityDetail, cve, pkg string, erratum []string) {
+func updateCves(cves map[string]VulnerabilityDetail, cve string, pkg Package, erratum []string, cpe string) {
 	if _, has := cves[cve]; !has {
 		cveDetail := VulnerabilityDetail{
 			CVE:      cve,
-			Packages: []string{pkg},
+			Packages: []string{pkg.String},
 			Errata:   erratum,
+		}
+		if len(cpe) > 0 {
+			cveDetail.Affected = []AffectedPackage{{
+				Name: pkg.Name,
+				EVRA: pkg.EVRAStringE(true),
+				Cpe:  cpe,
+			}}
 		}
 		cves[cve] = cveDetail
 		return
 	}
 	// update list of packages and errata
 	vulnDetail := cves[cve]
-	vulnDetail.Packages = append(vulnDetail.Packages, pkg)
+	vulnDetail.Packages = append(vulnDetail.Packages, pkg.String)
 	vulnDetail.Errata = append(vulnDetail.Errata, erratum...)
+	if len(cpe) > 0 {
+		vulnDetail.Affected = append(vulnDetail.Affected, AffectedPackage{
+			Name: pkg.Name,
+			EVRA: pkg.EVRAStringE(true),
+			Cpe:  cpe,
+		})
+	}
 }

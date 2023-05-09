@@ -66,9 +66,16 @@ type Updates struct {
 type Vulnerability string
 
 type VulnerabilityDetail struct {
-	CVE      string   `json:"cve"`
-	Packages []string `json:"affected_packages"`
-	Errata   []string `json:"errata"`
+	CVE      string            `json:"cve"`
+	Packages []string          `json:"affected_packages"`
+	Errata   []string          `json:"errata"`
+	Affected []AffectedPackage `json:"affected,omitempty"`
+}
+
+type AffectedPackage struct {
+	Name string `json:"package_name"`
+	EVRA string `json:"evra"`
+	Cpe  string `json:"cpe"`
 }
 
 type Vulnerabilities struct {
