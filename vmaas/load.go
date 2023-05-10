@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
+	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -13,13 +14,11 @@ import (
 	"github.com/redhatinsights/vmaas-lib/vmaas/conf"
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
 
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var (
 	lock  = &sync.Mutex{}
-	db    *gorm.DB
 	sqlDB *sql.DB
 )
 
@@ -35,15 +34,21 @@ var loadFuncs = []func(c *Cache){
 }
 
 func openDB(path string) error {
-	tmpDB, err := gorm.Open(sqlite.Open(path), &gorm.Config{})
+	var err error
+	if _, err := os.Stat(path); err != nil {
+		return errors.Wrap(err, "file does not exist")
+	}
+	sqlDB, err = sql.Open("sqlite3", fmt.Sprintf("file:%s?mode=ro", path))
 	if err != nil {
 		return errors.Wrap(err, "couldn't open sqlite")
 	}
-	db = tmpDB
-	sqlDB, err = db.DB()
+	// sql.Open does not show error when the file is not a valid sqlite DB
+	rows, err := sqlDB.Query("select 1 from updates")
 	if err != nil {
-		return errors.Wrap(err, "couldn't return *sql.DB")
+		sqlDB = nil
+		return errors.Wrap(err, "database is not loaded")
 	}
+	defer rows.Close()
 	return nil
 }
 
@@ -52,7 +57,6 @@ func closeDB() {
 		utils.LogWarn("err", err.Error(), "Could not close DB")
 	}
 	sqlDB = nil
-	db = nil
 }
 
 // Make sure only one load at a time is performed
