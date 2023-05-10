@@ -2,7 +2,6 @@ package vmaas
 
 import (
 	"encoding/json"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,7 +25,14 @@ const (
 
 var api *API
 
+// load "../example/vmaas.db" dump only where it is really necessary
+// we should avoid using vmaas.db for testing
+func loadDump() {
+	api, _ = InitFromFile(testingCachePath)
+}
+
 func TestVulnerabilitiesExtendedManuallyFixableCVEs(t *testing.T) {
+	loadDump()
 	var req Request
 	assert.Nil(t, json.Unmarshal([]byte(requestJSONBPFTool), &req))
 
@@ -43,12 +49,8 @@ func TestVulnerabilitiesExtendedManuallyFixableCVEs(t *testing.T) {
 }
 
 func TestUpdateCvesNilErratum(t *testing.T) {
+	loadDump()
 	vulns := map[string]VulnerabilityDetail{}
 	updateCves(vulns, "CVE", Package{String: "pkg"}, nil, "")
 	assert.Equal(t, len(vulns), 1)
-}
-
-func TestMain(m *testing.M) {
-	api, _ = InitFromFile(testingCachePath)
-	os.Exit(m.Run())
 }
