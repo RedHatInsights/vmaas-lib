@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.7.0 (2023-05-10)
+### Feature
+* **oval:** Show package name, evra, cpe for unpatched cves ([`9cfe7d8`](https://github.com/RedHatInsights/vmaas-lib/commit/9cfe7d8d97b825a60681ca17fab93a47e10fdebb))
+
 ## v0.6.0 (2023-05-09)
 ### Feature
 * **oval:** Unpatched cves take precedence over fixable and manually fixable ([`d01c877`](https://github.com/RedHatInsights/vmaas-lib/commit/d01c87705a368025c95abb16855f30f2912dbaf4))
