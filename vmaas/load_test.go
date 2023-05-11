@@ -1,7 +1,7 @@
 package vmaas
 
 import (
-	"os"
+	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -30,11 +30,17 @@ func TestOpenDBNotExists(t *testing.T) {
 func TestOpenDBEmpty(t *testing.T) {
 	assert.Nil(t, sqlDB)
 
-	os.Create("/tmp/empty.db")
-	err := openDB("/tmp/empty.db")
+	fd, err := ioutil.TempFile("/tmp", "empty.db")
+	if err != nil {
+		assert.Fail(t, "couldn't create file")
+	}
+	defer fd.Close()
+
+	err = openDB("/tmp/empty.db")
 	assert.Error(t, err)
 	assert.Nil(t, sqlDB)
 }
+
 func TestLoadCache(t *testing.T) {
 	assert.Nil(t, sqlDB)
 
