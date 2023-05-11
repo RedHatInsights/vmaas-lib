@@ -13,11 +13,11 @@ CACHE_FROM_LATEST_IMAGE="true"
 export IQE_PLUGINS="vmaas"
 export IQE_MARKER_EXPRESSION=""
 # we are interested only in tests for /vulnerabilities and /updates
-export IQE_FILTER_EXPRESSION="update or vuln"
+export IQE_FILTER_EXPRESSION="(update or vul ) and not (TestUpdatesBasic and (v1-vim-enhanced or v2-vim-enhanced or test_post_multi) or test_post_single_eus or latest_only or TestPatchesAll)"
 export IQE_REQUIREMENTS_PRIORITY=""
 export IQE_TEST_IMPORTANCE=""
 export IQE_CJI_TIMEOUT="30m"
-export IQE_ENV="clowder_smoke_go"
+export IQE_ENV="clowder_smoke"
 
 # Heavily inspired by project-koku pr_check
 # https://github.com/project-koku/koku/blob/main/pr_check.sh
@@ -135,9 +135,8 @@ if [[ $exit_code == 0 ]]; then
             set +e
             process_requirements_labels
             set -e
-            # echo "running vmaas smoke tests"
-            # run_smoke_tests
-            exit_code=3
+            echo "running vmaas smoke tests"
+            run_smoke_tests
         fi
     fi
 fi
