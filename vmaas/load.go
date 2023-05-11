@@ -14,7 +14,7 @@ import (
 	"github.com/redhatinsights/vmaas-lib/vmaas/conf"
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3" // sqlite driver for cache load
 )
 
 var (
@@ -97,9 +97,9 @@ func loadErrataRepoIDs(c *Cache) {
 		RepoID    RepoID
 	}
 	r := ErrataRepo{}
-	cnt := getCount("errata_repo", "errata_id", "errata_id,repo_id")
+	cnt := getCount("errata_repo", "distinct errata_id")
 	m := make(map[ErratumID]map[RepoID]bool, cnt)
-	rows := getAllRows("errata_repo", "errata_id,repo_id", "errata_id,repo_id")
+	rows := getAllRows("errata_repo", "errata_id,repo_id")
 
 	for rows.Next() {
 		if err := rows.Scan(&r.ErratumID, &r.RepoID); err != nil {
@@ -116,7 +116,7 @@ func loadErrataRepoIDs(c *Cache) {
 }
 
 func loadPkgErratum(c *Cache) {
-	cnt := getCount("pkg_errata", "pkg_id", "pkg_id,errata_id")
+	cnt := getCount("pkg_errata", "distinct pkg_id")
 	pkgToErrata := make(map[PkgID][]ErratumID, cnt)
 	for k, v := range loadInt2Ints("pkg_errata", "pkg_id,errata_id", "PkgID2ErrataIDs") {
 		id := PkgID(k)
@@ -130,7 +130,7 @@ func loadPkgErratum(c *Cache) {
 func loadPkgRepos(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "PkgRepos")
 
-	nPkg := getCount("pkg_repo", "pkg_id", "pkg_id")
+	nPkg := getCount("pkg_repo", "distinct pkg_id")
 	res := make(map[PkgID][]RepoID, nPkg)
 	var n PkgID
 	var p RepoID
@@ -154,11 +154,10 @@ func loadPkgNames(c *Cache) {
 	}
 
 	r := PkgName{}
-	cntID := getCount("packagename", "id", "id")
-	cntName := getCount("packagename", "packagename", "id")
-	id2name := make(map[NameID]string, cntID)
-	name2id := make(map[string]NameID, cntName)
-	rows := getAllRows("packagename", "id,packagename", "id")
+	cnt := getCount("packagename", "*")
+	id2name := make(map[NameID]string, cnt)
+	name2id := make(map[string]NameID, cnt)
+	rows := getAllRows("packagename", "id,packagename")
 
 	for rows.Next() {
 		if err := rows.Scan(&r.ID, &r.Packagename); err != nil {
@@ -174,7 +173,7 @@ func loadPkgNames(c *Cache) {
 func loadUpdates(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "Updates")
 
-	cnt := getCount("updates", "name_id", "package_order")
+	cnt := getCount("updates", "distinct name_id")
 	res := make(map[NameID][]PkgID, cnt)
 	var n NameID
 	var p PkgID
@@ -190,7 +189,7 @@ func loadUpdates(c *Cache) {
 
 func loadUpdatesIndex(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "Updates index")
-	cnt := getCount("updates_index", "name_id", "package_order")
+	cnt := getCount("updates_index", "distinct name_id")
 	res := make(map[NameID]map[EvrID][]int, cnt)
 	var n NameID
 	var e EvrID
@@ -210,17 +209,16 @@ func loadUpdatesIndex(c *Cache) {
 	c.UpdatesIndex = res
 }
 
-func getCount(tableName, col, orderBy string) (cnt int) {
-	row := sqlDB.QueryRow(fmt.Sprintf("select count(distinct %s) from %s order by %s", col, tableName, orderBy))
+func getCount(tableName, col string) (cnt int) {
+	row := sqlDB.QueryRow(fmt.Sprintf("select count(%s) from %s", col, tableName))
 	if err := row.Scan(&cnt); err != nil {
 		panic(err)
 	}
 	return cnt
 }
 
-func getAllRows(tableName, cols, orderBy string) *sql.Rows {
-	rows, err := sqlDB.Query(fmt.Sprintf("SELECT %s FROM %s ORDER BY %s",
-		cols, tableName, orderBy))
+func getAllRows(tableName, cols string) *sql.Rows {
+	rows, err := sqlDB.Query(fmt.Sprintf("SELECT %s FROM %s", cols, tableName))
 	if err != nil {
 		panic(err)
 	}
@@ -238,40 +236,6 @@ func doForRows(q string, f func(row *sql.Rows)) {
 	}
 }
 
-func loadIntArray(tableName, col, orderBy string) []int {
-	rows := getAllRows(tableName, col, orderBy)
-	defer rows.Close()
-
-	var arr []int
-	var num int
-	for rows.Next() {
-		err := rows.Scan(&num)
-		if err != nil {
-			panic(err)
-		}
-
-		arr = append(arr, num)
-	}
-	return arr
-}
-
-func loadStrArray(tableName, col, orderBy string) []string {
-	rows := getAllRows(tableName, col, orderBy)
-	defer rows.Close()
-
-	var arr []string
-	var val string
-	for rows.Next() {
-		err := rows.Scan(&val)
-		if err != nil {
-			panic(err)
-		}
-
-		arr = append(arr, val)
-	}
-	return arr
-}
-
 func loadEvrMaps(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "EVR")
 
@@ -281,10 +245,10 @@ func loadEvrMaps(c *Cache) {
 	}
 
 	r := IDEvr{}
-	cnt := getCount("evr", "id", "id")
+	cnt := getCount("evr", "*")
 	id2evr := make(map[EvrID]utils.Evr, cnt)
 	evr2id := map[utils.Evr]EvrID{}
-	rows := getAllRows("evr", "id,epoch,version,release", "id")
+	rows := getAllRows("evr", "id,epoch,version,release")
 
 	for rows.Next() {
 		//nolint:typecheck,nolintlint // false-positive, r.Epoch undefined (type IDEvr has no field or method Epoch)
@@ -306,11 +270,10 @@ func loadArchs(c *Cache) {
 		Arch string
 	}
 	r := Arch{}
-	cntID := getCount("arch", "id", "id")
-	cntArch := getCount("arch", "arch", "id")
-	id2arch := make(map[ArchID]string, cntID)
-	arch2id := make(map[string]ArchID, cntArch)
-	rows := getAllRows("arch", "id,arch", "id")
+	cnt := getCount("arch", "*")
+	id2arch := make(map[ArchID]string, cnt)
+	arch2id := make(map[string]ArchID, cnt)
+	rows := getAllRows("arch", "id,arch")
 
 	for rows.Next() {
 		if err := rows.Scan(&r.ID, &r.Arch); err != nil {
@@ -331,9 +294,9 @@ func loadArchCompat(c *Cache) {
 		ToArchID   ArchID
 	}
 	r := ArchCompat{}
-	cnt := getCount("arch_compat", "from_arch_id", "from_arch_id")
+	cnt := getCount("arch_compat", "distinct from_arch_id")
 	m := make(map[ArchID]map[ArchID]bool, cnt)
-	rows := getAllRows("arch_compat", "from_arch_id,to_arch_id", "from_arch_id,to_arch_id")
+	rows := getAllRows("arch_compat", "from_arch_id,to_arch_id")
 
 	for rows.Next() {
 		if err := rows.Scan(&r.FromArchID, &r.ToArchID); err != nil {
@@ -352,9 +315,9 @@ func loadArchCompat(c *Cache) {
 func loadPkgDetails(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "PackageDetails, Nevra2PkgID, SrcPkgID2PkgID")
 
-	rows := getAllRows("package_detail", "*", "ID")
-	cnt := getCount("package_detail", "id", "id")
-	cntSrc := getCount("package_detail", "source_package_id", "id")
+	rows := getAllRows("package_detail", "*")
+	cnt := getCount("package_detail", "*")
+	cntSrc := getCount("package_detail", "distinct source_package_id")
 	id2pkdDetail := make(map[PkgID]PackageDetail, cnt)
 	nevra2id := make(map[Nevra]PkgID, cnt)
 	srcPkgID2PkgID := make(map[PkgID][]PkgID, cntSrc)
@@ -394,12 +357,11 @@ func loadRepoDetails(c *Cache) { //nolint: funlen
 	rows := getAllRows(
 		"repo_detail",
 		"id,label,name,url,COALESCE(basearch,''),COALESCE(releasever,''),product,product_id,revision,third_party",
-		"label",
 	)
-	cntRepo := getCount("repo_detail", "id", "id")
-	cntLabel := getCount("repo_detail", "label", "id")
-	cntURL := getCount("repo_detail", "url", "id")
-	cntProd := getCount("repo_detail", "product_id", "id")
+	cntRepo := getCount("repo_detail", "*")
+	cntLabel := getCount("repo_detail", "distinct label")
+	cntURL := getCount("repo_detail", "distinct url")
+	cntProd := getCount("repo_detail", "distinct product_id")
 	id2repoDetail := make(map[RepoID]RepoDetail, cntRepo)
 	repoLabel2id := make(map[string][]RepoID, cntLabel)
 	repoPath2id := make(map[string][]RepoID, cntURL)
@@ -458,9 +420,9 @@ func loadLabel2ContentSetID(c *Cache) {
 	}
 
 	r := LabelContent{}
-	cnt := getCount("content_set", "id", "id")
+	cnt := getCount("content_set", "*")
 	label2contentSetID := make(map[string]ContentSetID, cnt)
-	rows := getAllRows("content_set", "id,label", "id")
+	rows := getAllRows("content_set", "id,label")
 
 	for rows.Next() {
 		if err := rows.Scan(&r.ID, &r.Label); err != nil {
@@ -482,7 +444,7 @@ func loadErrata(c *Cache) {
 	erID2modules := loadErrataModules()
 
 	cols := "ID,name,synopsis,summary,type,severity,description,solution,issued,updated,url,third_party,requires_reboot" //nolint:lll,nolintlint
-	rows := getAllRows("errata_detail", cols, "ID")
+	rows := getAllRows("errata_detail", cols)
 	erratumDetails := map[string]ErratumDetail{}
 	erratumID2Name := map[ErratumID]string{}
 	var erratumID ErratumID
@@ -533,9 +495,10 @@ func loadCves(c *Cache) {
 	cveID2pkg := loadInt2Ints("cve_pkg", "cve_id,pkg_id", "cveID2pkg")
 	cve2eid := loadString2Ints("errata_cve", "cve,errata_id", "cve2eid")
 
-	rows := getAllRows("cve_detail", "*", "id")
-	cveDetails := map[string]CveDetail{}
-	cveNames := map[int]string{}
+	rows := getAllRows("cve_detail", "*")
+	cnt := getCount("cve_detail", "*")
+	cveDetails := make(map[string]CveDetail, cnt)
+	cveNames := make(map[int]string, cnt)
 	var cveID int
 	var cveName string
 	for rows.Next() {
@@ -572,46 +535,63 @@ func loadCves(c *Cache) {
 func loadPkgErratumModule(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "PkgErratum2Module")
 
-	orderBy := "pkg_id,errata_id,module_stream_id"
+	cols := "pkg_id,errata_id,module_stream_id"
 	table := "errata_modulepkg"
-	pkgIDs := loadIntArray(table, "pkg_id", orderBy)
-	errataIDs := loadIntArray(table, "errata_id", orderBy)
-	moduleStreamIDs := loadIntArray(table, "module_stream_id", orderBy)
 
-	m := map[PkgErratum][]int{}
-
-	for i := 0; i < len(pkgIDs); i++ {
-		pkgErrata := PkgErratum{PkgID(pkgIDs[i]), ErratumID(errataIDs[i])}
-		_, ok := m[pkgErrata]
-		if !ok {
-			m[pkgErrata] = []int{}
-		}
-
-		m[pkgErrata] = append(m[pkgErrata], moduleStreamIDs[i])
+	type PkgErratum2ModuleSelect struct {
+		PkgID     PkgID
+		ErratumID ErratumID
+		ModuleID  int
 	}
+
+	r := PkgErratum2ModuleSelect{}
+	cnt := getCount("(select count(*) from errata_modulepkg group by pkg_id, errata_id)", "*")
+	rows := getAllRows(table, cols)
+	m := make(map[PkgErratum][]int, cnt)
+
+	for rows.Next() {
+		if err := rows.Scan(&r.PkgID, &r.ErratumID, &r.ModuleID); err != nil {
+			panic(err)
+		}
+		pkgErratum := PkgErratum{r.PkgID, r.ErratumID}
+		if _, ok := m[pkgErratum]; !ok {
+			m[pkgErratum] = []int{}
+		}
+		m[pkgErratum] = append(m[pkgErratum], r.ModuleID)
+	}
+
 	c.PkgErratum2Module = m
 }
 
 func loadModule2IDs(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "ModuleName2IDs")
 
-	orderBy := "module,stream"
+	cols := "module,stream,stream_id"
 	table := "module_stream"
-	modules := loadStrArray(table, "module", orderBy)
-	streams := loadStrArray(table, "stream", orderBy)
-	streamIDs := loadIntArray(table, "stream_id", orderBy)
 
-	m := map[ModuleStream][]int{}
-
-	for i := 0; i < len(modules); i++ {
-		pkgErrata := ModuleStream{modules[i], streams[i]}
-		_, ok := m[pkgErrata]
-		if !ok {
-			m[pkgErrata] = []int{}
-		}
-
-		m[pkgErrata] = append(m[pkgErrata], streamIDs[i])
+	type ModuleStreamIDs struct {
+		Module string
+		Stream string
+		ID     int
 	}
+
+	r := ModuleStreamIDs{}
+	cnt := getCount("(select count(*) from module_stream group by module, stream)", "*")
+	rows := getAllRows(table, cols)
+
+	m := make(map[ModuleStream][]int, cnt)
+
+	for rows.Next() {
+		if err := rows.Scan(&r.Module, &r.Stream, &r.ID); err != nil {
+			panic(err)
+		}
+		ms := ModuleStream{r.Module, r.Stream}
+		if _, ok := m[ms]; !ok {
+			m[ms] = []int{}
+		}
+		m[ms] = append(m[ms], r.ID)
+	}
+
 	c.Module2IDs = m
 }
 
@@ -626,8 +606,9 @@ func loadModuleRequires(c *Cache) {
 func loadString(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "String")
 
-	rows := getAllRows("string", "*", "ID")
-	m := map[int]string{}
+	cnt := getCount("string", "*")
+	rows := getAllRows("string", "*")
+	m := make(map[int]string, cnt)
 	var id int
 	var str *string
 	for rows.Next() {
@@ -645,7 +626,7 @@ func loadString(c *Cache) {
 func loadDBChanges(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "DBChange")
 
-	rows := getAllRows("dbchange", "*", "errata_changes")
+	rows := getAllRows("dbchange", "*")
 	arr := []DBChange{}
 	var item DBChange
 	for rows.Next() {
@@ -663,8 +644,8 @@ func loadInt2Ints(table, cols, info string) map[int][]int {
 	defer utils.TimeTrack(time.Now(), info)
 
 	splitted := strings.Split(cols, ",")
-	cnt := getCount(table, splitted[0], cols)
-	rows := getAllRows(table, cols, cols)
+	cnt := getCount(table, fmt.Sprintf("distinct %s", splitted[0]))
+	rows := getAllRows(table, cols)
 	int2ints := make(map[int][]int, cnt)
 	var key int
 	var val int
@@ -687,8 +668,8 @@ func loadInt2Strings(table, cols, info string) map[int][]string {
 	defer utils.TimeTrack(time.Now(), info)
 
 	splitted := strings.Split(cols, ",")
-	cnt := getCount(table, splitted[0], cols)
-	rows := getAllRows(table, cols, cols)
+	cnt := getCount(table, fmt.Sprintf("distinct %s", splitted[0]))
+	rows := getAllRows(table, cols)
 	int2strs := make(map[int][]string, cnt)
 	var key int
 	var val string
@@ -712,8 +693,8 @@ func loadString2Ints(table, cols, info string) map[string][]int {
 	defer utils.TimeTrack(time.Now(), info)
 
 	splitted := strings.Split(cols, ",")
-	cnt := getCount(table, splitted[0], cols)
-	rows := getAllRows(table, cols, cols)
+	cnt := getCount(table, fmt.Sprintf("distinct %s", splitted[0]))
+	rows := getAllRows(table, cols)
 	int2strs := make(map[string][]int, cnt)
 	var key string
 	var val int
@@ -736,9 +717,9 @@ func loadString2Ints(table, cols, info string) map[string][]int {
 func loadErrataModules() map[int][]Module {
 	defer utils.TimeTrack(time.Now(), "errata2module")
 
-	rows := getAllRows("errata_module", "*", "errata_id")
-
-	erID2modules := map[int][]Module{}
+	rows := getAllRows("errata_module", "*")
+	cnt := getCount("errata_module", "errata_id")
+	erID2modules := make(map[int][]Module, cnt)
 	var erID int
 	var mod Module
 	for rows.Next() {
@@ -761,8 +742,9 @@ func loadOvalDefinitionDetail(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "oval_definition_detail")
 
 	row := DefinitionDetail{}
-	defDetail := make(map[DefinitionID]DefinitionDetail)
-	rows := getAllRows("oval_definition_detail", "id,definition_type_id,criteria_id", "id")
+	cnt := getCount("oval_definition_detail", "*")
+	defDetail := make(map[DefinitionID]DefinitionDetail, cnt)
+	rows := getAllRows("oval_definition_detail", "id,definition_type_id,criteria_id")
 
 	for rows.Next() {
 		if err := rows.Scan(&row.ID, &row.DefinitionTypeID, &row.CriteriaID); err != nil {
@@ -781,9 +763,10 @@ func loadOvalDefinitionCves(c *Cache) {
 		Cve          string
 	}
 	r := OvalDefinitionCve{}
-	ret := make(map[DefinitionID][]string)
+	cnt := getCount("oval_definition_cve", "distinct definition_id")
+	ret := make(map[DefinitionID][]string, cnt)
 	cols := "definition_id,cve"
-	rows := getAllRows("oval_definition_cve", cols, cols)
+	rows := getAllRows("oval_definition_cve", cols)
 
 	for rows.Next() {
 		if err := rows.Scan(&r.DefinitionID, &r.Cve); err != nil {
@@ -802,9 +785,10 @@ func loadPackagenameID2DefinitionIDs(c *Cache) {
 		DefinitionID DefinitionID
 	}
 	r := NameDefinition{}
-	ret := make(map[NameID][]DefinitionID)
+	cnt := getCount("packagename_oval_definition", "distinct name_id")
+	ret := make(map[NameID][]DefinitionID, cnt)
 	cols := "name_id,definition_id"
-	rows := getAllRows("packagename_oval_definition", cols, cols)
+	rows := getAllRows("packagename_oval_definition", cols)
 
 	for rows.Next() {
 		if err := rows.Scan(&r.NameID, &r.DefinitionID); err != nil {
@@ -823,9 +807,10 @@ func loadRepoCpes(c *Cache) {
 		CpeID  CpeID
 	}
 	r := CpeRepo{}
-	ret := make(map[RepoID][]CpeID)
+	cnt := getCount("cpe_repo", "distinct repo_id")
+	ret := make(map[RepoID][]CpeID, cnt)
 	cols := "repo_id,cpe_id"
-	rows := getAllRows("cpe_repo", cols, cols)
+	rows := getAllRows("cpe_repo", cols)
 
 	for rows.Next() {
 		if err := rows.Scan(&r.RepoID, &r.CpeID); err != nil {
@@ -844,9 +829,10 @@ func loadContentSet2Cpes(c *Cache) {
 		CpeID        CpeID
 	}
 	r := CpeCS{}
-	ret := make(map[ContentSetID][]CpeID)
+	cnt := getCount("cpe_content_set", "distinct content_set_id")
+	ret := make(map[ContentSetID][]CpeID, cnt)
 	cols := "content_set_id,cpe_id"
-	rows := getAllRows("cpe_content_set", cols, cols)
+	rows := getAllRows("cpe_content_set", cols)
 
 	for rows.Next() {
 		if err := rows.Scan(&r.ContentSetID, &r.CpeID); err != nil {
@@ -865,9 +851,10 @@ func loadCpeID2DefinitionIDs(c *Cache) {
 		DefinitionID DefinitionID
 	}
 	r := DefinitionCpe{}
-	ret := make(map[CpeID][]DefinitionID)
+	cnt := getCount("oval_definition_cpe", "distinct cpe_id")
+	ret := make(map[CpeID][]DefinitionID, cnt)
 	cols := "cpe_id,definition_id"
-	rows := getAllRows("oval_definition_cpe", cols, cols)
+	rows := getAllRows("oval_definition_cpe", cols)
 
 	for rows.Next() {
 		if err := rows.Scan(&r.CpeID, &r.DefinitionID); err != nil {
@@ -893,22 +880,17 @@ func loadOvalCriteriaDependency(c *Cache) {
 
 	r := OvalCriteriaDep{}
 
-	cnt := getCount("oval_criteria_dependency", "parent_criteria_id", "parent_criteria_id")
+	cnt := getCount("oval_criteria_dependency", "distinct parent_criteria_id")
 	criteriaID2DepCriteriaIDs := make(map[CriteriaID][]CriteriaID, cnt)
 	criteriaID2DepTestIDs := make(map[CriteriaID][]TestID, cnt)
 	criteriaID2DepModuleTestIDs := make(map[CriteriaID][]ModuleTestID, cnt)
 
 	cols := "parent_criteria_id,COALESCE(dep_criteria_id, 0),COALESCE(dep_test_id, 0),COALESCE(dep_module_test_id, 0)"
-	rows := getAllRows("oval_criteria_dependency", cols, cols)
+	rows := getAllRows("oval_criteria_dependency", cols)
 
 	for rows.Next() {
 		if err := rows.Scan(&r.ParentCriteriaID, &r.DepCriteriaID, &r.DepTestID, &r.DepModuleTestID); err != nil {
 			panic(err)
-		}
-		if _, ok := criteriaID2DepCriteriaIDs[r.ParentCriteriaID]; !ok {
-			criteriaID2DepCriteriaIDs[r.ParentCriteriaID] = make([]CriteriaID, 0)
-			criteriaID2DepTestIDs[r.ParentCriteriaID] = make([]TestID, 0)
-			criteriaID2DepModuleTestIDs[r.ParentCriteriaID] = make([]ModuleTestID, 0)
 		}
 		if r.DepCriteriaID != 0 {
 			criteriaID2DepCriteriaIDs[r.ParentCriteriaID] = append(criteriaID2DepCriteriaIDs[r.ParentCriteriaID],
@@ -936,10 +918,10 @@ func loadOvalCriteriaID2Type(c *Cache) {
 	}
 
 	r := OvalCriteriaType{}
-	cnt := getCount("oval_criteria_type", "criteria_id", "criteria_id,type_id")
+	cnt := getCount("oval_criteria_type", "*")
 	criteriaID2Type := make(map[CriteriaID]int, cnt)
 	cols := "criteria_id,type_id"
-	rows := getAllRows("oval_criteria_type", cols, cols)
+	rows := getAllRows("oval_criteria_type", cols)
 
 	for rows.Next() {
 		if err := rows.Scan(&r.CriteriaID, &r.TypeID); err != nil {
@@ -958,9 +940,10 @@ func loadOvalStateID2Arches(c *Cache) {
 		ArchID  ArchID
 	}
 	r := StateArch{}
-	ret := make(map[OvalStateID][]ArchID)
+	cnt := getCount("oval_state_arch", "distinct state_id")
+	ret := make(map[OvalStateID][]ArchID, cnt)
 	cols := "state_id,arch_id"
-	rows := getAllRows("oval_state_arch", cols, cols)
+	rows := getAllRows("oval_state_arch", cols)
 
 	for rows.Next() {
 		if err := rows.Scan(&r.StateID, &r.ArchID); err != nil {
@@ -980,9 +963,10 @@ func loadOvalModuleTestDetail(c *Cache) {
 	}
 
 	r := ModuleTestDetail{}
-	details := make(map[ModuleTestID]OvalModuleTestDetail)
+	cnt := getCount("oval_module_test_detail", "*")
+	details := make(map[ModuleTestID]OvalModuleTestDetail, cnt)
 	cols := "id,module_stream"
-	rows := getAllRows("oval_module_test_detail", cols, cols)
+	rows := getAllRows("oval_module_test_detail", cols)
 
 	for rows.Next() {
 		if err := rows.Scan(&r.ID, &r.ModuleStream); err != nil {
@@ -1006,9 +990,10 @@ func loadOvalTestDetail(c *Cache) {
 	}
 
 	r := TestDetail{}
-	testDetail := make(map[TestID]OvalTestDetail)
+	cnt := getCount("oval_test_detail", "*")
+	testDetail := make(map[TestID]OvalTestDetail, cnt)
 	cols := "id,package_name_id,check_existence_id"
-	rows := getAllRows("oval_test_detail", cols, cols)
+	rows := getAllRows("oval_test_detail", cols)
 
 	for rows.Next() {
 		if err := rows.Scan(&r.ID, &r.PackageNameID, &r.CheckExistenceID); err != nil {
@@ -1030,9 +1015,10 @@ func loadOvalTestID2States(c *Cache) {
 	}
 
 	r := TestState{}
-	test2State := make(map[TestID][]OvalState)
+	cnt := getCount("oval_test_state", "*")
+	test2State := make(map[TestID][]OvalState, cnt)
 	cols := "test_id,state_id,evr_id,evr_operation_id"
-	rows := getAllRows("oval_test_state", cols, cols)
+	rows := getAllRows("oval_test_state", cols)
 
 	for rows.Next() {
 		if err := rows.Scan(&r.TestID, &r.StateID, &r.EvrID, &r.EvrOperationID); err != nil {
@@ -1056,9 +1042,13 @@ func loadOvalDefinitionErrata(c *Cache) {
 	}
 
 	cols := "definition_id,errata_id"
-	rows := getAllRows("oval_definition_errata", cols, cols)
+	rows := getAllRows("oval_definition_errata", cols)
+	cnt := getCount("oval_definition_errata", "distinct definition_id")
 	row := OvalDefinitionErrataSelect{}
-	definitionErrata := make(map[DefinitionID][]ErratumID)
+	// TODO: investigate - it looks like 1 definitionID is always mapped to 1 erratum
+	//       and 1 erratum can be associated with multiple definitions
+	//       we might not need `map[DefinitionID][]ErratumID` but `map[DefinitionID]ErratumID`
+	definitionErrata := make(map[DefinitionID][]ErratumID, cnt)
 
 	for rows.Next() {
 		if err := rows.Scan(&row.DefinitionID, &row.ErratumID); err != nil {
@@ -1077,8 +1067,8 @@ func loadCpeID2Label(c *Cache) {
 		Label string
 	}
 	r := CpeID2Label{}
-	cnt := getCount("cpe", "id", "id")
-	rows := getAllRows("cpe", "id,label", "id")
+	cnt := getCount("cpe", "*")
+	rows := getAllRows("cpe", "id,label")
 	ret := make(map[CpeID]string, cnt)
 
 	for rows.Next() {
