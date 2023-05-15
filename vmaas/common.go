@@ -115,7 +115,7 @@ func processPackagesUpdates(c *Cache, nevra utils.Nevra, repoIDs map[RepoID]bool
 	pkgFromModule := false
 	if len(nevraIDs.EvrIDs) > 0 {
 		// nevraUpdates
-		updatePkgIDs, pkgFromModule = nevraUpdates(c, &nevraIDs, moduleIDs)
+		updatePkgIDs, pkgFromModule = nevraUpdates(c, &nevraIDs, moduleIDs, repoIDs)
 	}
 	if len(updatePkgIDs) == 0 {
 		// no nevra updates, try optimistic updates
@@ -325,14 +325,14 @@ func optimisticUpdates(c *Cache, nevraIDs *NevraIDs, nevra *utils.Nevra) []PkgID
 	return filteredUpdates
 }
 
-func nevraUpdates(c *Cache, n *NevraIDs, modules map[int]bool) ([]PkgID, bool) {
+func nevraUpdates(c *Cache, n *NevraIDs, modules map[int]bool, repoIDs map[RepoID]bool) ([]PkgID, bool) {
 	currentNevraPkgID := nevraPkgID(c, n)
 	// Package with given NEVRA not found in cache/DB
 	if currentNevraPkgID == 0 {
 		return nil, false
 	}
 
-	currentFromModule := isPkgFromEnabledModule(c, currentNevraPkgID, modules)
+	currentFromModule := isPkgFromEnabledModule(c, currentNevraPkgID, modules, repoIDs)
 	lastVersionPkgID := c.Updates[n.NameID][len(c.Updates[n.NameID])-1]
 	// No updates found for given NEVRA
 	if lastVersionPkgID == currentNevraPkgID {
@@ -360,9 +360,20 @@ func nevraPkgID(c *Cache, n *NevraIDs) PkgID {
 	return nPkgID
 }
 
-func isPkgFromEnabledModule(c *Cache, pkgID PkgID, modules map[int]bool) bool {
+func isPkgFromEnabledModule(c *Cache, pkgID PkgID, modules map[int]bool, repoIDs map[RepoID]bool) bool {
 	errata := c.PkgID2ErrataIDs[pkgID]
 	for _, eid := range errata {
+		erratumRepos := c.ErratumID2RepoIDs[eid]
+		validRepo := false
+		for r := range repoIDs {
+			if erratumRepos[r] {
+				validRepo = true
+				break
+			}
+		}
+		if !validRepo {
+			continue
+		}
 		pkgErrata := PkgErratum{pkgID, eid}
 		errataModules := c.PkgErratum2Module[pkgErrata]
 		for _, em := range errataModules {
