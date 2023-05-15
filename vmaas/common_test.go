@@ -295,7 +295,7 @@ func TestNevraPkgID(t *testing.T) {
 }
 
 func TestNevraUpdates(t *testing.T) {
-	updates, _ := nevraUpdates(nil, nil, nil)
+	updates, _ := nevraUpdates(nil, nil, nil, nil)
 	assert.Nil(t, updates)
 
 	// cache init
@@ -330,7 +330,7 @@ func TestNevraUpdates(t *testing.T) {
 	}
 
 	ids := extractNevraIDs(&c, &nevra) // ids.NameID=1, EvrIDs=[2, 3, 4], ArchID=3
-	updates, _ = nevraUpdates(&c, &ids, nil)
+	updates, _ = nevraUpdates(&c, &ids, nil, nil)
 	// update for PkgID=3
 	assert.Equal(t, []PkgID{6, 7}, updates)
 }
