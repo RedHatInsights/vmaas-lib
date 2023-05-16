@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.8.0 (2023-05-16)
+### Feature
+* Add epoch_required request option ([`a091b25`](https://github.com/RedHatInsights/vmaas-lib/commit/a091b25541b8209d2987c35e8f610fb1672ee413))
+
 ## v0.7.1 (2023-05-15)
 ### Fix
 * **modules:** Package from module with disabled repo ([`b6e7155`](https://github.com/RedHatInsights/vmaas-lib/commit/b6e7155b6d3dae886ba900fb000ca9b2f2d7d3f7))
