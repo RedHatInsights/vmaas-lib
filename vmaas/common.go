@@ -42,7 +42,10 @@ func (r *Request) processRequest(c *Cache) (*ProcessedRequest, error) {
 		return nil, errors.Wrap(err, "parsing lastChanged")
 	}
 
-	pkgsToProcess, updateList := processInputPackages(c, r)
+	pkgsToProcess, updateList, err := processInputPackages(c, r)
+	if err != nil {
+		return nil, errors.Wrap(err, "processing input packages")
+	}
 	modules, err := processModules(r.Modules)
 	if err != nil {
 		return nil, errors.Wrap(err, "processing modules from request")
@@ -73,19 +76,22 @@ func processModules(modules []ModuleStreamPtrs) ([]ModuleStream, error) {
 }
 
 // Parse input NEVRAs and filter out unknown (or without updates) package names
-func processInputPackages(c *Cache, request *Request) (map[string]utils.Nevra, UpdateList) {
+func processInputPackages(c *Cache, request *Request) (map[string]utils.Nevra, UpdateList, error) {
 	if request == nil {
-		return map[string]utils.Nevra{}, UpdateList{}
+		return map[string]utils.Nevra{}, UpdateList{}, nil
 	}
 	pkgsToProcess := filterPkgList(request.Packages, request.LatestOnly)
 	filteredPkgsToProcess := make(map[string]utils.Nevra)
 	updateList := make(UpdateList)
 	for _, pkg := range pkgsToProcess {
 		updateList[pkg] = UpdateDetail{}
-		nevra, err := utils.ParseNevra(pkg)
+		nevra, err := utils.ParseNevra(pkg, request.EpochRequired)
 		if err != nil {
 			utils.LogWarn("nevra", pkg, "Cannot parse")
 			continue
+		}
+		if nevra.Epoch == -1 {
+			return nil, nil, errors.Errorf("missing required epoch in %s", pkg)
 		}
 		if pkgID, ok := c.Packagename2ID[nevra.Name]; ok {
 			if _, ok := c.UpdatesIndex[pkgID]; ok {
@@ -93,7 +99,7 @@ func processInputPackages(c *Cache, request *Request) (map[string]utils.Nevra, U
 			}
 		}
 	}
-	return filteredPkgsToProcess, updateList
+	return filteredPkgsToProcess, updateList, nil
 }
 
 func processUpdates(c *Cache, updateList UpdateList, packages map[string]utils.Nevra,
@@ -414,7 +420,7 @@ func filterPkgList(pkgs []string, latestOnly bool) []string {
 	latestPkgs := make(map[NameArch]NevraString, len(pkgs))
 	filtered := make([]string, 0, len(pkgs))
 	for _, pkg := range pkgs {
-		nevra, err := utils.ParseNevra(pkg)
+		nevra, err := utils.ParseNevra(pkg, false)
 		if err != nil {
 			utils.LogWarn("nevra", pkg, "Cannot parse")
 			continue
