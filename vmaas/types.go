@@ -36,7 +36,8 @@ type Request struct {
 	LatestOnly   bool `json:"latest_only"`
 	SecurityOnly bool `json:"security_only"`
 
-	Extended bool `json:"extended"`
+	Extended      bool `json:"extended"`
+	EpochRequired bool `json:"epoch_required"`
 }
 
 type Update struct {

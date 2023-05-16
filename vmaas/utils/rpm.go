@@ -39,7 +39,7 @@ type Evr struct {
 	Release string
 }
 
-func ParseNevra(nevra string) (Nevra, error) {
+func ParseNevra(nevra string, epochRequired bool) (Nevra, error) {
 	nevra = strings.TrimSuffix(nevra, ".rpm")
 	nevra = strings.TrimSuffix(nevra, ".srpm")
 	parsed := nevraRegex.FindStringSubmatch(nevra)
@@ -49,6 +49,9 @@ func ParseNevra(nevra string) (Nevra, error) {
 	}
 	var err error
 	epoch := 0
+	if epochRequired {
+		epoch = -1
+	}
 	if parsed[2] != "" {
 		epoch, err = strconv.Atoi(parsed[2])
 		if err != nil {
@@ -70,8 +73,8 @@ func ParseNevra(nevra string) (Nevra, error) {
 	return res, nil
 }
 
-func ParseNameEVRA(name, evra string) (Nevra, error) {
-	return ParseNevra(fmt.Sprintf("%s-%s", name, evra))
+func ParseNameEVRA(name, evra string, epochRequired bool) (Nevra, error) {
+	return ParseNevra(fmt.Sprintf("%s-%s", name, evra), epochRequired)
 }
 
 func (n *Nevra) StringE(showEpoch bool) string {

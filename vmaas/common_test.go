@@ -233,7 +233,7 @@ func TestExtractNevraIDs(t *testing.T) {
 	assert.Equal(t, NevraIDs{}, res)
 
 	// test with nevra
-	nevra, _ := utils.ParseNevra("bash-0:5.4.20-1.el8_4.x86_64")
+	nevra, _ := utils.ParseNevra("bash-0:5.4.20-1.el8_4.x86_64", false)
 	evr := utils.Evr{
 		Epoch:   nevra.Epoch,
 		Version: nevra.Version,
@@ -262,7 +262,7 @@ func TestNevraPkgID(t *testing.T) {
 	assert.Equal(t, PkgID(0), res)
 
 	// test with nevra
-	nevra, _ := utils.ParseNevra("bash-0:5.4.20-1.el8_4.x86_64")
+	nevra, _ := utils.ParseNevra("bash-0:5.4.20-1.el8_4.x86_64", false)
 	evr := utils.Evr{
 		Epoch:   nevra.Epoch,
 		Version: nevra.Version,
@@ -299,7 +299,7 @@ func TestNevraUpdates(t *testing.T) {
 	assert.Nil(t, updates)
 
 	// cache init
-	nevra, _ := utils.ParseNevra("bash-0:5.4.20-1.el8_4.x86_64")
+	nevra, _ := utils.ParseNevra("bash-0:5.4.20-1.el8_4.x86_64", false)
 	evr := utils.Evr{
 		Epoch:   nevra.Epoch,
 		Version: nevra.Version,
@@ -336,7 +336,7 @@ func TestNevraUpdates(t *testing.T) {
 }
 
 func TestOptimisticUpdates(t *testing.T) {
-	nevra, _ := utils.ParseNevra("pkg-0:1.1.2-1.el8.x86_64")
+	nevra, _ := utils.ParseNevra("pkg-0:1.1.2-1.el8.x86_64", false)
 	nevraIDs := NevraIDs{NameID: 1, EvrIDs: []int{2, 3, 4}}
 	c := Cache{
 		Updates: map[NameID][]PkgID{1: {1, 2, 3, 4}},
@@ -441,6 +441,7 @@ func TestFilterNonSecurity(t *testing.T) {
 	assert.False(t, res)
 }
 
+//nolint:funlen
 func TestProcessInputPackages(t *testing.T) {
 	c := Cache{
 		Packagename2ID: map[string]NameID{
@@ -453,11 +454,13 @@ func TestProcessInputPackages(t *testing.T) {
 		},
 	}
 
-	pkgs, updates := processInputPackages(&c, nil)
+	pkgs, updates, err := processInputPackages(&c, nil)
+	assert.NoError(t, err)
 	assert.Equal(t, 0, len(pkgs))
 	assert.Equal(t, 0, len(updates))
 
-	pkgs, updates = processInputPackages(&c, &Request{})
+	pkgs, updates, err = processInputPackages(&c, &Request{})
+	assert.NoError(t, err)
 	assert.Equal(t, 0, len(pkgs))
 	assert.Equal(t, 0, len(updates))
 
@@ -467,8 +470,10 @@ func TestProcessInputPackages(t *testing.T) {
 			"bash-0:4.4.20-1.el8_4.x86_64",
 			"bash-0:5.4.20-1.el8_4.x86_64",
 		},
+		EpochRequired: true,
 	}
-	pkgs, updates = processInputPackages(&c, &req)
+	pkgs, updates, err = processInputPackages(&c, &req)
+	assert.NoError(t, err)
 	assert.Equal(t, 2, len(pkgs))
 	_, ok := pkgs["bash-0:4.4.20-1.el8_4.x86_64"]
 	assert.True(t, ok)
@@ -484,11 +489,38 @@ func TestProcessInputPackages(t *testing.T) {
 	assert.True(t, ok)
 
 	req.LatestOnly = true
-	pkgs, updates = processInputPackages(&c, &req)
+	pkgs, updates, err = processInputPackages(&c, &req)
+	assert.NoError(t, err)
 	assert.Equal(t, 1, len(pkgs))
 	assert.Equal(t, 1, len(updates))
 	_, ok = pkgs["bash-0:5.4.20-1.el8_4.x86_64"]
 	assert.True(t, ok)
 	_, ok = updates["bash-0:5.4.20-1.el8_4.x86_64"]
 	assert.True(t, ok)
+
+	req = Request{
+		Packages: []string{
+			"invalid", // invalid, should not be in pkgs list but it should be in update list with empty updates
+			"bash-4.4.20-1.el8_4.x86_64",
+			"bash-5.4.20-1.el8_4.x86_64",
+		},
+		EpochRequired: true,
+	}
+	pkgs, updates, err = processInputPackages(&c, &req)
+	assert.Error(t, err)
+	assert.Equal(t, 0, len(pkgs))
+	assert.Equal(t, 0, len(updates))
+
+	req = Request{
+		Packages: []string{
+			"invalid", // invalid, should not be in pkgs list but it should be in update list with empty updates
+			"bash-4.4.20-1.el8_4.x86_64",
+			"bash-5.4.20-1.el8_4.x86_64",
+		},
+		EpochRequired: false,
+	}
+	pkgs, updates, err = processInputPackages(&c, &req)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(pkgs))
+	assert.Equal(t, 3, len(updates))
 }
