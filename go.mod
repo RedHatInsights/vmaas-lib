@@ -1,12 +1,12 @@
 module github.com/redhatinsights/vmaas-lib
 
-go 1.18
+go 1.19
 
 require (
 	github.com/ezamriy/gorpm v0.0.0-20160905202458-25f7273cbf51
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/pkg/errors v0.9.1
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.9.2
 	github.com/stretchr/testify v1.8.0
 )
 
