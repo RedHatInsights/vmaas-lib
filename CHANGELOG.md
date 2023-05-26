@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.8.1 (2023-05-26)
+### Fix
+* Update to go1.19 ([`0d7d810`](https://github.com/RedHatInsights/vmaas-lib/commit/0d7d8105906683df0bfd8f4f13663e70a66b1c5a))
+
 ## v0.8.0 (2023-05-16)
 ### Feature
 * Add epoch_required request option ([`a091b25`](https://github.com/RedHatInsights/vmaas-lib/commit/a091b25541b8209d2987c35e8f610fb1672ee413))
