@@ -11,7 +11,11 @@ available in [examples/vmaas.db](https://github.com/RedHatInsights/vmaas-lib/blo
 import "github.com/redhatinsights/vmaas-lib/vmaas"
 
 // download and initialize cache from URL, rsync (or from file using vmaas.InitFromFile)
-api, err := vmaas.InitFromURL("http://example.com/dump.db")
+cfg := vmaas.Config{
+	OvalUnfixedEvalEnabled: true,
+	MaxGoroutines: 20,
+}
+api, err := vmaas.InitFromURL("http://example.com/dump.db", cfg)
 if err != nil {
 	panic(err)
 }
@@ -30,9 +34,9 @@ request := vmaas.Request{
 	Packages: []string{"kernel-0:4.18.0-372.26.1.el8_6.x86_64"},
 }
 // get CVEs for given package
-vulnerabilities, _ := request.Vulnerabilities(api.Cache)
+vulnerabilities, _ := api.Vulnerabilities(request)
 // get Updates for given package
-updates, _ := request.Updates(api.Cache)
+updates, _ := api.Updates(request)
 
 ```
 

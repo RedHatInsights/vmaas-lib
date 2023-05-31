@@ -44,7 +44,7 @@ func TestOpenDBEmpty(t *testing.T) {
 func TestLoadCache(t *testing.T) {
 	assert.Nil(t, sqlDB)
 
-	cache, err := loadCache(TestDump)
+	cache, err := loadCache(TestDump, &defaultCfg)
 	assert.Nil(t, err)
 	assert.NotNil(t, cache)
 }
