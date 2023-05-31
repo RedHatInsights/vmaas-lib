@@ -2,6 +2,11 @@
 
 <!--next-version-placeholder-->
 
+## v0.9.0 (2023-05-31)
+### Feature
+
+* **config:** Api config instead of using env vars ([`b57e28b`](https://github.com/RedHatInsights/vmaas-lib/commit/b57e28b1372dbd961c6e0dc6f5bee6e06b688df9))
+
 ## v0.8.1 (2023-05-26)
 ### Fix
 * Update to go1.19 ([`0d7d810`](https://github.com/RedHatInsights/vmaas-lib/commit/0d7d8105906683df0bfd8f4f13663e70a66b1c5a))
