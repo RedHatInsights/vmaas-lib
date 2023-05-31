@@ -1,6 +1,9 @@
 package utils
 
 import (
+	"fmt"
+	"time"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -65,4 +68,9 @@ func LogFatal(args ...interface{}) {
 
 func LogPanic(args ...interface{}) {
 	logLevel(log.PanicLevel, args...)
+}
+
+func TimeTrack(start time.Time, eventName string) {
+	elapsed := fmt.Sprint(time.Since(start))
+	LogInfo("event", eventName, "elapsed", elapsed)
 }
