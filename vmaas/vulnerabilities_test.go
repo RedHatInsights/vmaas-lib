@@ -28,7 +28,7 @@ var api *API
 // load "../example/vmaas.db" dump only where it is really necessary
 // we should avoid using vmaas.db for testing
 func loadDump() {
-	api, _ = InitFromFile(testingCachePath)
+	api, _ = InitFromFile(testingCachePath, &defaultCfg)
 }
 
 func TestVulnerabilitiesExtendedManuallyFixableCVEs(t *testing.T) {

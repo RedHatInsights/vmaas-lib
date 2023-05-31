@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/redhatinsights/vmaas-lib/vmaas/conf"
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
 
 	_ "github.com/mattn/go-sqlite3" // sqlite driver for cache load
@@ -60,7 +59,7 @@ func closeDB() {
 }
 
 // Make sure only one load at a time is performed
-func loadCache(path string) (*Cache, error) {
+func loadCache(path string, cfg *Config) (*Cache, error) {
 	lock.Lock()
 	defer lock.Unlock()
 	start := time.Now()
@@ -73,7 +72,7 @@ func loadCache(path string) (*Cache, error) {
 	c := Cache{}
 
 	var wg sync.WaitGroup
-	guard := make(chan struct{}, conf.Env.MaxGoroutines)
+	guard := make(chan struct{}, cfg.MaxGoroutines)
 	for _, fn := range loadFuncs {
 		wg.Add(1)
 		guard <- struct{}{}
