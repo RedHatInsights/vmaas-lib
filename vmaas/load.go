@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	lock  = &sync.Mutex{}
+	lock  sync.Mutex
 	sqlDB *sql.DB
 )
 
