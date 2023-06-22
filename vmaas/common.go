@@ -11,6 +11,8 @@ import (
 
 const SecurityErrataType = "security"
 
+var ErrProcessingInput = errors.New("processing input")
+
 type ProcessedRequest struct {
 	Updates         *Updates
 	Packages        map[string]utils.Nevra
@@ -67,7 +69,7 @@ func processModules(modules []ModuleStreamPtrs) ([]ModuleStream, error) {
 	res := make([]ModuleStream, 0, len(modules))
 	for _, m := range modules {
 		if m.Module == nil || m.Stream == nil {
-			return nil, errors.New("`module_name` and `module_stream` can't be `nil`")
+			return nil, errors.Wrap(ErrProcessingInput, "`module_name` and `module_stream` can't be `nil`")
 		}
 		res = append(res, ModuleStream{*m.Module, *m.Stream})
 	}
@@ -90,7 +92,7 @@ func processInputPackages(c *Cache, request *Request) (map[string]utils.Nevra, U
 			continue
 		}
 		if nevra.Epoch == -1 {
-			return nil, nil, errors.Errorf("missing required epoch in %s", pkg)
+			return nil, nil, errors.Wrapf(ErrProcessingInput, "missing required epoch in %s", pkg)
 		}
 		if pkgID, ok := c.Packagename2ID[nevra.Name]; ok {
 			if _, ok := c.UpdatesIndex[pkgID]; ok {
