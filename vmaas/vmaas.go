@@ -81,10 +81,7 @@ func (api *API) PeriodicCacheReload(interval time.Duration, latestDumpEndpoint s
 
 	go func() {
 		for range ticker.C {
-			reloadNeeded, err := api.IsReloadNeeded(latestDumpEndpoint)
-			if err != nil {
-				utils.LogWarn("err", err.Error(), "Error getting latest dump timestamp")
-			}
+			reloadNeeded := api.Cache.ShouldReload(latestDumpEndpoint)
 			if !reloadNeeded {
 				continue
 			}
@@ -105,40 +102,6 @@ func (api *API) PeriodicCacheReload(interval time.Duration, latestDumpEndpoint s
 			}
 		}
 	}()
-}
-
-func (api *API) IsReloadNeeded(latestDumpEndpoint string) (bool, error) {
-	if api.Cache == nil {
-		return true, nil
-	}
-
-	resp, err := http.Get(latestDumpEndpoint) //nolint:gosec // url is user's input
-	if err != nil {
-		return true, errors.Wrap(err, "couldn't get latest dump info")
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return true, errors.Wrap(err, "couldn't read response body")
-	}
-
-	latest, err := time.Parse(time.RFC3339, string(body))
-	if err != nil {
-		return true, errors.Wrap(err, "couldn't parse latest timestamp")
-	}
-
-	exported, err := time.Parse(time.RFC3339, api.Cache.DBChange.Exported)
-	if err != nil {
-		return true, errors.Wrap(err, "couldn't parse exported timestamp")
-	}
-
-	if latest.After(exported) {
-		utils.LogDebug("latest", latest, "exported", exported, "Reload needed")
-		return true, nil
-	}
-	utils.LogDebug("latest", latest, "exported", exported, "Reload not needed")
-	return false, nil
 }
 
 func DownloadCache(url, dest string) error {
