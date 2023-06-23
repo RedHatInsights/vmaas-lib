@@ -43,15 +43,15 @@ func InitFromURL(cacheURL string, opts ...Option) (*API, error) {
 }
 
 func (api *API) Updates(request *Request) (*Updates, error) {
-	return request.Updates(api.Cache, api.options)
+	return request.updates(api.Cache, api.options)
 }
 
 func (api *API) Vulnerabilities(request *Request) (*Vulnerabilities, error) {
-	return request.Vulnerabilities(api.Cache, api.options)
+	return request.vulnerabilities(api.Cache, api.options)
 }
 
 func (api *API) VulnerabilitiesExtended(request *Request) (*VulnerabilitiesExtended, error) {
-	return request.VulnerabilitiesExtended(api.Cache, api.options)
+	return request.vulnerabilitiesExtended(api.Cache, api.options)
 }
 
 func (api *API) LoadCacheFromFile(cachePath string) error {

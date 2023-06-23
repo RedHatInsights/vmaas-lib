@@ -4,7 +4,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (r *Request) Updates(c *Cache, opts *options) (*Updates, error) {
+func (r *Request) updates(c *Cache, opts *options) (*Updates, error) {
 	// process request
 	processed, err := r.processRequest(c)
 	if err != nil {
