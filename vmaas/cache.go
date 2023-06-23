@@ -1,6 +1,12 @@
 package vmaas
 
-import "github.com/redhatinsights/vmaas-lib/vmaas/utils"
+import (
+	"io"
+	"net/http"
+	"time"
+
+	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
+)
 
 type Cache struct {
 	Packagename2ID map[string]NameID
@@ -64,4 +70,47 @@ type Cache struct {
 	OvalTestID2States               map[TestID][]OvalState
 	OvalDefinitionID2ErrataIDs      map[DefinitionID][]ErratumID
 	CpeID2Label                     map[CpeID]string
+}
+
+func (c *Cache) ShouldReload(latestDumpEndpoint string) bool {
+	if c == nil {
+		return true
+	}
+
+	resp, err := http.Get(latestDumpEndpoint) //nolint:gosec // url is user's input
+	if err != nil {
+		utils.LogWarn("err", err.Error(), "Request to latestdump failed")
+		return false
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		utils.LogWarn("err", err.Error(), "Couldn't read response body")
+		return false
+	}
+
+	if len(body) > 0 {
+		utils.LogWarn("err", err.Error(), "No latestdump info, cache is not exported")
+		return false
+	}
+
+	latest, err := time.Parse(time.RFC3339, string(body))
+	if err != nil {
+		utils.LogWarn("err", err.Error(), "Couldn't parse latest timestamp")
+		return false
+	}
+
+	exported, err := time.Parse(time.RFC3339, c.DBChange.Exported)
+	if err != nil {
+		utils.LogWarn("err", err.Error(), "Couldn't parse exported timestamp in cache")
+		return true
+	}
+
+	if latest.After(exported) {
+		utils.LogDebug("latest", latest, "exported", exported, "Cache reload needed")
+		return true
+	}
+	utils.LogDebug("latest", latest, "exported", exported, "Cache reload not needed")
+	return false
 }
