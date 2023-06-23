@@ -12,41 +12,30 @@ import (
 
 const Dump = "/data/vmaas.db"
 
-var defaultCfg = Config{true, 20}
-
 type API struct {
-	Cache  *Cache
-	path   string
-	url    string
-	Config *Config
+	Cache   *Cache
+	path    string
+	url     string
+	options *options
 }
 
-type Config struct {
-	OvalUnfixedEvalEnabled bool
-	MaxGoroutines          int
-}
-
-func InitFromFile(cachePath string, cfg *Config) (*API, error) {
+func InitFromFile(cachePath string, opts ...Option) (*API, error) {
 	api := new(API)
 	api.path = cachePath
-	api.Config = cfg
-	if cfg == nil {
-		api.Config = &defaultCfg
-	}
+	applyOptions(api, opts)
+
 	if err := api.LoadCacheFromFile(cachePath); err != nil {
 		return api, errors.Wrap(err, "couldn't init from file")
 	}
 	return api, nil
 }
 
-func InitFromURL(cacheURL string, cfg *Config) (*API, error) {
+func InitFromURL(cacheURL string, opts ...Option) (*API, error) {
 	api := new(API)
 	api.url = cacheURL
 	api.path = Dump
-	api.Config = cfg
-	if cfg == nil {
-		api.Config = &defaultCfg
-	}
+	applyOptions(api, opts)
+
 	if err := api.LoadCacheFromURL(cacheURL); err != nil {
 		return api, errors.Wrap(err, "couldn't init from url")
 	}
@@ -54,20 +43,20 @@ func InitFromURL(cacheURL string, cfg *Config) (*API, error) {
 }
 
 func (api *API) Updates(request *Request) (*Updates, error) {
-	return request.Updates(api.Cache, api.Config)
+	return request.Updates(api.Cache, api.options)
 }
 
 func (api *API) Vulnerabilities(request *Request) (*Vulnerabilities, error) {
-	return request.Vulnerabilities(api.Cache, api.Config)
+	return request.Vulnerabilities(api.Cache, api.options)
 }
 
 func (api *API) VulnerabilitiesExtended(request *Request) (*VulnerabilitiesExtended, error) {
-	return request.VulnerabilitiesExtended(api.Cache, api.Config)
+	return request.VulnerabilitiesExtended(api.Cache, api.options)
 }
 
 func (api *API) LoadCacheFromFile(cachePath string) error {
 	var err error
-	api.Cache, err = loadCache(cachePath, api.Config)
+	api.Cache, err = loadCache(cachePath, api.options)
 	if err != nil {
 		return errors.Wrap(err, "couldn't load cache from file")
 	}

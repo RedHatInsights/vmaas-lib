@@ -59,7 +59,7 @@ func closeDB() {
 }
 
 // Make sure only one load at a time is performed
-func loadCache(path string, cfg *Config) (*Cache, error) {
+func loadCache(path string, opts *options) (*Cache, error) {
 	lock.Lock()
 	defer lock.Unlock()
 	start := time.Now()
@@ -72,7 +72,7 @@ func loadCache(path string, cfg *Config) (*Cache, error) {
 	c := Cache{}
 
 	var wg sync.WaitGroup
-	guard := make(chan struct{}, cfg.MaxGoroutines)
+	guard := make(chan struct{}, opts.maxGoroutines)
 	for _, fn := range loadFuncs {
 		wg.Add(1)
 		guard <- struct{}{}

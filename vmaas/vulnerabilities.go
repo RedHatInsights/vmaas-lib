@@ -48,8 +48,8 @@ type Package struct {
 	NameID NameID
 }
 
-func (r *Request) Vulnerabilities(c *Cache, cfg *Config) (*Vulnerabilities, error) {
-	cves, err := evaluate(c, cfg, r)
+func (r *Request) Vulnerabilities(c *Cache, opts *options) (*Vulnerabilities, error) {
+	cves, err := evaluate(c, opts, r)
 	if err != nil {
 		return nil, err
 	}
@@ -62,8 +62,8 @@ func (r *Request) Vulnerabilities(c *Cache, cfg *Config) (*Vulnerabilities, erro
 	return &vuln, nil
 }
 
-func (r *Request) VulnerabilitiesExtended(c *Cache, cfg *Config) (*VulnerabilitiesExtended, error) {
-	cves, err := evaluate(c, cfg, r)
+func (r *Request) VulnerabilitiesExtended(c *Cache, opts *options) (*VulnerabilitiesExtended, error) {
+	cves, err := evaluate(c, opts, r)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (r *Request) VulnerabilitiesExtended(c *Cache, cfg *Config) (*Vulnerabiliti
 }
 
 //nolint:funlen
-func evaluate(c *Cache, cfg *Config, request *Request) (*VulnerabilitiesCvesDetails, error) {
+func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDetails, error) {
 	cves := VulnerabilitiesCvesDetails{
 		Cves:          make(map[string]VulnerabilityDetail),
 		ManualCves:    make(map[string]VulnerabilityDetail),
@@ -91,7 +91,7 @@ func evaluate(c *Cache, cfg *Config, request *Request) (*VulnerabilitiesCvesDeta
 	}
 	cves.LastChange = &processed.Updates.LastChange
 
-	definitions, err := processed.processDefinitions(c, cfg)
+	definitions, err := processed.processDefinitions(c, opts)
 	if err != nil {
 		return &cves, errors.Wrap(err, "couldn't evaluate OVAL")
 	}
@@ -109,7 +109,7 @@ func evaluate(c *Cache, cfg *Config, request *Request) (*VulnerabilitiesCvesDeta
 
 	// 2. evaluate CVEs from Repositories
 	// if CVE is already in Unpatched list -> skip it
-	updates := processed.evaluateRepositories(c, cfg)
+	updates := processed.evaluateRepositories(c, opts)
 	seenErrata := map[string]bool{}
 	for pkg, upDetail := range updates.UpdateList {
 		for _, update := range upDetail.AvailableUpdates {
@@ -172,7 +172,7 @@ func (d *ProcessedDefinition) evaluate(
 	}
 }
 
-func (r *ProcessedRequest) processDefinitions(c *Cache, cfg *Config) (*ProcessedDefinitions, error) {
+func (r *ProcessedRequest) processDefinitions(c *Cache, opts *options) (*ProcessedDefinitions, error) {
 	// Get CPEs for affected repos/content sets
 	// TODO: currently OVAL doesn't evaluate when there is not correct input repo list mapped to CPEs
 	//       there needs to be better fallback at least to guess correctly RHEL version,
@@ -206,7 +206,7 @@ func (r *ProcessedRequest) processDefinitions(c *Cache, cfg *Config) (*Processed
 					}
 				case OvalDefinitionTypeVulnerability:
 					// Skip if unfixed CVE feature flag is disabled
-					if !cfg.OvalUnfixedEvalEnabled {
+					if !opts.evalUnfixed {
 						continue
 					}
 					if _, ok := definitions.Vulnerability[defID]; !ok {

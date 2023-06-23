@@ -11,14 +11,9 @@ available in [examples/vmaas.db](https://github.com/RedHatInsights/vmaas-lib/blo
 import "github.com/redhatinsights/vmaas-lib/vmaas"
 
 // download and initialize cache from URL, rsync (or from file using vmaas.InitFromFile)
-cfg := vmaas.Config{
-	OvalUnfixedEvalEnabled: true,
-	MaxGoroutines: 20,
-}
-api, err := vmaas.InitFromURL("http://example.com/dump.db", cfg)
-if err != nil {
-	panic(err)
-}
+api, _ := vmaas.InitFromURL("http://example.com/dump.db")
+// you can specify options for the library, see options.go
+api, _ := vmaas.InitFromURL("http://example.com/dump.db", WithUnfixed(true), WithMaxGoroutines(100))
 
 // run periodic cache reload task
 api.PeriodicCacheReload(
