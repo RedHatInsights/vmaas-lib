@@ -19,7 +19,7 @@ type ProcessedRequest struct {
 	OriginalRequest *Request
 }
 
-func (r *ProcessedRequest) evaluateRepositories(c *Cache, cfg *Config) *Updates {
+func (r *ProcessedRequest) evaluateRepositories(c *Cache, opts *options) *Updates {
 	if len(r.Packages) == 0 {
 		return r.Updates
 	}
@@ -29,7 +29,7 @@ func (r *ProcessedRequest) evaluateRepositories(c *Cache, cfg *Config) *Updates 
 
 	moduleIDs := getModules(c, r.Updates.ModuleList)
 
-	updateList := processUpdates(c, cfg, r.Updates.UpdateList, r.Packages, repoIDs, moduleIDs, r.OriginalRequest)
+	updateList := processUpdates(c, opts, r.Updates.UpdateList, r.Packages, repoIDs, moduleIDs, r.OriginalRequest)
 	r.Updates.UpdateList = updateList
 
 	return r.Updates
@@ -103,16 +103,16 @@ func processInputPackages(c *Cache, request *Request) (map[string]utils.Nevra, U
 	return filteredPkgsToProcess, updateList, nil
 }
 
-func processUpdates(c *Cache, cfg *Config, updateList UpdateList, packages map[string]utils.Nevra,
+func processUpdates(c *Cache, opts *options, updateList UpdateList, packages map[string]utils.Nevra,
 	repoIDs map[RepoID]bool, moduleIDs map[int]bool, r *Request,
 ) UpdateList {
 	for pkg, nevra := range packages {
-		updateList[pkg] = processPackagesUpdates(c, cfg, nevra, repoIDs, moduleIDs, r)
+		updateList[pkg] = processPackagesUpdates(c, opts, nevra, repoIDs, moduleIDs, r)
 	}
 	return updateList
 }
 
-func processPackagesUpdates(c *Cache, cfg *Config, nevra utils.Nevra, repoIDs map[RepoID]bool,
+func processPackagesUpdates(c *Cache, opts *options, nevra utils.Nevra, repoIDs map[RepoID]bool,
 	moduleIDs map[int]bool, r *Request,
 ) UpdateDetail {
 	updateDetail := UpdateDetail{}
@@ -135,12 +135,12 @@ func processPackagesUpdates(c *Cache, cfg *Config, nevra utils.Nevra, repoIDs ma
 	}
 
 	// get repositories for update packages
-	filteredRepos = repositoriesByPkgs(c, cfg, updatePkgIDs, repoIDs)
+	filteredRepos = repositoriesByPkgs(c, opts, updatePkgIDs, repoIDs)
 
 	// get pkgUpdates concurrently
 	updates := make(chan Update)
 	wg := sync.WaitGroup{}
-	maxGoroutines := make(chan struct{}, cfg.MaxGoroutines)
+	maxGoroutines := make(chan struct{}, opts.maxGoroutines)
 	for _, u := range updatePkgIDs {
 		wg.Add(1)
 		go func(u PkgID) {
@@ -246,12 +246,12 @@ func filterNonSecurity(errataDetail ErratumDetail, securityOnly bool) bool {
 	return !isSecurity
 }
 
-func repositoriesByPkgs(c *Cache, cfg *Config, pkgIDs []PkgID, repoIDs map[RepoID]bool) []RepoID {
+func repositoriesByPkgs(c *Cache, opts *options, pkgIDs []PkgID, repoIDs map[RepoID]bool) []RepoID {
 	res := []RepoID{}
 	seen := map[RepoID]bool{}
 	repos := make(chan RepoID)
 	wg := sync.WaitGroup{}
-	maxGoroutines := make(chan struct{}, cfg.MaxGoroutines)
+	maxGoroutines := make(chan struct{}, opts.maxGoroutines)
 	for _, p := range pkgIDs {
 		wg.Add(1)
 		go func(p PkgID) {
