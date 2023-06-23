@@ -48,7 +48,7 @@ type Package struct {
 	NameID NameID
 }
 
-func (r *Request) Vulnerabilities(c *Cache, opts *options) (*Vulnerabilities, error) {
+func (r *Request) vulnerabilities(c *Cache, opts *options) (*Vulnerabilities, error) {
 	cves, err := evaluate(c, opts, r)
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func (r *Request) Vulnerabilities(c *Cache, opts *options) (*Vulnerabilities, er
 	return &vuln, nil
 }
 
-func (r *Request) VulnerabilitiesExtended(c *Cache, opts *options) (*VulnerabilitiesExtended, error) {
+func (r *Request) vulnerabilitiesExtended(c *Cache, opts *options) (*VulnerabilitiesExtended, error) {
 	cves, err := evaluate(c, opts, r)
 	if err != nil {
 		return nil, err
