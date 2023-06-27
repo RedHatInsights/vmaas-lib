@@ -81,7 +81,7 @@ func (api *API) PeriodicCacheReload(interval time.Duration, latestDumpEndpoint s
 
 	go func() {
 		for range ticker.C {
-			reloadNeeded := api.Cache.ShouldReload(latestDumpEndpoint)
+			reloadNeeded := ShouldReload(api.Cache, latestDumpEndpoint)
 			if !reloadNeeded {
 				continue
 			}

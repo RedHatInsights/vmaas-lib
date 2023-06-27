@@ -72,7 +72,7 @@ type Cache struct {
 	CpeID2Label                     map[CpeID]string
 }
 
-func (c *Cache) ShouldReload(latestDumpEndpoint string) bool {
+func ShouldReload(c *Cache, latestDumpEndpoint string) bool {
 	if c == nil {
 		return true
 	}
