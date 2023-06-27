@@ -72,7 +72,7 @@ type Cache struct {
 	CpeID2Label                     map[CpeID]string
 }
 
-func (c *Cache) ShouldReload(latestDumpEndpoint string) bool {
+func ShouldReload(c *Cache, latestDumpEndpoint string) bool {
 	if c == nil {
 		return true
 	}
@@ -90,8 +90,8 @@ func (c *Cache) ShouldReload(latestDumpEndpoint string) bool {
 		return false
 	}
 
-	if len(body) > 0 {
-		utils.LogWarn("err", err.Error(), "No latestdump info, cache is not exported")
+	if len(body) == 0 {
+		utils.LogWarn("No latestdump info, cache is not exported")
 		return false
 	}
 
