@@ -2,6 +2,23 @@
 
 <!--next-version-placeholder-->
 
+## v1.0.0 (2023-06-27)
+
+### Feature
+
+* Add functional options ([`0e751b9`](https://github.com/RedHatInsights/vmaas-lib/commit/0e751b9a7ef98e29ce4533b4e7ee5ec03e212554))
+* Return package name and evra in updates ([`d7b62c8`](https://github.com/RedHatInsights/vmaas-lib/commit/d7b62c89f8a7e0e025e6df5a822fd538362a888f))
+
+### Fix
+
+* Improve cases when cache should be reloaded ([`f93129a`](https://github.com/RedHatInsights/vmaas-lib/commit/f93129aa12fca4c666885d536d90808372a21293))
+* Remove unnecessary pointer to a mutex ([`f2c9493`](https://github.com/RedHatInsights/vmaas-lib/commit/f2c94937771add67b0d0ff563794421706fbc90b))
+* Custom error when processing of input fails ([`96850f0`](https://github.com/RedHatInsights/vmaas-lib/commit/96850f0be36475f0044da84618642152c47b9b35))
+
+### Breaking
+
+* methods cannot be exported since `options` is unexported ([`25bf738`](https://github.com/RedHatInsights/vmaas-lib/commit/25bf7380980288e206d1c1f9d10af810ba263ff0))
+
 ## v0.9.0 (2023-05-31)
 ### Feature
 
