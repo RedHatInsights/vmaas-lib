@@ -41,11 +41,13 @@ type Request struct {
 }
 
 type Update struct {
-	Package    string `json:"package"`
-	Erratum    string `json:"erratum"`
-	Repository string `json:"repository"`
-	Basearch   string `json:"basearch"`
-	Releasever string `json:"releasever"`
+	Package     string `json:"package"`
+	PackageName string `json:"package_name"`
+	EVRA        string `json:"evra"`
+	Erratum     string `json:"erratum"`
+	Repository  string `json:"repository"`
+	Basearch    string `json:"basearch"`
+	Releasever  string `json:"releasever"`
 }
 
 type UpdateDetail struct {
