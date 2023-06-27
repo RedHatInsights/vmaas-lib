@@ -224,11 +224,13 @@ func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErratumID, modules map[in
 	for _, r := range repos {
 		details := c.RepoDetails[r]
 		updates <- Update{
-			Package:    nevra.String(),
-			Erratum:    erratumName,
-			Repository: details.Label,
-			Basearch:   details.Basearch,
-			Releasever: details.Releasever,
+			Package:     nevra.String(),
+			PackageName: nevra.Name,
+			EVRA:        nevra.EVRAStringE(true),
+			Erratum:     erratumName,
+			Repository:  details.Label,
+			Basearch:    details.Basearch,
+			Releasever:  details.Releasever,
 		}
 	}
 }
