@@ -224,6 +224,19 @@ func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErratumID, modules map[in
 
 	repos := filterErrataRepos(c, erratumID, repoIDs)
 	for _, r := range repos {
+		// filter out update package if it does not exist in the enabled repo
+		pkgInRepo := false
+		pkgRepos := c.PkgID2RepoIDs[pkgID]
+		for _, pkgRepo := range pkgRepos {
+			if r == pkgRepo {
+				pkgInRepo = true
+				break
+			}
+		}
+		if !pkgInRepo {
+			return
+		}
+
 		details := c.RepoDetails[r]
 		updates <- Update{
 			Package:     nevra.String(),
