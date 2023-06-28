@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.0.2 (2023-06-28)
+
+### Fix
+
+* Bump version to release code to pkg.go.dev ([`59585f6`](https://github.com/RedHatInsights/vmaas-lib/commit/59585f648841838d712c69d74b58a92cd901c0a3))
+
 ## v1.0.1 (2023-06-28)
 
 ### Fix
