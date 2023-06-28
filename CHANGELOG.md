@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.0.1 (2023-06-28)
+
+### Fix
+
+* Nil pointer dereference ([`215d328`](https://github.com/RedHatInsights/vmaas-lib/commit/215d3283f0bcafd4adc4e2e914a6ba391bd02683))
+
 ## v1.0.0 (2023-06-27)
 
 ### Feature
