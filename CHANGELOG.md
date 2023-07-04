@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.0.3 (2023-07-04)
+
+### Fix
+
+* Check whether pkg update exists in enabled repo ([`ba3b4cc`](https://github.com/RedHatInsights/vmaas-lib/commit/ba3b4cc0f4639c93e98ed324a1458f05b004c755))
+
 ## v1.0.2 (2023-06-28)
 
 ### Fix
