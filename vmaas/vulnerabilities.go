@@ -32,8 +32,8 @@ type VulnerabilitiesCvesDetails struct {
 }
 
 type ProcessedDefinitions struct {
-	Patch         map[DefinitionID]ProcessedDefinition
-	Vulnerability map[DefinitionID]ProcessedDefinition
+	Patch         []ProcessedDefinition
+	Vulnerability []ProcessedDefinition
 }
 
 type ProcessedDefinition struct {
@@ -103,8 +103,8 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 	}
 
 	// 1. evaluate Unpatched CVEs
-	for defID, definition := range definitions.Vulnerability {
-		cvesOval := c.OvaldefinitionID2Cves[defID]
+	for _, definition := range definitions.Vulnerability {
+		cvesOval := c.OvaldefinitionID2Cves[definition.DefinitionID]
 		definition.evaluate(c, modules, cvesOval, &cves, cves.UnpatchedCves)
 	}
 
@@ -129,8 +129,8 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 
 	// 3. evaluate Manually Fixable CVEs
 	// if CVE is already in Unpatched or CVE list -> skip it
-	for defID, definition := range definitions.Patch {
-		cvesOval := c.OvaldefinitionID2Cves[defID]
+	for _, definition := range definitions.Patch {
+		cvesOval := c.OvaldefinitionID2Cves[definition.DefinitionID]
 		// Skip if all CVEs from definition were already found somewhere
 		allCvesFound := true
 		for _, cve := range cvesOval {
@@ -173,16 +173,15 @@ func (d *ProcessedDefinition) evaluate(
 	}
 }
 
+//nolint:funlen
 func (r *ProcessedRequest) processDefinitions(c *Cache, opts *options) (*ProcessedDefinitions, error) {
 	// Get CPEs for affected repos/content sets
 	// TODO: currently OVAL doesn't evaluate when there is not correct input repo list mapped to CPEs
 	//       there needs to be better fallback at least to guess correctly RHEL version,
 	//       use old VMaaS repo guessing?
 	candidateDefinitions := repos2definitions(c, r.OriginalRequest)
-	definitions := ProcessedDefinitions{
-		make(map[DefinitionID]ProcessedDefinition),
-		make(map[DefinitionID]ProcessedDefinition),
-	}
+	patchDefinitions := make(map[DefinitionID]ProcessedDefinition)
+	vulnerabilityDefinitions := make(map[DefinitionID]ProcessedDefinition)
 
 	for pkg, parsedNevra := range r.Packages {
 		pkgNameID := c.Packagename2ID[parsedNevra.Name]
@@ -192,14 +191,14 @@ func (r *ProcessedRequest) processDefinitions(c *Cache, opts *options) (*Process
 				definition := c.OvaldefinitionDetail[defID]
 				switch definition.DefinitionTypeID {
 				case OvalDefinitionTypePatch:
-					if _, ok := definitions.Patch[defID]; !ok {
-						definitions.Patch[defID] = ProcessedDefinition{}
+					if _, ok := patchDefinitions[defID]; !ok {
+						patchDefinitions[defID] = ProcessedDefinition{}
 					}
-					definitions.Patch[defID] = ProcessedDefinition{
+					patchDefinitions[defID] = ProcessedDefinition{
 						DefinitionID: definition.ID,
 						CriteriaID:   definition.CriteriaID,
 						// store CPE only for Vulnerability type, field omitted intentionally
-						Packages: append(definitions.Patch[defID].Packages, Package{
+						Packages: append(patchDefinitions[defID].Packages, Package{
 							Nevra:  parsedNevra,
 							NameID: pkgNameID,
 							String: pkg,
@@ -210,14 +209,14 @@ func (r *ProcessedRequest) processDefinitions(c *Cache, opts *options) (*Process
 					if !opts.evalUnfixed {
 						continue
 					}
-					if _, ok := definitions.Vulnerability[defID]; !ok {
-						definitions.Vulnerability[defID] = ProcessedDefinition{}
+					if _, ok := vulnerabilityDefinitions[defID]; !ok {
+						vulnerabilityDefinitions[defID] = ProcessedDefinition{}
 					}
-					definitions.Vulnerability[defID] = ProcessedDefinition{
+					vulnerabilityDefinitions[defID] = ProcessedDefinition{
 						DefinitionID: definition.ID,
 						CriteriaID:   definition.CriteriaID,
 						Cpe:          c.CpeID2Label[cpe],
-						Packages: append(definitions.Vulnerability[defID].Packages, Package{
+						Packages: append(vulnerabilityDefinitions[defID].Packages, Package{
 							Nevra:  parsedNevra,
 							NameID: pkgNameID,
 							String: pkg,
@@ -229,6 +228,36 @@ func (r *ProcessedRequest) processDefinitions(c *Cache, opts *options) (*Process
 			}
 		}
 	}
+
+	// Make sure definitions are in fixed order
+	patchDefinitionsIDs := make([]DefinitionID, 0, len(patchDefinitions))
+	vulnerabilityDefinitionsIDs := make([]DefinitionID, 0, len(vulnerabilityDefinitions))
+	for defID := range patchDefinitions {
+		patchDefinitionsIDs = append(patchDefinitionsIDs, defID)
+	}
+	for defID := range vulnerabilityDefinitions {
+		vulnerabilityDefinitionsIDs = append(vulnerabilityDefinitionsIDs, defID)
+	}
+	sort.Slice(patchDefinitionsIDs, func(i, j int) bool {
+		return patchDefinitionsIDs[i] < patchDefinitionsIDs[j]
+	})
+	sort.Slice(vulnerabilityDefinitionsIDs, func(i, j int) bool {
+		return vulnerabilityDefinitionsIDs[i] < vulnerabilityDefinitionsIDs[j]
+	})
+
+	definitions := ProcessedDefinitions{
+		make([]ProcessedDefinition, 0, len(patchDefinitions)),
+		make([]ProcessedDefinition, 0, len(vulnerabilityDefinitions)),
+	}
+	for _, defID := range patchDefinitionsIDs {
+		definition := patchDefinitions[defID]
+		definitions.Patch = append(definitions.Patch, definition)
+	}
+	for _, defID := range vulnerabilityDefinitionsIDs {
+		definition := vulnerabilityDefinitions[defID]
+		definitions.Vulnerability = append(definitions.Vulnerability, definition)
+	}
+
 	return &definitions, nil
 }
 
