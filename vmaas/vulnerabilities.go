@@ -251,10 +251,18 @@ func (r *ProcessedRequest) processDefinitions(c *Cache, opts *options) (*Process
 	}
 	for _, defID := range patchDefinitionsIDs {
 		definition := patchDefinitions[defID]
+		// Make sure package lists are in fixed order
+		sort.Slice(definition.Packages, func(i, j int) bool {
+			return definition.Packages[i].String < definition.Packages[j].String
+		})
 		definitions.Patch = append(definitions.Patch, definition)
 	}
 	for _, defID := range vulnerabilityDefinitionsIDs {
 		definition := vulnerabilityDefinitions[defID]
+		// Make sure package lists are in fixed order
+		sort.Slice(definition.Packages, func(i, j int) bool {
+			return definition.Packages[i].String < definition.Packages[j].String
+		})
 		definitions.Vulnerability = append(definitions.Vulnerability, definition)
 	}
 
