@@ -3,6 +3,7 @@ package vmaas
 import (
 	"fmt"
 	"math"
+	"sort"
 	"time"
 
 	"github.com/pkg/errors"
@@ -231,7 +232,7 @@ func (r *ProcessedRequest) processDefinitions(c *Cache, opts *options) (*Process
 	return &definitions, nil
 }
 
-//nolint:gocognit,nolintlint
+//nolint:gocognit,nolintlint,funlen
 func repos2definitions(c *Cache, r *Request) map[DefinitionID]CpeID {
 	// TODO: some CPEs are not matching because they are substrings/subtrees
 	if r.Repos == nil {
@@ -278,8 +279,17 @@ func repos2definitions(c *Cache, r *Request) map[DefinitionID]CpeID {
 		}
 	}
 
-	candidateDefinitions := make(map[DefinitionID]CpeID)
+	// Convert CPE map to sorted slice
+	uniqueCpeIDs := make([]CpeID, 0, len(cpeIDs))
 	for cpe := range cpeIDs {
+		uniqueCpeIDs = append(uniqueCpeIDs, cpe)
+	}
+	sort.Slice(uniqueCpeIDs, func(i, j int) bool {
+		return uniqueCpeIDs[i] < uniqueCpeIDs[j]
+	})
+
+	candidateDefinitions := make(map[DefinitionID]CpeID)
+	for _, cpe := range uniqueCpeIDs {
 		if defs, has := c.CpeID2OvalDefinitionIDs[cpe]; has {
 			for _, def := range defs {
 				candidateDefinitions[def] = cpe
