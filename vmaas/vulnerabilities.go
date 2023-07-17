@@ -3,6 +3,7 @@ package vmaas
 import (
 	"fmt"
 	"math"
+	"sort"
 	"time"
 
 	"github.com/pkg/errors"
@@ -231,15 +232,16 @@ func (r *ProcessedRequest) processDefinitions(c *Cache, opts *options) (*Process
 	return &definitions, nil
 }
 
-//nolint:gocognit,nolintlint
+//nolint:gocognit,nolintlint,funlen
 func repos2definitions(c *Cache, r *Request) map[DefinitionID]CpeID {
 	// TODO: some CPEs are not matching because they are substrings/subtrees
 	if r.Repos == nil {
 		return nil
 	}
+	sort.Strings(*r.Repos)
 
-	repoIDs := make(map[RepoID]bool)
-	contentSetIDs := make(map[ContentSetID]bool)
+	repoIDs := make([]RepoID, 0)
+	contentSetIDs := make([]ContentSetID, 0)
 	// Try to identify repos (CS+basearch+releasever) or at least CS
 	for _, label := range *r.Repos {
 		if r.Basearch != nil || r.Releasever != nil {
@@ -250,36 +252,43 @@ func repos2definitions(c *Cache, r *Request) map[DefinitionID]CpeID {
 				if r.Releasever != nil && c.RepoDetails[repoID].Releasever != *r.Releasever {
 					continue
 				}
-				repoIDs[repoID] = true
+				repoIDs = append(repoIDs, repoID)
 			}
 		}
 		if csID, has := c.Label2ContentSetID[label]; has {
-			contentSetIDs[csID] = true
+			contentSetIDs = append(contentSetIDs, csID)
 		}
 	}
 
-	cpeIDs := make(map[CpeID]bool)
+	cpeIDsMap := make(map[CpeID]bool)
+	cpeIDs := make([]CpeID, 0)
 	if len(repoIDs) > 0 { // Check CPE-Repo mapping first
-		for repoID := range repoIDs {
+		for _, repoID := range repoIDs {
 			if cpes, has := c.RepoID2CpeIDs[repoID]; has {
 				for _, cpe := range cpes {
-					cpeIDs[cpe] = true
+					if _, has := cpeIDsMap[cpe]; !has {
+						cpeIDs = append(cpeIDs, cpe)
+						cpeIDsMap[cpe] = true
+					}
 				}
 			}
 		}
 	}
 	if len(cpeIDs) == 0 { // No CPE-Repo mapping? Use CPE-CS mapping
-		for csID := range contentSetIDs {
+		for _, csID := range contentSetIDs {
 			if cpes, has := c.ContentSetID2CpeIDs[csID]; has {
 				for _, cpe := range cpes {
-					cpeIDs[cpe] = true
+					if _, has := cpeIDsMap[cpe]; !has {
+						cpeIDs = append(cpeIDs, cpe)
+						cpeIDsMap[cpe] = true
+					}
 				}
 			}
 		}
 	}
 
 	candidateDefinitions := make(map[DefinitionID]CpeID)
-	for cpe := range cpeIDs {
+	for _, cpe := range cpeIDs {
 		if defs, has := c.CpeID2OvalDefinitionIDs[cpe]; has {
 			for _, def := range defs {
 				candidateDefinitions[def] = cpe

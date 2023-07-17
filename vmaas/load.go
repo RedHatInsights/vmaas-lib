@@ -224,6 +224,14 @@ func getAllRows(tableName, cols string) *sql.Rows {
 	return rows
 }
 
+func getAllRowsWithOrder(tableName, cols, order string) *sql.Rows {
+	rows, err := sqlDB.Query(fmt.Sprintf("SELECT %s FROM %s ORDER BY %s", cols, tableName, order))
+	if err != nil {
+		panic(err)
+	}
+	return rows
+}
+
 func doForRows(q string, f func(row *sql.Rows)) {
 	rows, err := sqlDB.Query(q)
 	if err != nil {
@@ -809,7 +817,7 @@ func loadRepoCpes(c *Cache) {
 	cnt := getCount("cpe_repo", "distinct repo_id")
 	ret := make(map[RepoID][]CpeID, cnt)
 	cols := "repo_id,cpe_id"
-	rows := getAllRows("cpe_repo", cols)
+	rows := getAllRowsWithOrder("cpe_repo", cols, cols)
 
 	for rows.Next() {
 		if err := rows.Scan(&r.RepoID, &r.CpeID); err != nil {
@@ -831,7 +839,7 @@ func loadContentSet2Cpes(c *Cache) {
 	cnt := getCount("cpe_content_set", "distinct content_set_id")
 	ret := make(map[ContentSetID][]CpeID, cnt)
 	cols := "content_set_id,cpe_id"
-	rows := getAllRows("cpe_content_set", cols)
+	rows := getAllRowsWithOrder("cpe_content_set", cols, cols)
 
 	for rows.Next() {
 		if err := rows.Scan(&r.ContentSetID, &r.CpeID); err != nil {
@@ -853,7 +861,7 @@ func loadCpeID2DefinitionIDs(c *Cache) {
 	cnt := getCount("oval_definition_cpe", "distinct cpe_id")
 	ret := make(map[CpeID][]DefinitionID, cnt)
 	cols := "cpe_id,definition_id"
-	rows := getAllRows("oval_definition_cpe", cols)
+	rows := getAllRowsWithOrder("oval_definition_cpe", cols, cols)
 
 	for rows.Next() {
 		if err := rows.Scan(&r.CpeID, &r.DefinitionID); err != nil {
