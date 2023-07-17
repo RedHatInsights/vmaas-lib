@@ -1,6 +1,7 @@
 package vmaas
 
 import (
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -15,7 +16,7 @@ var ErrProcessingInput = errors.New("processing input")
 
 type ProcessedRequest struct {
 	Updates         *Updates
-	Packages        map[string]utils.Nevra
+	Packages        []NevraString
 	OriginalRequest *Request
 }
 
@@ -77,12 +78,13 @@ func processModules(modules []ModuleStreamPtrs) ([]ModuleStream, error) {
 }
 
 // Parse input NEVRAs and filter out unknown (or without updates) package names
-func processInputPackages(c *Cache, request *Request) (map[string]utils.Nevra, UpdateList, error) {
+func processInputPackages(c *Cache, request *Request) ([]NevraString, UpdateList, error) {
 	if request == nil {
-		return map[string]utils.Nevra{}, UpdateList{}, nil
+		return make([]NevraString, 0), UpdateList{}, nil
 	}
 	pkgsToProcess := filterPkgList(request.Packages, request.LatestOnly)
-	filteredPkgsToProcess := make(map[string]utils.Nevra)
+	sort.Strings(pkgsToProcess)
+	filteredPkgsToProcess := make([]NevraString, 0, len(pkgsToProcess))
 	updateList := make(UpdateList)
 	for _, pkg := range pkgsToProcess {
 		updateList[pkg] = UpdateDetail{}
@@ -96,18 +98,18 @@ func processInputPackages(c *Cache, request *Request) (map[string]utils.Nevra, U
 		}
 		if pkgID, ok := c.Packagename2ID[nevra.Name]; ok {
 			if _, ok := c.UpdatesIndex[pkgID]; ok {
-				filteredPkgsToProcess[pkg] = nevra
+				filteredPkgsToProcess = append(filteredPkgsToProcess, NevraString{nevra, pkg})
 			}
 		}
 	}
 	return filteredPkgsToProcess, updateList, nil
 }
 
-func processUpdates(c *Cache, opts *options, updateList UpdateList, packages map[string]utils.Nevra,
+func processUpdates(c *Cache, opts *options, updateList UpdateList, packages []NevraString,
 	repoIDs map[RepoID]bool, moduleIDs map[int]bool, r *Request,
 ) UpdateList {
-	for pkg, nevra := range packages {
-		updateList[pkg] = processPackagesUpdates(c, opts, nevra, repoIDs, moduleIDs, r)
+	for _, nevra := range packages {
+		updateList[nevra.Pkg] = processPackagesUpdates(c, opts, nevra.Nevra, repoIDs, moduleIDs, r)
 	}
 	return updateList
 }
