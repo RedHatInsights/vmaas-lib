@@ -183,8 +183,8 @@ func (r *ProcessedRequest) processDefinitions(c *Cache, opts *options) (*Process
 		make(map[DefinitionID]ProcessedDefinition),
 	}
 
-	for pkg, parsedNevra := range r.Packages {
-		pkgNameID := c.Packagename2ID[parsedNevra.Name]
+	for _, parsedNevra := range r.Packages {
+		pkgNameID := c.Packagename2ID[parsedNevra.Nevra.Name]
 		allDefinitionsIDs := c.PackagenameID2definitionIDs[pkgNameID]
 		for _, defID := range allDefinitionsIDs {
 			if cpe, ok := candidateDefinitions[defID]; ok {
@@ -199,9 +199,9 @@ func (r *ProcessedRequest) processDefinitions(c *Cache, opts *options) (*Process
 						CriteriaID:   definition.CriteriaID,
 						// store CPE only for Vulnerability type, field omitted intentionally
 						Packages: append(definitions.Patch[defID].Packages, Package{
-							Nevra:  parsedNevra,
+							Nevra:  parsedNevra.Nevra,
 							NameID: pkgNameID,
-							String: pkg,
+							String: parsedNevra.Pkg,
 						}),
 					}
 				case OvalDefinitionTypeVulnerability:
@@ -217,9 +217,9 @@ func (r *ProcessedRequest) processDefinitions(c *Cache, opts *options) (*Process
 						CriteriaID:   definition.CriteriaID,
 						Cpe:          c.CpeID2Label[cpe],
 						Packages: append(definitions.Vulnerability[defID].Packages, Package{
-							Nevra:  parsedNevra,
+							Nevra:  parsedNevra.Nevra,
 							NameID: pkgNameID,
-							String: pkg,
+							String: parsedNevra.Pkg,
 						}),
 					}
 				default:

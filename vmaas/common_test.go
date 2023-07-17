@@ -467,21 +467,20 @@ func TestProcessInputPackages(t *testing.T) {
 	req := Request{
 		Packages: []string{
 			"invalid", // invalid, should not be in pkgs list but it should be in update list with empty updates
-			"bash-0:4.4.20-1.el8_4.x86_64",
 			"bash-0:5.4.20-1.el8_4.x86_64",
+			"bash-0:4.4.20-1.el8_4.x86_64",
 		},
 		EpochRequired: true,
 	}
 	pkgs, updates, err = processInputPackages(&c, &req)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(pkgs))
-	_, ok := pkgs["bash-0:4.4.20-1.el8_4.x86_64"]
-	assert.True(t, ok)
-	_, ok = pkgs["bash-0:5.4.20-1.el8_4.x86_64"]
-	assert.True(t, ok)
+	// should be sorted in the result list
+	assert.Equal(t, pkgs[0].Pkg, "bash-0:4.4.20-1.el8_4.x86_64")
+	assert.Equal(t, pkgs[1].Pkg, "bash-0:5.4.20-1.el8_4.x86_64")
 
 	assert.Equal(t, 3, len(updates))
-	_, ok = updates["invalid"]
+	_, ok := updates["invalid"]
 	assert.True(t, ok)
 	_, ok = updates["bash-0:4.4.20-1.el8_4.x86_64"]
 	assert.True(t, ok)
@@ -493,8 +492,7 @@ func TestProcessInputPackages(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(pkgs))
 	assert.Equal(t, 1, len(updates))
-	_, ok = pkgs["bash-0:5.4.20-1.el8_4.x86_64"]
-	assert.True(t, ok)
+	assert.Equal(t, pkgs[0].Pkg, "bash-0:5.4.20-1.el8_4.x86_64")
 	_, ok = updates["bash-0:5.4.20-1.el8_4.x86_64"]
 	assert.True(t, ok)
 
