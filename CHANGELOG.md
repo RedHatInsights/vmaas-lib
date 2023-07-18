@@ -2,6 +2,15 @@
 
 <!--next-version-placeholder-->
 
+## v1.0.4 (2023-07-18)
+
+### Fix
+
+* **semantic-release:** Use older python-semantic-release ([`5ebef9e`](https://github.com/RedHatInsights/vmaas-lib/commit/5ebef9e1f8c73924f78eb6b865311e8bd40d90d0))
+* Make sure definition list is in fixed order ([`eff45d5`](https://github.com/RedHatInsights/vmaas-lib/commit/eff45d58891b743f6cb99b349fe70167e38bda94))
+* Make sure CPE list is in fixed order ([`a57484d`](https://github.com/RedHatInsights/vmaas-lib/commit/a57484d26bf4cd382ed76f1e40c2534cc2460846))
+* Make sure input package list is in fixed order ([`6a3b4ad`](https://github.com/RedHatInsights/vmaas-lib/commit/6a3b4adbfaa3ba3782459786c426411d031f1c9f))
+
 ## v1.0.3 (2023-07-04)
 
 ### Fix
