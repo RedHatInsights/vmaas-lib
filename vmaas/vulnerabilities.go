@@ -32,8 +32,8 @@ type VulnerabilitiesCvesDetails struct {
 }
 
 type ProcessedDefinitions struct {
-	Patch         map[DefinitionID]ProcessedDefinition
-	Vulnerability map[DefinitionID]ProcessedDefinition
+	Patch         []*ProcessedDefinition
+	Vulnerability []*ProcessedDefinition
 }
 
 type ProcessedDefinition struct {
@@ -103,8 +103,8 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 	}
 
 	// 1. evaluate Unpatched CVEs
-	for defID, definition := range definitions.Vulnerability {
-		cvesOval := c.OvaldefinitionID2Cves[defID]
+	for _, definition := range definitions.Vulnerability {
+		cvesOval := c.OvaldefinitionID2Cves[definition.DefinitionID]
 		definition.evaluate(c, modules, cvesOval, &cves, cves.UnpatchedCves)
 	}
 
@@ -129,8 +129,8 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 
 	// 3. evaluate Manually Fixable CVEs
 	// if CVE is already in Unpatched or CVE list -> skip it
-	for defID, definition := range definitions.Patch {
-		cvesOval := c.OvaldefinitionID2Cves[defID]
+	for _, definition := range definitions.Patch {
+		cvesOval := c.OvaldefinitionID2Cves[definition.DefinitionID]
 		// Skip if all CVEs from definition were already found somewhere
 		allCvesFound := true
 		for _, cve := range cvesOval {
@@ -173,15 +173,18 @@ func (d *ProcessedDefinition) evaluate(
 	}
 }
 
+//nolint:funlen
 func (r *ProcessedRequest) processDefinitions(c *Cache, opts *options) (*ProcessedDefinitions, error) {
 	// Get CPEs for affected repos/content sets
 	// TODO: currently OVAL doesn't evaluate when there is not correct input repo list mapped to CPEs
 	//       there needs to be better fallback at least to guess correctly RHEL version,
 	//       use old VMaaS repo guessing?
 	candidateDefinitions := repos2definitions(c, r.OriginalRequest)
+	patchDefinitions := make(map[DefinitionID]*ProcessedDefinition)
+	vulnerabilityDefinitions := make(map[DefinitionID]*ProcessedDefinition)
 	definitions := ProcessedDefinitions{
-		make(map[DefinitionID]ProcessedDefinition),
-		make(map[DefinitionID]ProcessedDefinition),
+		make([]*ProcessedDefinition, 0),
+		make([]*ProcessedDefinition, 0),
 	}
 
 	for _, parsedNevra := range r.Packages {
@@ -192,37 +195,41 @@ func (r *ProcessedRequest) processDefinitions(c *Cache, opts *options) (*Process
 				definition := c.OvaldefinitionDetail[defID]
 				switch definition.DefinitionTypeID {
 				case OvalDefinitionTypePatch:
-					if _, ok := definitions.Patch[defID]; !ok {
-						definitions.Patch[defID] = ProcessedDefinition{}
+					processedDefinition, ok := patchDefinitions[defID]
+					if !ok {
+						processedDefinition = &ProcessedDefinition{
+							DefinitionID: definition.ID,
+							CriteriaID:   definition.CriteriaID,
+							// store CPE only for Vulnerability type, field omitted intentionally
+						}
+						patchDefinitions[defID] = processedDefinition
+						definitions.Patch = append(definitions.Patch, processedDefinition)
 					}
-					definitions.Patch[defID] = ProcessedDefinition{
-						DefinitionID: definition.ID,
-						CriteriaID:   definition.CriteriaID,
-						// store CPE only for Vulnerability type, field omitted intentionally
-						Packages: append(definitions.Patch[defID].Packages, Package{
-							Nevra:  parsedNevra.Nevra,
-							NameID: pkgNameID,
-							String: parsedNevra.Pkg,
-						}),
-					}
+					processedDefinition.Packages = append(processedDefinition.Packages, Package{
+						Nevra:  parsedNevra.Nevra,
+						NameID: pkgNameID,
+						String: parsedNevra.Pkg,
+					})
 				case OvalDefinitionTypeVulnerability:
 					// Skip if unfixed CVE feature flag is disabled
 					if !opts.evalUnfixed {
 						continue
 					}
-					if _, ok := definitions.Vulnerability[defID]; !ok {
-						definitions.Vulnerability[defID] = ProcessedDefinition{}
+					processedDefinition, ok := vulnerabilityDefinitions[defID]
+					if !ok {
+						processedDefinition = &ProcessedDefinition{
+							DefinitionID: definition.ID,
+							CriteriaID:   definition.CriteriaID,
+							Cpe:          c.CpeID2Label[cpe],
+						}
+						vulnerabilityDefinitions[defID] = processedDefinition
+						definitions.Vulnerability = append(definitions.Vulnerability, processedDefinition)
 					}
-					definitions.Vulnerability[defID] = ProcessedDefinition{
-						DefinitionID: definition.ID,
-						CriteriaID:   definition.CriteriaID,
-						Cpe:          c.CpeID2Label[cpe],
-						Packages: append(definitions.Vulnerability[defID].Packages, Package{
-							Nevra:  parsedNevra.Nevra,
-							NameID: pkgNameID,
-							String: parsedNevra.Pkg,
-						}),
-					}
+					processedDefinition.Packages = append(processedDefinition.Packages, Package{
+						Nevra:  parsedNevra.Nevra,
+						NameID: pkgNameID,
+						String: parsedNevra.Pkg,
+					})
 				default:
 					return nil, fmt.Errorf("unsupported definition type: %d", definition.DefinitionTypeID)
 				}

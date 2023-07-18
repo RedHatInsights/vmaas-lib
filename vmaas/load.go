@@ -795,7 +795,7 @@ func loadPackagenameID2DefinitionIDs(c *Cache) {
 	cnt := getCount("packagename_oval_definition", "distinct name_id")
 	ret := make(map[NameID][]DefinitionID, cnt)
 	cols := "name_id,definition_id"
-	rows := getAllRows("packagename_oval_definition", cols)
+	rows := getAllRowsWithOrder("packagename_oval_definition", cols, cols)
 
 	for rows.Next() {
 		if err := rows.Scan(&r.NameID, &r.DefinitionID); err != nil {
