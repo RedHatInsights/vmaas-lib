@@ -160,6 +160,11 @@ func processPackagesUpdates(c *Cache, opts *options, nevra utils.Nevra, repoIDs 
 	for u := range updates {
 		updateDetail.AvailableUpdates = append(updateDetail.AvailableUpdates, u)
 	}
+	sort.Slice(updateDetail.AvailableUpdates, func(i, j int) bool {
+		updateI := updateDetail.AvailableUpdates[i]
+		updateJ := updateDetail.AvailableUpdates[j]
+		return updateI.nevra.EVRACmp(&updateJ.nevra) < 0
+	})
 	return updateDetail
 }
 
@@ -248,6 +253,7 @@ func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErratumID, modules map[in
 			Repository:  details.Label,
 			Basearch:    details.Basearch,
 			Releasever:  details.Releasever,
+			nevra:       nevra,
 		}
 	}
 }
