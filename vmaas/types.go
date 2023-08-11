@@ -48,6 +48,8 @@ type Update struct {
 	Repository  string `json:"repository"`
 	Basearch    string `json:"basearch"`
 	Releasever  string `json:"releasever"`
+	// helper for sorting
+	nevra utils.Nevra `json:"-"`
 }
 
 type UpdateDetail struct {
