@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.0.5 (2023-08-14)
+
+### Fix
+
+* **updates:** Sort availableUpdates ([`af06bec`](https://github.com/RedHatInsights/vmaas-lib/commit/af06becbee8387b31e105df1357b4b90198105fa))
+
 ## v1.0.4 (2023-07-18)
 
 ### Fix
