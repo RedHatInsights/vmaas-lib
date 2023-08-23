@@ -49,6 +49,11 @@ type Package struct {
 	NameID NameID
 }
 
+type packageErratum struct {
+	pkg     string
+	erratum string
+}
+
 func (r *Request) vulnerabilities(c *Cache, opts *options) (*Vulnerabilities, error) {
 	cves, err := evaluate(c, opts, r)
 	if err != nil {
@@ -111,13 +116,14 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 	// 2. evaluate CVEs from Repositories
 	// if CVE is already in Unpatched list -> skip it
 	updates := processed.evaluateRepositories(c, opts)
-	seenErrata := map[string]bool{}
+	seenPkgErratum := map[packageErratum]bool{}
 	for pkg, upDetail := range updates.UpdateList {
 		for _, update := range upDetail.AvailableUpdates {
-			if seenErrata[update.Erratum] {
+			pe := packageErratum{pkg, update.Erratum}
+			if seenPkgErratum[pe] {
 				continue
 			}
-			seenErrata[update.Erratum] = true
+			seenPkgErratum[pe] = true
 			for _, cve := range c.ErratumDetails[update.Erratum].CVEs {
 				if _, inUnpatchedCves := cves.UnpatchedCves[cve]; inUnpatchedCves {
 					continue
@@ -431,8 +437,11 @@ func updateCves(cves map[string]VulnerabilityDetail, cve string, pkg Package, er
 	if _, has := cves[cve]; !has {
 		cveDetail := VulnerabilityDetail{
 			CVE:      cve,
-			Packages: []string{pkg.String},
-			Errata:   errata,
+			Packages: map[string]bool{pkg.String: true},
+			Errata:   map[string]bool{},
+		}
+		for _, erratum := range errata {
+			cveDetail.Errata[erratum] = true
 		}
 		if len(cpe) > 0 {
 			cveDetail.Affected = []AffectedPackage{{
@@ -446,8 +455,10 @@ func updateCves(cves map[string]VulnerabilityDetail, cve string, pkg Package, er
 	}
 	// update list of packages and errata
 	vulnDetail := cves[cve]
-	vulnDetail.Packages = append(vulnDetail.Packages, pkg.String)
-	vulnDetail.Errata = append(vulnDetail.Errata, errata...)
+	vulnDetail.Packages[pkg.String] = true
+	for _, erratum := range errata {
+		vulnDetail.Errata[erratum] = true
+	}
 	if len(cpe) > 0 {
 		vulnDetail.Affected = append(vulnDetail.Affected, AffectedPackage{
 			Name: pkg.Name,
@@ -455,4 +466,5 @@ func updateCves(cves map[string]VulnerabilityDetail, cve string, pkg Package, er
 			Cpe:  cpe,
 		})
 	}
+	cves[cve] = vulnDetail
 }

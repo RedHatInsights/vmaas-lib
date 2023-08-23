@@ -22,8 +22,8 @@ func hasDuplicities(in ...interface{}) bool {
 
 func TestCveMapKeysValues(t *testing.T) {
 	cve := "CVE-1234-5678"
-	packages := []string{"bash", "kernel"}
-	errata := []string{"RHBA-1234-5678"}
+	packages := map[string]bool{"bash": true, "kernel": true}
+	errata := map[string]bool{"RHBA-1234-5678": true}
 	cves := map[string]VulnerabilityDetail{
 		cve: {
 			CVE:      cve,
