@@ -1,6 +1,8 @@
 package vmaas
 
 import (
+	"encoding/json"
+	"sort"
 	"time"
 
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
@@ -71,10 +73,35 @@ type Updates struct {
 type Vulnerability string
 
 type VulnerabilityDetail struct {
-	CVE      string            `json:"cve"`
-	Packages []string          `json:"affected_packages"`
-	Errata   []string          `json:"errata"`
+	CVE      string `json:"cve"`
+	Packages map[string]bool
+	Errata   map[string]bool
 	Affected []AffectedPackage `json:"affected,omitempty"`
+}
+
+// marshal VulnerabilityDetail Packages and Errata as json arrays for backward compatibility
+func (d VulnerabilityDetail) MarshalJSON() ([]byte, error) {
+	var out struct {
+		CVE      string            `json:"cve"`
+		Packages []string          `json:"affected_packages"`
+		Errata   []string          `json:"errata"`
+		Affected []AffectedPackage `json:"affected,omitempty"`
+	}
+	out.CVE = d.CVE
+	out.Packages = make([]string, 0, len(d.Packages))
+	out.Errata = make([]string, 0, len(d.Errata))
+	out.Affected = d.Affected
+	for p := range d.Packages {
+		out.Packages = append(out.Packages, p)
+	}
+	sort.Strings(out.Packages)
+
+	for e := range d.Errata {
+		out.Errata = append(out.Errata, e)
+	}
+	sort.Strings(out.Errata)
+
+	return json.Marshal(out)
 }
 
 type AffectedPackage struct {

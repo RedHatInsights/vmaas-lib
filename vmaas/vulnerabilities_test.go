@@ -43,9 +43,9 @@ func TestVulnerabilitiesExtendedManuallyFixableCVEs(t *testing.T) {
 	cve := res.ManuallyFixableCVEs[0]
 	assert.Equal(t, "CVE-2019-5108", cve.CVE)
 	assert.Equal(t, 1, len(cve.Packages))
-	assert.Equal(t, "bpftool-4.18.0-80.el8.x86_64.rpm", cve.Packages[0])
+	assert.True(t, cve.Packages["bpftool-4.18.0-80.el8.x86_64.rpm"])
 	assert.Equal(t, 1, len(cve.Errata))
-	assert.Equal(t, "RHSA-2020:1769", cve.Errata[0])
+	assert.True(t, cve.Errata["RHSA-2020:1769"])
 }
 
 func TestUpdateCvesNilErratum(t *testing.T) {
