@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.0.6 (2023-08-24)
+
+### Fix
+
+* Display all affected_packages and errata for cves evaluated by repositories ([`91f9e53`](https://github.com/RedHatInsights/vmaas-lib/commit/91f9e530aec7d10928629dcf1f237301e4137838))
+
 ## v1.0.5 (2023-08-14)
 
 ### Fix
