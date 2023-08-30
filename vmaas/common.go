@@ -114,6 +114,7 @@ func processUpdates(c *Cache, opts *options, updateList UpdateList, packages []N
 	return updateList
 }
 
+//nolint:funlen
 func processPackagesUpdates(c *Cache, opts *options, nevra utils.Nevra, repoIDs map[RepoID]bool,
 	moduleIDs map[int]bool, r *Request,
 ) UpdateDetail {
@@ -163,7 +164,20 @@ func processPackagesUpdates(c *Cache, opts *options, nevra utils.Nevra, repoIDs 
 	sort.Slice(updateDetail.AvailableUpdates, func(i, j int) bool {
 		updateI := updateDetail.AvailableUpdates[i]
 		updateJ := updateDetail.AvailableUpdates[j]
-		return updateI.nevra.EVRACmp(&updateJ.nevra) < 0
+		cmp := updateI.nevra.EVRACmp(&updateJ.nevra)
+		if cmp == 0 {
+			cmp = strings.Compare(updateI.Erratum, updateJ.Erratum)
+		}
+		if cmp == 0 {
+			cmp = strings.Compare(updateI.Repository, updateJ.Repository)
+		}
+		if cmp == 0 {
+			cmp = strings.Compare(updateI.Basearch, updateJ.Basearch)
+		}
+		if cmp == 0 {
+			cmp = strings.Compare(updateI.Releasever, updateJ.Releasever)
+		}
+		return cmp < 0
 	})
 	return updateDetail
 }
