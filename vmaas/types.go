@@ -157,6 +157,7 @@ type RepoDetail struct {
 	Product    string
 	ProductID  int
 	Revision   *string
+	LastChange *string
 	ThirdParty bool
 }
 
