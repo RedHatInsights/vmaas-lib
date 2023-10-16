@@ -363,7 +363,7 @@ func loadRepoDetails(c *Cache) { //nolint: funlen
 
 	rows := getAllRows(
 		"repo_detail",
-		"id,label,name,url,COALESCE(basearch,''),COALESCE(releasever,''),product,product_id,revision,third_party",
+		"id,label,name,url,COALESCE(basearch,''),COALESCE(releasever,''),product,product_id,revision,last_change,third_party",
 	)
 	cntRepo := getCount("repo_detail", "*")
 	cntLabel := getCount("repo_detail", "distinct label")
@@ -378,7 +378,7 @@ func loadRepoDetails(c *Cache) { //nolint: funlen
 	for rows.Next() {
 		var det RepoDetail
 		err := rows.Scan(&repoID, &det.Label, &det.Name, &det.URL, &det.Basearch, &det.Releasever,
-			&det.Product, &det.ProductID, &det.Revision, &det.ThirdParty)
+			&det.Product, &det.ProductID, &det.Revision, &det.LastChange, &det.ThirdParty)
 		if err != nil {
 			panic(err)
 		}
