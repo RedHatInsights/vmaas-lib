@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.1.0 (2023-10-17)
+
+### Feature
+
+* Load last_change column from cache ([`ed9ec90`](https://github.com/RedHatInsights/vmaas-lib/commit/ed9ec9004e4248db4b210fc8ae91159a366c71a1))
+
 ## v1.0.7 (2023-08-31)
 
 ### Fix
