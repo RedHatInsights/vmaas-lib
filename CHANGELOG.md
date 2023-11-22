@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.1.1 (2023-11-22)
+
+### Fix
+
+* Update go to 1.20 and update dependencies ([`7b4efce`](https://github.com/RedHatInsights/vmaas-lib/commit/7b4efcef9d7f87d7e6f0826e8bbd20f3c65b467d))
+
 ## v1.1.0 (2023-10-17)
 
 ### Feature
