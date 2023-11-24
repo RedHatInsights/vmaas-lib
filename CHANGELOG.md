@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.1.2 (2023-11-24)
+
+### Fix
+
+* Don't evaluate module tests for unfixed CVE definitions, we're not looking for package updates anyway ([`a01b3c1`](https://github.com/RedHatInsights/vmaas-lib/commit/a01b3c1fd7c58728eedeab10f178065324226436))
+
 ## v1.1.1 (2023-11-22)
 
 ### Fix
