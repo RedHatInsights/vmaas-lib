@@ -6,6 +6,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
 )
@@ -245,15 +246,10 @@ func (r *ProcessedRequest) processDefinitions(c *Cache, opts *options) (*Process
 	return &definitions, nil
 }
 
-//nolint:gocognit,nolintlint,funlen
-func repos2definitions(c *Cache, r *Request) map[DefinitionID]CpeID {
-	// TODO: some CPEs are not matching because they are substrings/subtrees
-	if r.Repos == nil {
-		return nil
-	}
-	sort.Strings(*r.Repos)
-
+//nolint:gocognit
+func repos2IDs(c *Cache, r *Request) ([]RepoID, []RepoID, []ContentSetID) {
 	repoIDs := make([]RepoID, 0)
+	newerReleaseverRepoIDs := make([]RepoID, 0)
 	contentSetIDs := make([]ContentSetID, 0)
 	// Try to identify repos (CS+basearch+releasever) or at least CS
 	for _, label := range *r.Repos {
@@ -262,7 +258,20 @@ func repos2definitions(c *Cache, r *Request) map[DefinitionID]CpeID {
 				if r.Basearch != nil && c.RepoDetails[repoID].Basearch != *r.Basearch {
 					continue
 				}
-				if r.Releasever != nil && c.RepoDetails[repoID].Releasever != *r.Releasever {
+				candidateReleasever := c.RepoDetails[repoID].Releasever
+				if r.Releasever != nil && candidateReleasever != *r.Releasever {
+					parsedRequestReleasever, err := version.NewVersion(*r.Releasever)
+					if err != nil {
+						continue
+					}
+					parsedCandidateReleasever, err := version.NewVersion(candidateReleasever)
+					if err != nil {
+						continue
+					}
+					// Save repositories with higher releasever
+					if parsedCandidateReleasever.GreaterThan(parsedRequestReleasever) {
+						newerReleaseverRepoIDs = append(newerReleaseverRepoIDs, repoID)
+					}
 					continue
 				}
 				repoIDs = append(repoIDs, repoID)
@@ -272,42 +281,85 @@ func repos2definitions(c *Cache, r *Request) map[DefinitionID]CpeID {
 			contentSetIDs = append(contentSetIDs, csID)
 		}
 	}
+	return repoIDs, newerReleaseverRepoIDs, contentSetIDs
+}
 
-	cpeIDsMap := make(map[CpeID]bool)
-	cpeIDs := make([]CpeID, 0)
-	if len(repoIDs) > 0 { // Check CPE-Repo mapping first
+//nolint:gocognit,nolintlint,funlen
+func repos2definitions(c *Cache, r *Request) map[DefinitionID]CpeID {
+	// TODO: some CPEs are not matching because they are substrings/subtrees
+	if r.Repos == nil {
+		return nil
+	}
+	sort.Strings(*r.Repos)
+
+	repoIDs, newerReleaseverRepoIDs, contentSetIDs := repos2IDs(c, r)
+
+	candidateDefinitions := make(map[DefinitionID]CpeID)
+	// Check CPE-Repo mapping first
+	// Existing CPE-Repo mapping means the repository is eus/aus/e4s
+	if len(repoIDs) > 0 {
+		// Check exactly matched repositories (current enabled eus/aus/e4s version)
+		// Use all definitions from these, and save vulnerabilities addressed by these definitions
+		cvesFixedCurrentReleasever := make(map[string]bool)
 		for _, repoID := range repoIDs {
 			if cpes, has := c.RepoID2CpeIDs[repoID]; has {
 				for _, cpe := range cpes {
-					if _, has := cpeIDsMap[cpe]; !has {
-						cpeIDs = append(cpeIDs, cpe)
-						cpeIDsMap[cpe] = true
+					if defs, has := c.CpeID2OvalDefinitionIDs[cpe]; has {
+						for _, def := range defs {
+							if cves, has := c.OvaldefinitionID2Cves[def]; has {
+								for _, cve := range cves {
+									cvesFixedCurrentReleasever[cve] = true
+								}
+							}
+							candidateDefinitions[def] = cpe
+						}
 					}
 				}
 			}
 		}
-	}
-	if len(cpeIDs) == 0 { // No CPE-Repo mapping? Use CPE-CS mapping
-		for _, csID := range contentSetIDs {
-			if cpes, has := c.ContentSetID2CpeIDs[csID]; has {
+		// Check repositories with newer releasever
+		// Consider only definitions addressing CVEs which were not backported to the current stream
+		for _, repoID := range newerReleaseverRepoIDs {
+			if cpes, has := c.RepoID2CpeIDs[repoID]; has {
 				for _, cpe := range cpes {
-					if _, has := cpeIDsMap[cpe]; !has {
-						cpeIDs = append(cpeIDs, cpe)
-						cpeIDsMap[cpe] = true
+					if defs, has := c.CpeID2OvalDefinitionIDs[cpe]; has {
+						for _, def := range defs {
+							includeDefinition := true
+							if cves, has := c.OvaldefinitionID2Cves[def]; has {
+								for _, cve := range cves {
+									// Don't add definition to evaluated definitions if the same CVE was
+									// addressed by definition for the current stream
+									if _, has := cvesFixedCurrentReleasever[cve]; has {
+										includeDefinition = false
+										break
+									}
+								}
+							}
+							if includeDefinition {
+								candidateDefinitions[def] = cpe
+							}
+						}
 					}
 				}
 			}
 		}
 	}
 
-	candidateDefinitions := make(map[DefinitionID]CpeID)
-	for _, cpe := range cpeIDs {
-		if defs, has := c.CpeID2OvalDefinitionIDs[cpe]; has {
-			for _, def := range defs {
-				candidateDefinitions[def] = cpe
+	// Not an eus/aus/e4s repo? Use only CPE-CS mapping
+	if len(candidateDefinitions) == 0 {
+		for _, csID := range contentSetIDs {
+			if cpes, has := c.ContentSetID2CpeIDs[csID]; has {
+				for _, cpe := range cpes {
+					if defs, has := c.CpeID2OvalDefinitionIDs[cpe]; has {
+						for _, def := range defs {
+							candidateDefinitions[def] = cpe
+						}
+					}
+				}
 			}
 		}
 	}
+
 	return candidateDefinitions
 }
 
