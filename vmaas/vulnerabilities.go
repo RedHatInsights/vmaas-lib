@@ -183,9 +183,6 @@ func (d *ProcessedDefinition) evaluate(
 //nolint:funlen
 func (r *ProcessedRequest) processDefinitions(c *Cache, opts *options) (*ProcessedDefinitions, error) {
 	// Get CPEs for affected repos/content sets
-	// TODO: currently OVAL doesn't evaluate when there is not correct input repo list mapped to CPEs
-	//       there needs to be better fallback at least to guess correctly RHEL version,
-	//       use old VMaaS repo guessing?
 	candidateDefinitions := repos2definitions(c, r.OriginalRequest)
 	patchDefinitions := make(map[DefinitionID]*ProcessedDefinition)
 	vulnerabilityDefinitions := make(map[DefinitionID]*ProcessedDefinition)
