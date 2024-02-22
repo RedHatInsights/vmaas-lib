@@ -311,7 +311,9 @@ func repos2definitions(c *Cache, r *Request) map[DefinitionID]CpeID {
 									cvesFixedCurrentReleasever[cve] = true
 								}
 							}
-							candidateDefinitions[def] = cpe
+							if _, has := candidateDefinitions[def]; !has {
+								candidateDefinitions[def] = cpe
+							}
 						}
 					}
 				}
@@ -336,7 +338,9 @@ func repos2definitions(c *Cache, r *Request) map[DefinitionID]CpeID {
 								}
 							}
 							if includeDefinition {
-								candidateDefinitions[def] = cpe
+								if _, has := candidateDefinitions[def]; !has {
+									candidateDefinitions[def] = cpe
+								}
 							}
 						}
 					}
@@ -352,7 +356,9 @@ func repos2definitions(c *Cache, r *Request) map[DefinitionID]CpeID {
 				for _, cpe := range cpes {
 					if defs, has := c.CpeID2OvalDefinitionIDs[cpe]; has {
 						for _, def := range defs {
-							candidateDefinitions[def] = cpe
+							if _, has := candidateDefinitions[def]; !has {
+								candidateDefinitions[def] = cpe
+							}
 						}
 					}
 				}
