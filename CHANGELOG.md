@@ -2,6 +2,16 @@
 
 <!--next-version-placeholder-->
 
+## v1.2.0 (2024-02-22)
+
+### Feature
+
+* Consider evaluating definitions from newer eus/aus/e4s streams ([`16acc19`](https://github.com/RedHatInsights/vmaas-lib/commit/16acc1946b205ebc55fca8481c3da2bc8b3360d6))
+
+### Fix
+
+* Map definition to first matched CPE ([`8d694aa`](https://github.com/RedHatInsights/vmaas-lib/commit/8d694aa0a64104b2a4207098ce75b83551cbe0ca))
+
 ## v1.1.2 (2023-11-24)
 
 ### Fix
