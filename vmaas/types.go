@@ -2,26 +2,31 @@ package vmaas
 
 import (
 	"encoding/json"
+	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
 )
 
 type (
-	RepoID       int
-	PkgID        int
-	NameID       int
-	EvrID        int
-	ArchID       int
-	ErratumID    int
-	ContentSetID int
-	DefinitionID int
-	CpeID        int
-	CriteriaID   int
-	TestID       int
-	ModuleTestID int
-	OvalStateID  int
+	RepoID        int
+	PkgID         int
+	NameID        int
+	EvrID         int
+	ArchID        int
+	ErratumID     int
+	ContentSetID  int
+	DefinitionID  int
+	CpeID         int
+	CriteriaID    int
+	TestID        int
+	ModuleTestID  int
+	OvalStateID   int
+	CSAFProductID int
+	CSAFCVEID     int
+	CVEID         int
 )
 
 type Request struct {
@@ -263,4 +268,47 @@ type NameArch struct {
 type NevraString struct {
 	Nevra utils.Nevra
 	Pkg   string
+}
+
+type CSAFProduct struct {
+	CpeID         CpeID
+	PackageNameID NameID
+	PackageID     PkgID
+	ModuleStream  ModuleStream
+}
+
+type CSAFCVEProduct struct {
+	ID                  CSAFCVEID
+	CVEID               CVEID
+	CSAFProductID       CSAFProductID
+	CSAFProductStatusID int
+}
+
+type CSAFCVEs struct {
+	Fixed   []CVEID
+	Unfixed []CVEID
+}
+
+// Implement the Scan method for the ModuleStream type
+func (ms *ModuleStream) Scan(value interface{}) error {
+	if value == nil || value == "" {
+		return nil
+	}
+
+	// Convert the value to string
+	strValue, ok := value.(string)
+	if !ok {
+		return fmt.Errorf("unexpected type %T for ModuleStream", value)
+	}
+
+	// Split the string into module and stream parts
+	parts := strings.Split(strValue, ":")
+	if len(parts) != 2 {
+		return fmt.Errorf("invalid format for ModuleStream: %s", strValue)
+	}
+
+	ms.Module = parts[0]
+	ms.Stream = parts[1]
+
+	return nil
 }

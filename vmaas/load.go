@@ -30,6 +30,8 @@ var loadFuncs = []func(c *Cache){
 	loadContentSet2Cpes, loadCpeID2DefinitionIDs, loadOvalCriteriaDependency, loadOvalCriteriaID2Type,
 	loadOvalStateID2Arches, loadOvalModuleTestDetail, loadOvalTestDetail, loadOvalTestID2States,
 	loadOvalDefinitionErrata, loadCpeID2Label,
+	// CSAF
+	loadCSAFCVE,
 }
 
 func openDB(path string) error {
@@ -1085,4 +1087,100 @@ func loadCpeID2Label(c *Cache) {
 		ret[r.CpeID] = r.Label
 	}
 	c.CpeID2Label = ret
+}
+
+func loadCSAFProductStatus(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "CSAF product status")
+
+	cnt := getCount("csaf_product_status", "*")
+	rows := getAllRows("csaf_product_status", "id,name")
+
+	cache := make(map[int]string, cnt)
+
+	type ProductStatusRow struct {
+		ID    int
+		label string
+	}
+	psr := ProductStatusRow{}
+
+	for rows.Next() {
+		if err := rows.Scan(&psr.ID, &psr.label); err != nil {
+			panic(fmt.Errorf("failed to scan csaf_product_status row: %s", err.Error()))
+		}
+		cache[psr.ID] = psr.label
+	}
+
+	c.CSAFProductStatus = cache
+}
+
+func loadCSAFCVEProducts() map[CSAFProductID][]CSAFCVEProduct {
+	cnt := getCount("csaf_cve_product", "*")
+	rows := getAllRows("csaf_cve_product", "id,cve_id,csaf_product_id,csaf_product_status_id")
+
+	csafCVEProducts := make(map[CSAFProductID][]CSAFCVEProduct, cnt)
+	ccp := CSAFCVEProduct{}
+
+	for rows.Next() {
+		if err := rows.Scan(&ccp.ID, &ccp.CVEID, &ccp.CSAFProductID, &ccp.CSAFProductStatusID); err != nil {
+			panic(fmt.Errorf("failed to scan csaf_cve_product row: %s", err.Error()))
+		}
+		csafCVEProducts[ccp.CSAFProductID] = append(csafCVEProducts[ccp.CSAFProductID], ccp)
+	}
+
+	return csafCVEProducts
+}
+
+func loadCSAFCVE(c *Cache) {
+	loadCSAFProductStatus(c) // Load statuses before other CSAF load functions
+
+	defer utils.TimeTrack(time.Now(), "CSAF CVEs")
+
+	csafCVEProducts := loadCSAFCVEProducts()
+
+	rows := getAllRows("csaf_product", "id,cpe_id,package_name_id,package_id,module_stream")
+	cnt := getCount("csaf_product", "*")
+
+	cveCache := make(map[CSAFProduct]CSAFCVEs, cnt)
+
+	type CSAFProductRow struct {
+		ID      int
+		Product CSAFProduct
+	}
+
+	cpr := CSAFProductRow{}
+	for rows.Next() {
+		if err := rows.Scan(&cpr.ID,
+			&cpr.Product.CpeID,
+			&cpr.Product.PackageNameID,
+			&cpr.Product.PackageID,
+			&cpr.Product.ModuleStream); err != nil {
+			panic(fmt.Errorf("failed to scan csaf_product row: %s", err.Error()))
+		}
+
+		cveProducts := csafCVEProducts[CSAFProductID(cpr.ID)]
+		cves := CSAFCVEs{
+			Fixed:   make([]CVEID, 0),
+			Unfixed: make([]CVEID, 0),
+		}
+
+		for _, cveProduct := range cveProducts {
+			switch c.CSAFProductStatus[cveProduct.CSAFProductStatusID] {
+			case "fixed":
+				cves.Fixed = append(cves.Fixed, cveProduct.CVEID)
+			case "known_affected":
+				cves.Unfixed = append(cves.Unfixed, cveProduct.CVEID)
+			default:
+				panic(fmt.Sprintf("unknown product status: %s", c.CSAFProductStatus[cveProduct.CSAFProductStatusID]))
+			}
+		}
+
+		cveCache[CSAFProduct{
+			CpeID:         cpr.Product.CpeID,
+			PackageNameID: cpr.Product.PackageNameID,
+			PackageID:     cpr.Product.PackageID,
+			ModuleStream:  cpr.Product.ModuleStream,
+		}] = cves
+	}
+
+	c.CSAFCVEs = cveCache
 }
