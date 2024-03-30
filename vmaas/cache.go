@@ -70,6 +70,10 @@ type Cache struct {
 	OvalTestID2States               map[TestID][]OvalState
 	OvalDefinitionID2ErrataIDs      map[DefinitionID][]ErratumID
 	CpeID2Label                     map[CpeID]string
+
+	// CSAF
+	CSAFProductStatus map[int]string
+	CSAFCVEs          map[CSAFProduct]CSAFCVEs
 }
 
 func ShouldReload(c *Cache, latestDumpEndpoint string) bool {
