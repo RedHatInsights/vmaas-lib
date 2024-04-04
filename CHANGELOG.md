@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.3.0 (2024-04-04)
+
+### Feature
+
+* Add Csaf load and cache ([`efc388e`](https://github.com/RedHatInsights/vmaas-lib/commit/efc388ee2e830dab7d6bae39a17a3b942ff9c8f9))
+
 ## v1.2.0 (2024-02-22)
 
 ### Feature
