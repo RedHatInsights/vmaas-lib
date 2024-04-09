@@ -45,6 +45,7 @@ type Request struct {
 
 	Extended      bool `json:"extended"`
 	EpochRequired bool `json:"epoch_required"`
+	UseCsaf       bool `json:"use_csaf"`
 }
 
 type Update struct {

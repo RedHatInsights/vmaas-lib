@@ -45,6 +45,11 @@ type ProcessedDefinition struct {
 	Cpe              string
 }
 
+type ProductsPackage struct {
+	Products []CSAFProduct
+	Package  Package
+}
+
 type Package struct {
 	utils.Nevra
 	String string
@@ -84,7 +89,7 @@ func (r *Request) vulnerabilitiesExtended(c *Cache, opts *options) (*Vulnerabili
 	return &vuln, nil
 }
 
-//nolint:funlen
+//nolint:funlen,gocognit
 func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDetails, error) {
 	cves := VulnerabilitiesCvesDetails{
 		Cves:          make(map[string]VulnerabilityDetail),
@@ -99,10 +104,13 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 	}
 	cves.LastChange = &processed.Updates.LastChange
 
+	// get CPEs and ContentSets from repos
+	processed.processRepos(c)
 	definitions, err := processed.processDefinitions(c, opts)
 	if err != nil {
 		return &cves, errors.Wrap(err, "couldn't evaluate OVAL")
 	}
+	products := processed.processProducts(c)
 
 	modules := make(map[string]string)
 	for _, m := range processed.Updates.ModuleList {
@@ -110,9 +118,21 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 	}
 
 	// 1. evaluate Unpatched CVEs
-	for _, definition := range definitions.Vulnerability {
-		cvesOval := c.OvaldefinitionID2Cves[definition.DefinitionID]
-		definition.evaluate(c, modules, cvesOval, &cves, cves.UnpatchedCves)
+	if definitions != nil {
+		for _, definition := range definitions.Vulnerability {
+			cvesOval := c.OvaldefinitionID2Cves[definition.DefinitionID]
+			definition.evaluate(c, modules, cvesOval, &cves, cves.UnpatchedCves)
+		}
+	}
+	for _, pp := range products {
+		for _, product := range pp.Products {
+			csafCves := c.CSAFCVEs[product]
+			for _, cveID := range csafCves.Unfixed {
+				cve := c.CveNames[int(cveID)]
+				cpe := c.CpeID2Label[product.CpeID]
+				updateCves(cves.UnpatchedCves, cve, pp.Package, nil, cpe)
+			}
+		}
 	}
 
 	// 2. evaluate CVEs from Repositories
@@ -137,22 +157,24 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 
 	// 3. evaluate Manually Fixable CVEs
 	// if CVE is already in Unpatched or CVE list -> skip it
-	for _, definition := range definitions.Patch {
-		cvesOval := c.OvaldefinitionID2Cves[definition.DefinitionID]
-		// Skip if all CVEs from definition were already found somewhere
-		allCvesFound := true
-		for _, cve := range cvesOval {
-			_, inCves := cves.Cves[cve]
-			_, inManualCves := cves.ManualCves[cve]
-			_, inUnpatchedCves := cves.UnpatchedCves[cve]
-			if !(inCves || inManualCves || inUnpatchedCves) {
-				allCvesFound = false
+	if definitions != nil {
+		for _, definition := range definitions.Patch {
+			cvesOval := c.OvaldefinitionID2Cves[definition.DefinitionID]
+			// Skip if all CVEs from definition were already found somewhere
+			allCvesFound := true
+			for _, cve := range cvesOval {
+				_, inCves := cves.Cves[cve]
+				_, inManualCves := cves.ManualCves[cve]
+				_, inUnpatchedCves := cves.UnpatchedCves[cve]
+				if !(inCves || inManualCves || inUnpatchedCves) {
+					allCvesFound = false
+				}
 			}
+			if allCvesFound {
+				continue
+			}
+			definition.evaluate(c, modules, cvesOval, &cves, cves.ManualCves)
 		}
-		if allCvesFound {
-			continue
-		}
-		definition.evaluate(c, modules, cvesOval, &cves, cves.ManualCves)
 	}
 
 	return &cves, nil
@@ -181,10 +203,42 @@ func (d *ProcessedDefinition) evaluate(
 	}
 }
 
+// process repos into CPEs and ContentSets needed for vulnerability evaluation
+func (r *ProcessedRequest) processRepos(c *Cache) {
+	repoIDs, newerReleaseverRepoIDs, contentSetIDs := repos2IDs(c, r.OriginalRequest)
+	cpes := repos2cpes(c, repoIDs)
+	newerReleaseverCpes := repos2cpes(c, newerReleaseverRepoIDs)
+	r.Cpes = cpes
+	r.NewerReleaseverCpes = newerReleaseverCpes
+	r.ContentSets = contentSetIDs
+}
+
+func (r *ProcessedRequest) processProducts(c *Cache) []ProductsPackage {
+	productsPackages := make([]ProductsPackage, 0)
+	if r.OriginalRequest.UseCsaf {
+		for _, pkg := range r.Packages {
+			nameID := c.Packagename2ID[pkg.Nevra.Name]
+			products := cpes2products(c, r.Cpes, nameID, r.Updates.ModuleList, pkg)
+
+			if len(products.Products) == 0 {
+				for _, csID := range r.ContentSets {
+					if cpes, has := c.ContentSetID2CpeIDs[csID]; has {
+						products = cpes2products(c, cpes, nameID, r.Updates.ModuleList, pkg)
+					}
+				}
+			}
+			productsPackages = append(productsPackages, products)
+		}
+	}
+	return productsPackages
+}
+
 //nolint:funlen
 func (r *ProcessedRequest) processDefinitions(c *Cache, opts *options) (*ProcessedDefinitions, error) {
-	// Get CPEs for affected repos/content sets
-	candidateDefinitions := repos2definitions(c, r.OriginalRequest)
+	if r.OriginalRequest.UseCsaf {
+		return nil, nil
+	}
+	candidateDefinitions := repos2definitions(c, r)
 	patchDefinitions := make(map[DefinitionID]*ProcessedDefinition)
 	vulnerabilityDefinitions := make(map[DefinitionID]*ProcessedDefinition)
 	definitions := ProcessedDefinitions{
@@ -248,6 +302,11 @@ func (r *ProcessedRequest) processDefinitions(c *Cache, opts *options) (*Process
 
 //nolint:gocognit
 func repos2IDs(c *Cache, r *Request) ([]RepoID, []RepoID, []ContentSetID) {
+	if r.Repos == nil {
+		return nil, nil, nil
+	}
+	sort.Strings(*r.Repos)
+
 	repoIDs := make([]RepoID, 0)
 	newerReleaseverRepoIDs := make([]RepoID, 0)
 	contentSetIDs := make([]ContentSetID, 0)
@@ -284,65 +343,80 @@ func repos2IDs(c *Cache, r *Request) ([]RepoID, []RepoID, []ContentSetID) {
 	return repoIDs, newerReleaseverRepoIDs, contentSetIDs
 }
 
-//nolint:gocognit,nolintlint,funlen
-func repos2definitions(c *Cache, r *Request) map[DefinitionID]CpeID {
+func repos2cpes(c *Cache, repoIDs []RepoID) []CpeID {
 	// TODO: some CPEs are not matching because they are substrings/subtrees
-	if r.Repos == nil {
-		return nil
+	res := make([]CpeID, 0)
+	for _, repoID := range repoIDs {
+		if cpes, has := c.RepoID2CpeIDs[repoID]; has {
+			res = append(res, cpes...)
+		}
 	}
-	sort.Strings(*r.Repos)
+	return res
+}
 
-	repoIDs, newerReleaseverRepoIDs, contentSetIDs := repos2IDs(c, r)
+func cpes2products(c *Cache, cpes []CpeID, nameID NameID, modules []ModuleStream, pkg NevraString) ProductsPackage {
+	products := make([]CSAFProduct, 0, len(cpes)*(len(modules)+1))
+	for _, cpe := range cpes {
+		// create unfixed products for every CPE, unfixed product has PackageID=0
+		product := CSAFProduct{CpeID: cpe, PackageNameID: nameID, ModuleStream: ModuleStream{}}
+		if _, ok := c.CSAFCVEs[product]; ok {
+			products = append(products, product)
+		}
+		for _, ms := range modules {
+			product = CSAFProduct{CpeID: cpe, PackageNameID: nameID, ModuleStream: ms}
+			if _, ok := c.CSAFCVEs[product]; ok {
+				products = append(products, product)
+			}
+		}
+	}
+	pp := ProductsPackage{}
+	if len(products) > 0 {
+		pp = ProductsPackage{Products: products, Package: Package{Nevra: pkg.Nevra, NameID: nameID, String: pkg.Pkg}}
+	}
+	return pp
+}
 
+//nolint:gocognit,nolintlint,funlen
+func repos2definitions(c *Cache, r *ProcessedRequest) map[DefinitionID]CpeID {
 	candidateDefinitions := make(map[DefinitionID]CpeID)
 	// Check CPE-Repo mapping first
 	// Existing CPE-Repo mapping means the repository is eus/aus/e4s
-	if len(repoIDs) > 0 {
-		// Check exactly matched repositories (current enabled eus/aus/e4s version)
-		// Use all definitions from these, and save vulnerabilities addressed by these definitions
-		cvesFixedCurrentReleasever := make(map[string]bool)
-		for _, repoID := range repoIDs {
-			if cpes, has := c.RepoID2CpeIDs[repoID]; has {
-				for _, cpe := range cpes {
-					if defs, has := c.CpeID2OvalDefinitionIDs[cpe]; has {
-						for _, def := range defs {
-							if cves, has := c.OvaldefinitionID2Cves[def]; has {
-								for _, cve := range cves {
-									cvesFixedCurrentReleasever[cve] = true
-								}
-							}
-							if _, has := candidateDefinitions[def]; !has {
-								candidateDefinitions[def] = cpe
-							}
-						}
+	// Check exactly matched repositories (current enabled eus/aus/e4s version)
+	// Use all definitions from these, and save vulnerabilities addressed by these definitions
+	cvesFixedCurrentReleasever := make(map[string]bool)
+	for _, cpe := range r.Cpes {
+		if defs, has := c.CpeID2OvalDefinitionIDs[cpe]; has {
+			for _, def := range defs {
+				if cves, has := c.OvaldefinitionID2Cves[def]; has {
+					for _, cve := range cves {
+						cvesFixedCurrentReleasever[cve] = true
 					}
+				}
+				if _, has := candidateDefinitions[def]; !has {
+					candidateDefinitions[def] = cpe
 				}
 			}
 		}
-		// Check repositories with newer releasever
-		// Consider only definitions addressing CVEs which were not backported to the current stream
-		for _, repoID := range newerReleaseverRepoIDs {
-			if cpes, has := c.RepoID2CpeIDs[repoID]; has {
-				for _, cpe := range cpes {
-					if defs, has := c.CpeID2OvalDefinitionIDs[cpe]; has {
-						for _, def := range defs {
-							includeDefinition := true
-							if cves, has := c.OvaldefinitionID2Cves[def]; has {
-								for _, cve := range cves {
-									// Don't add definition to evaluated definitions if the same CVE was
-									// addressed by definition for the current stream
-									if _, has := cvesFixedCurrentReleasever[cve]; has {
-										includeDefinition = false
-										break
-									}
-								}
-							}
-							if includeDefinition {
-								if _, has := candidateDefinitions[def]; !has {
-									candidateDefinitions[def] = cpe
-								}
-							}
+	}
+	// Check repositories with newer releasever
+	// Consider only definitions addressing CVEs which were not backported to the current stream
+	for _, cpe := range r.NewerReleaseverCpes {
+		if defs, has := c.CpeID2OvalDefinitionIDs[cpe]; has {
+			for _, def := range defs {
+				includeDefinition := true
+				if cves, has := c.OvaldefinitionID2Cves[def]; has {
+					for _, cve := range cves {
+						// Don't add definition to evaluated definitions if the same CVE was
+						// addressed by definition for the current stream
+						if _, has := cvesFixedCurrentReleasever[cve]; has {
+							includeDefinition = false
+							break
 						}
+					}
+				}
+				if includeDefinition {
+					if _, has := candidateDefinitions[def]; !has {
+						candidateDefinitions[def] = cpe
 					}
 				}
 			}
@@ -351,7 +425,7 @@ func repos2definitions(c *Cache, r *Request) map[DefinitionID]CpeID {
 
 	// Not an eus/aus/e4s repo? Use only CPE-CS mapping
 	if len(candidateDefinitions) == 0 {
-		for _, csID := range contentSetIDs {
+		for _, csID := range r.ContentSets {
 			if cpes, has := c.ContentSetID2CpeIDs[csID]; has {
 				for _, cpe := range cpes {
 					if defs, has := c.CpeID2OvalDefinitionIDs[cpe]; has {
