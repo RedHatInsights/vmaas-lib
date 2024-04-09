@@ -15,9 +15,12 @@ const SecurityErrataType = "security"
 var ErrProcessingInput = errors.New("processing input")
 
 type ProcessedRequest struct {
-	Updates         *Updates
-	Packages        []NevraString
-	OriginalRequest *Request
+	Updates             *Updates
+	Packages            []NevraString
+	Cpes                []CpeID
+	NewerReleaseverCpes []CpeID
+	ContentSets         []ContentSetID
+	OriginalRequest     *Request
 }
 
 func (r *ProcessedRequest) evaluateRepositories(c *Cache, opts *options) *Updates {
