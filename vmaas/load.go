@@ -1078,13 +1078,13 @@ func loadCpeID2Label(c *Cache) {
 	r := CpeID2Label{}
 	cnt := getCount("cpe", "*")
 	rows := getAllRows("cpe", "id,label")
-	ret := make(map[CpeID]string, cnt)
+	ret := make(map[CpeID]CpeLabel, cnt)
 
 	for rows.Next() {
 		if err := rows.Scan(&r.CpeID, &r.Label); err != nil {
 			panic(err)
 		}
-		ret[r.CpeID] = r.Label
+		ret[r.CpeID] = CpeLabel(r.Label)
 	}
 	c.CpeID2Label = ret
 }

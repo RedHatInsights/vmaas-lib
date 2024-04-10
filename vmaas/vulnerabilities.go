@@ -42,7 +42,7 @@ type ProcessedDefinition struct {
 	DefinitionTypeID int
 	CriteriaID       CriteriaID
 	Packages         []Package
-	Cpe              string
+	Cpe              CpeLabel
 }
 
 type ProductsPackage struct {
@@ -216,16 +216,26 @@ func (r *ProcessedRequest) processRepos(c *Cache) {
 func (r *ProcessedRequest) processProducts(c *Cache) []ProductsPackage {
 	productsPackages := make([]ProductsPackage, 0)
 	if r.OriginalRequest.UseCsaf {
+		csCpes := make([]CpeID, 0)
+		for _, csID := range r.ContentSets {
+			if cpes, has := c.ContentSetID2CpeIDs[csID]; has {
+				for cpeID, cpeLabel := range c.CpeID2Label {
+					for _, cpe := range cpes {
+						csCpe := c.CpeID2Label[cpe]
+						if cpeMatch(cpeLabel, csCpe) {
+							csCpes = append(csCpes, cpeID)
+						}
+					}
+				}
+			}
+		}
+
 		for _, pkg := range r.Packages {
 			nameID := c.Packagename2ID[pkg.Nevra.Name]
 			products := cpes2products(c, r.Cpes, nameID, r.Updates.ModuleList, pkg)
 
 			if len(products.Products) == 0 {
-				for _, csID := range r.ContentSets {
-					if cpes, has := c.ContentSetID2CpeIDs[csID]; has {
-						products = cpes2products(c, cpes, nameID, r.Updates.ModuleList, pkg)
-					}
-				}
+				products = cpes2products(c, csCpes, nameID, r.Updates.ModuleList, pkg)
 			}
 			productsPackages = append(productsPackages, products)
 		}
@@ -343,12 +353,37 @@ func repos2IDs(c *Cache, r *Request) ([]RepoID, []RepoID, []ContentSetID) {
 	return repoIDs, newerReleaseverRepoIDs, contentSetIDs
 }
 
+func cpeMatch(l, r CpeLabel) bool {
+	lParsed, err := l.Parse()
+	if err != nil {
+		utils.LogWarn("cpe", l, "Cannot parse")
+		return false
+	}
+	rParsed, err := r.Parse()
+	if err != nil {
+		utils.LogWarn("cpe", r, "Cannot parse")
+		return false
+	}
+	return lParsed.match(rParsed)
+}
+
 func repos2cpes(c *Cache, repoIDs []RepoID) []CpeID {
-	// TODO: some CPEs are not matching because they are substrings/subtrees
 	res := make([]CpeID, 0)
+	repoCpes := make([]CpeID, 0)
 	for _, repoID := range repoIDs {
 		if cpes, has := c.RepoID2CpeIDs[repoID]; has {
-			res = append(res, cpes...)
+			repoCpes = append(repoCpes, cpes...)
+		}
+	}
+
+	if len(repoCpes) > 0 {
+		for cpeID, cpeLabel := range c.CpeID2Label {
+			for _, repoCpeID := range repoCpes {
+				repoCpe := c.CpeID2Label[repoCpeID]
+				if cpeMatch(cpeLabel, repoCpe) {
+					res = append(res, cpeID)
+				}
+			}
 		}
 	}
 	return res
@@ -569,7 +604,7 @@ func evaluateTest(c *Cache, testID TestID, pkgNameID NameID, nevra utils.Nevra) 
 	return matched
 }
 
-func updateCves(cves map[string]VulnerabilityDetail, cve string, pkg Package, errata []string, cpe string) {
+func updateCves(cves map[string]VulnerabilityDetail, cve string, pkg Package, errata []string, cpe CpeLabel) {
 	if _, has := cves[cve]; !has {
 		cveDetail := VulnerabilityDetail{
 			CVE:      cve,
