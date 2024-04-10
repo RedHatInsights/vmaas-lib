@@ -2,6 +2,7 @@ package vmaas
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -20,6 +21,7 @@ type (
 	ContentSetID  int
 	DefinitionID  int
 	CpeID         int
+	CpeLabel      string
 	CriteriaID    int
 	TestID        int
 	ModuleTestID  int
@@ -111,9 +113,9 @@ func (d VulnerabilityDetail) MarshalJSON() ([]byte, error) {
 }
 
 type AffectedPackage struct {
-	Name string `json:"package_name"`
-	EVRA string `json:"evra"`
-	Cpe  string `json:"cpe"`
+	Name string   `json:"package_name"`
+	EVRA string   `json:"evra"`
+	Cpe  CpeLabel `json:"cpe"`
 }
 
 type Vulnerabilities struct {
@@ -312,4 +314,80 @@ func (ms *ModuleStream) Scan(value interface{}) error {
 	ms.Stream = parts[1]
 
 	return nil
+}
+
+type ParsedCpe struct {
+	Part     *string
+	Vendor   *string
+	Product  *string
+	Version  *string
+	Update   *string
+	Edition  *string
+	Language *string
+}
+
+func (l CpeLabel) Parse() (*ParsedCpe, error) {
+	if !strings.HasPrefix(string(l), "cpe:/") {
+		return nil, errors.New("cpe doesn't start with `cpe:/`")
+	}
+	trimmed := strings.TrimPrefix(string(l), "cpe:/")
+	splitted := strings.Split(trimmed, ":")
+	if len(splitted) > 7 {
+		return nil, errors.New("too many cpe components")
+	}
+
+	parsed := make([]*string, 7)
+	for i, component := range splitted {
+		component := component
+		if len(component) > 0 {
+			parsed[i] = &component
+		}
+	}
+	res := &ParsedCpe{
+		Part:     parsed[0],
+		Vendor:   parsed[1],
+		Product:  parsed[2],
+		Version:  parsed[3],
+		Update:   parsed[4],
+		Edition:  parsed[5],
+		Language: parsed[6],
+	}
+	return res, nil
+}
+
+func (l *ParsedCpe) match(r *ParsedCpe) bool {
+	cmp := func(l, r *string) bool {
+		if l != nil && r == nil {
+			return false
+		}
+		if l != nil && r != nil && *l != *r {
+			return false
+		}
+		return true
+	}
+
+	if l.Part != nil && r.Part == nil {
+		return false
+	}
+	if l.Part != nil && r.Part != nil && *l.Part != "o" && *r.Part == "o" {
+		// treat "o" as a superset
+		return false
+	}
+
+	if !cmp(l.Vendor, r.Vendor) {
+		return false
+	}
+	if !cmp(l.Product, r.Product) {
+		return false
+	}
+	if !cmp(l.Version, r.Version) {
+		return false
+	}
+	if !cmp(l.Update, r.Update) {
+		return false
+	}
+	if !cmp(l.Edition, r.Edition) {
+		return false
+	}
+	return cmp(l.Language, r.Language)
 }

@@ -69,7 +69,7 @@ type Cache struct {
 	OvalTestDetail                  map[TestID]OvalTestDetail
 	OvalTestID2States               map[TestID][]OvalState
 	OvalDefinitionID2ErrataIDs      map[DefinitionID][]ErratumID
-	CpeID2Label                     map[CpeID]string
+	CpeID2Label                     map[CpeID]CpeLabel
 
 	// CSAF
 	CSAFProductStatus map[int]string
