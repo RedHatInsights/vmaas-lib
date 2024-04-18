@@ -1147,8 +1147,8 @@ func loadCSAFCVE(c *Cache) {
 		Product CSAFProduct
 	}
 
-	cpr := CSAFProductRow{}
 	for rows.Next() {
+		cpr := CSAFProductRow{}
 		if err := rows.Scan(&cpr.ID,
 			&cpr.Product.CpeID,
 			&cpr.Product.PackageNameID,
