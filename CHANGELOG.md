@@ -2,6 +2,17 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.0 (2024-04-25)
+
+### Feature
+
+* **csaf:** Evaluate unfixed cves from csaf ([`d6692e9`](https://github.com/RedHatInsights/vmaas-lib/commit/d6692e9fc9a6348df8327364f0522395acb71007))
+
+### Fix
+
+* **csaf_load:** Load null values to CSAFCVEs cache ([`5b17153`](https://github.com/RedHatInsights/vmaas-lib/commit/5b17153f549de89c940767ee724d6f538feaaa51))
+* **csaf:** Cpe comparison ([`621855b`](https://github.com/RedHatInsights/vmaas-lib/commit/621855b55ea8f722df409b68f9782e9b17524b38))
+
 ## v1.3.0 (2024-04-04)
 
 ### Feature
