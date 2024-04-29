@@ -258,7 +258,7 @@ func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErratumID, modules map[in
 			}
 		}
 		if !pkgInRepo {
-			return
+			continue
 		}
 
 		details := c.RepoDetails[r]
