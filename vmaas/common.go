@@ -111,13 +111,36 @@ func processInputPackages(c *Cache, request *Request) ([]NevraString, UpdateList
 func processUpdates(c *Cache, opts *options, updateList UpdateList, packages []NevraString,
 	repoIDs map[RepoID]bool, moduleIDs map[int]bool, r *Request,
 ) UpdateList {
+	type pkgUpdates struct {
+		UpdateDetail
+		pkg string
+	}
+
+	wg := sync.WaitGroup{}
+	maxGoroutines := make(chan struct{}, opts.maxGoroutines)
+	updates := make(chan pkgUpdates)
 	for _, nevra := range packages {
-		updateList[nevra.Pkg] = processPackagesUpdates(c, opts, nevra.Nevra, repoIDs, moduleIDs, r)
+		wg.Add(1)
+		go func(nevra NevraString) {
+			defer func() {
+				<-maxGoroutines
+				wg.Done()
+			}()
+			maxGoroutines <- struct{}{}
+			detail := processPackagesUpdates(c, opts, nevra.Nevra, repoIDs, moduleIDs, r)
+			updates <- pkgUpdates{UpdateDetail: detail, pkg: nevra.Pkg}
+		}(nevra)
+	}
+	go func() {
+		wg.Wait()
+		close(updates)
+	}()
+	for u := range updates {
+		updateList[u.pkg] = u.UpdateDetail
 	}
 	return updateList
 }
 
-//nolint:funlen
 func processPackagesUpdates(c *Cache, opts *options, nevra utils.Nevra, repoIDs map[RepoID]bool,
 	moduleIDs map[int]bool, r *Request,
 ) UpdateDetail {
@@ -143,27 +166,11 @@ func processPackagesUpdates(c *Cache, opts *options, nevra utils.Nevra, repoIDs 
 	// get repositories for update packages
 	filteredRepos = repositoriesByPkgs(c, opts, updatePkgIDs, repoIDs)
 
-	// get pkgUpdates concurrently
-	updates := make(chan Update)
-	wg := sync.WaitGroup{}
-	maxGoroutines := make(chan struct{}, opts.maxGoroutines)
 	for _, u := range updatePkgIDs {
-		wg.Add(1)
-		go func(u PkgID) {
-			defer wg.Done()
-			maxGoroutines <- struct{}{}
-			pkgUpdates(c, u, nevraIDs.ArchID, r.SecurityOnly, moduleIDs,
-				filteredRepos, r.ThirdParty, pkgFromModule, updates)
-			<-maxGoroutines
-		}(u)
+		pkgUpdates(c, u, nevraIDs.ArchID, r.SecurityOnly, moduleIDs,
+			filteredRepos, r.ThirdParty, pkgFromModule, &updateDetail)
 	}
-	go func() {
-		wg.Wait()
-		close(updates)
-	}()
-	for u := range updates {
-		updateDetail.AvailableUpdates = append(updateDetail.AvailableUpdates, u)
-	}
+
 	sort.Slice(updateDetail.AvailableUpdates, func(i, j int) bool {
 		updateI := updateDetail.AvailableUpdates[i]
 		updateJ := updateDetail.AvailableUpdates[j]
@@ -186,7 +193,7 @@ func processPackagesUpdates(c *Cache, opts *options, nevra utils.Nevra, repoIDs 
 }
 
 func pkgUpdates(c *Cache, pkgID PkgID, archID ArchID, securityOnly bool, modules map[int]bool,
-	repoIDs []RepoID, thirdparty bool, currentPkgFromModule bool, updates chan Update,
+	repoIDs []RepoID, thirdparty bool, currentPkgFromModule bool, updateDetail *UpdateDetail,
 ) {
 	if archID == 0 {
 		return
@@ -210,13 +217,13 @@ func pkgUpdates(c *Cache, pkgID PkgID, archID ArchID, securityOnly bool, modules
 	nevra := buildNevra(c, pkgID)
 	for _, eid := range errataIDs {
 		pkgErrataUpdates(c, pkgID, eid, modules, repoIDs,
-			nevra, securityOnly, thirdparty, currentPkgFromModule, updates)
+			nevra, securityOnly, thirdparty, currentPkgFromModule, updateDetail)
 	}
 }
 
 func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErratumID, modules map[int]bool,
 	repoIDs []RepoID, nevra utils.Nevra, securityOnly, thirdparty bool, currentPkgFromModule bool,
-	updates chan Update,
+	updateDetail *UpdateDetail,
 ) {
 	erratumName := c.ErratumID2Name[erratumID]
 	erratumDetail := c.ErratumDetails[erratumName]
@@ -262,7 +269,7 @@ func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErratumID, modules map[in
 		}
 
 		details := c.RepoDetails[r]
-		updates <- Update{
+		updateDetail.AvailableUpdates = append(updateDetail.AvailableUpdates, Update{
 			Package:     nevra.String(),
 			PackageName: nevra.Name,
 			EVRA:        nevra.EVRAStringE(true),
@@ -271,7 +278,7 @@ func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErratumID, modules map[in
 			Basearch:    details.Basearch,
 			Releasever:  details.Releasever,
 			nevra:       nevra,
-		}
+		})
 	}
 }
 
