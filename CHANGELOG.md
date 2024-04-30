@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.1 (2024-04-30)
+
+### Fix
+
+* **concurrency:** Goroutines per package instead of package-update ([`1e1a033`](https://github.com/RedHatInsights/vmaas-lib/commit/1e1a0339ecad09812ab87ae7068fa3c3188c9cc2))
+* Check to verify that update exists in repo ([`1cfa9ee`](https://github.com/RedHatInsights/vmaas-lib/commit/1cfa9eedbe1e955bb75ffc17ac41652cb347e0ad))
+
 ## v1.4.0 (2024-04-25)
 
 ### Feature
