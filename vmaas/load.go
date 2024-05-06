@@ -22,7 +22,7 @@ var (
 )
 
 var loadFuncs = []func(c *Cache){
-	loadPkgNames, loadUpdates, loadUpdatesIndex, loadEvrMaps, loadArchs, loadArchCompat, loadPkgDetails,
+	loadPkgNames, loadUpdates, loadUpdatesIndex, loadEvrMaps, loadArchs, loadArchCompat,
 	loadRepoDetails, loadLabel2ContentSetID, loadPkgRepos, loadErrata, loadPkgErratum, loadErrataRepoIDs,
 	loadCves, loadPkgErratumModule, loadModule2IDs, loadModuleRequires, loadDBChanges, loadString,
 	// OVAL
@@ -330,6 +330,7 @@ func loadPkgDetails(c *Cache) {
 	id2pkdDetail := make(map[PkgID]PackageDetail, cnt)
 	nevra2id := make(map[Nevra]PkgID, cnt)
 	srcPkgID2PkgID := make(map[PkgID][]PkgID, cntSrc)
+	srcPkgNameID2SrcPkgIDs := make(map[NameID][]PkgID, cnt)
 	var pkgID PkgID
 	for rows.Next() {
 		var det PackageDetail
@@ -344,6 +345,13 @@ func loadPkgDetails(c *Cache) {
 		nevra2id[nevra] = pkgID
 
 		if det.SrcPkgID == nil {
+			// `pkgID` is the source package id
+			if _, ok := srcPkgNameID2SrcPkgIDs[det.NameID]; !ok {
+				srcPkgNameID2SrcPkgIDs[det.NameID] = []PkgID{}
+			}
+			srcPkgNameID2SrcPkgIDs[det.NameID] = append(srcPkgNameID2SrcPkgIDs[det.NameID], pkgID)
+
+			// we don't want to process `det.SrcPkgID == nil`
 			continue
 		}
 
@@ -358,6 +366,7 @@ func loadPkgDetails(c *Cache) {
 	c.PackageDetails = id2pkdDetail
 	c.Nevra2PkgID = nevra2id
 	c.SrcPkgID2PkgID = srcPkgID2PkgID
+	c.SrcPkgNameID2SrcPkgIDs = srcPkgNameID2SrcPkgIDs
 }
 
 func loadRepoDetails(c *Cache) { //nolint: funlen
@@ -1130,8 +1139,9 @@ func loadCSAFCVEProducts() map[CSAFProductID][]CSAFCVEProduct {
 	return csafCVEProducts
 }
 
-func loadCSAFCVE(c *Cache) {
+func loadCSAFCVE(c *Cache) { //nolint: funlen
 	loadCSAFProductStatus(c) // Load statuses before other CSAF load functions
+	loadPkgDetails(c)        // Load pkg detail so we can use these mappings here
 
 	defer utils.TimeTrack(time.Now(), "CSAF CVEs")
 
@@ -1174,12 +1184,31 @@ func loadCSAFCVE(c *Cache) {
 			}
 		}
 
+		// product for source package
 		cveCache[CSAFProduct{
 			CpeID:         cpr.Product.CpeID,
 			PackageNameID: cpr.Product.PackageNameID,
 			PackageID:     cpr.Product.PackageID,
 			ModuleStream:  cpr.Product.ModuleStream,
 		}] = cves
+
+		// products for other package names built from the same source package name
+		if srcPkgIDs, ok := c.SrcPkgNameID2SrcPkgIDs[cpr.Product.PackageNameID]; ok {
+			for _, srcPkgID := range srcPkgIDs {
+				if pkgIDs, ok := c.SrcPkgID2PkgID[srcPkgID]; ok {
+					for _, pkgID := range pkgIDs {
+						if detail, ok := c.PackageDetails[pkgID]; ok {
+							cveCache[CSAFProduct{
+								CpeID:         cpr.Product.CpeID,
+								PackageNameID: detail.NameID,
+								PackageID:     0, // product for unpatched cve, only with name id
+								ModuleStream:  cpr.Product.ModuleStream,
+							}] = cves
+						}
+					}
+				}
+			}
+		}
 	}
 
 	c.CSAFCVEs = cveCache

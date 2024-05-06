@@ -44,13 +44,14 @@ type Cache struct {
 	CveDetail map[string]CveDetail
 	CveNames  map[int]string
 
-	PkgErratum2Module map[PkgErratum][]int
-	Module2IDs        map[ModuleStream][]int
-	ModuleRequires    map[int][]int
-	DBChange          DBChange
-	ErratumDetails    map[string]ErratumDetail
-	SrcPkgID2PkgID    map[PkgID][]PkgID
-	String            map[int]string
+	PkgErratum2Module      map[PkgErratum][]int
+	Module2IDs             map[ModuleStream][]int
+	ModuleRequires         map[int][]int
+	DBChange               DBChange
+	ErratumDetails         map[string]ErratumDetail
+	SrcPkgID2PkgID         map[PkgID][]PkgID
+	SrcPkgNameID2SrcPkgIDs map[NameID][]PkgID
+	String                 map[int]string
 
 	// OVAL
 	PackagenameID2definitionIDs map[NameID][]DefinitionID
