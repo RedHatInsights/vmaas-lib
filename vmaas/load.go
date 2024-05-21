@@ -330,6 +330,7 @@ func loadPkgDetails(c *Cache) {
 	id2pkdDetail := make(map[PkgID]PackageDetail, cnt)
 	nevra2id := make(map[Nevra]PkgID, cnt)
 	srcPkgID2PkgID := make(map[PkgID][]PkgID, cntSrc)
+	nameID2SrcNameIDs := make(map[NameID]map[NameID]struct{})
 	var pkgID PkgID
 	for rows.Next() {
 		var det PackageDetail
@@ -347,6 +348,16 @@ func loadPkgDetails(c *Cache) {
 			continue
 		}
 
+		var srcNameID NameID
+		row := sqlDB.QueryRow("SELECT name_id FROM package_detail WHERE id = ?", *det.SrcPkgID)
+		if err := row.Scan(&srcNameID); err != nil {
+			panic(err)
+		}
+		if _, ok := nameID2SrcNameIDs[det.NameID]; !ok {
+			nameID2SrcNameIDs[det.NameID] = make(map[NameID]struct{})
+		}
+		nameID2SrcNameIDs[det.NameID][srcNameID] = struct{}{}
+
 		_, ok := srcPkgID2PkgID[*det.SrcPkgID]
 		if !ok {
 			srcPkgID2PkgID[*det.SrcPkgID] = []PkgID{}
@@ -354,10 +365,12 @@ func loadPkgDetails(c *Cache) {
 
 		srcPkgID2PkgID[*det.SrcPkgID] = append(srcPkgID2PkgID[*det.SrcPkgID], pkgID)
 	}
+
 	// FIXME: build ModifiedID index (probably not needed for vulnerabilities/updates)
 	c.PackageDetails = id2pkdDetail
 	c.Nevra2PkgID = nevra2id
 	c.SrcPkgID2PkgID = srcPkgID2PkgID
+	c.NameID2SrcNameIDs = nameID2SrcNameIDs
 }
 
 func loadRepoDetails(c *Cache) { //nolint: funlen

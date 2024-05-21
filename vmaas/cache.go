@@ -25,8 +25,9 @@ type Cache struct {
 
 	ArchCompat map[ArchID]map[ArchID]bool
 
-	PackageDetails map[PkgID]PackageDetail
-	Nevra2PkgID    map[Nevra]PkgID
+	PackageDetails    map[PkgID]PackageDetail
+	Nevra2PkgID       map[Nevra]PkgID
+	NameID2SrcNameIDs map[NameID]map[NameID]struct{}
 
 	RepoIDs            []RepoID
 	RepoDetails        map[RepoID]RepoDetail

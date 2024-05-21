@@ -389,19 +389,27 @@ func repos2cpes(c *Cache, repoIDs []RepoID) []CpeID {
 	return res
 }
 
+func productsWithCVEs(c *Cache, cpe CpeID, nameID NameID, modules []ModuleStream) []CSAFProduct {
+	products := make([]CSAFProduct, 0, len(modules)+1)
+	product := CSAFProduct{CpeID: cpe, PackageNameID: nameID, ModuleStream: ModuleStream{}}
+	if _, ok := c.CSAFCVEs[product]; ok {
+		products = append(products, product)
+	}
+	for _, ms := range modules {
+		product = CSAFProduct{CpeID: cpe, PackageNameID: nameID, ModuleStream: ms}
+		if _, ok := c.CSAFCVEs[product]; ok {
+			products = append(products, product)
+		}
+	}
+	return products
+}
+
 func cpes2products(c *Cache, cpes []CpeID, nameID NameID, modules []ModuleStream, pkg NevraString) ProductsPackage {
 	products := make([]CSAFProduct, 0, len(cpes)*(len(modules)+1))
 	for _, cpe := range cpes {
 		// create unfixed products for every CPE, unfixed product has PackageID=0
-		product := CSAFProduct{CpeID: cpe, PackageNameID: nameID, ModuleStream: ModuleStream{}}
-		if _, ok := c.CSAFCVEs[product]; ok {
-			products = append(products, product)
-		}
-		for _, ms := range modules {
-			product = CSAFProduct{CpeID: cpe, PackageNameID: nameID, ModuleStream: ms}
-			if _, ok := c.CSAFCVEs[product]; ok {
-				products = append(products, product)
-			}
+		for srcNameID := range c.NameID2SrcNameIDs[nameID] {
+			products = append(products, productsWithCVEs(c, cpe, srcNameID, modules)...)
 		}
 	}
 	pp := ProductsPackage{}
