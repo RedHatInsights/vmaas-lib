@@ -154,29 +154,6 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 			}
 		}
 	}
-
-	// 3. evaluate Manually Fixable CVEs
-	// if CVE is already in Unpatched or CVE list -> skip it
-	if definitions != nil {
-		for _, definition := range definitions.Patch {
-			cvesOval := c.OvaldefinitionID2Cves[definition.DefinitionID]
-			// Skip if all CVEs from definition were already found somewhere
-			allCvesFound := true
-			for _, cve := range cvesOval {
-				_, inCves := cves.Cves[cve]
-				_, inManualCves := cves.ManualCves[cve]
-				_, inUnpatchedCves := cves.UnpatchedCves[cve]
-				if !(inCves || inManualCves || inUnpatchedCves) {
-					allCvesFound = false
-				}
-			}
-			if allCvesFound {
-				continue
-			}
-			definition.evaluate(c, modules, cvesOval, &cves, cves.ManualCves)
-		}
-	}
-
 	return &cves, nil
 }
 
