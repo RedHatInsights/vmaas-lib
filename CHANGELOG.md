@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.2 (2024-05-28)
+
+### Fix
+
+* **csaf:** Products for package names built from the same source ([`bb89ec7`](https://github.com/RedHatInsights/vmaas-lib/commit/bb89ec7517622f9abf3163c6877ddd5242b3cb18))
+
 ## v1.4.1 (2024-04-30)
 
 ### Fix
