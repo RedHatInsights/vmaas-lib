@@ -1126,73 +1126,60 @@ func loadCSAFProductStatus(c *Cache) {
 	c.CSAFProductStatus = cache
 }
 
-func loadCSAFCVEProducts() map[CSAFProductID][]CSAFCVEProduct {
-	cnt := getCount("csaf_cve_product", "*")
-	rows := getAllRows("csaf_cve_product", "id,cve_id,csaf_product_id,csaf_product_status_id")
-
-	csafCVEProducts := make(map[CSAFProductID][]CSAFCVEProduct, cnt)
-	ccp := CSAFCVEProduct{}
-
-	for rows.Next() {
-		if err := rows.Scan(&ccp.ID, &ccp.CVEID, &ccp.CSAFProductID, &ccp.CSAFProductStatusID); err != nil {
-			panic(fmt.Errorf("failed to scan csaf_cve_product row: %s", err.Error()))
-		}
-		csafCVEProducts[ccp.CSAFProductID] = append(csafCVEProducts[ccp.CSAFProductID], ccp)
-	}
-
-	return csafCVEProducts
-}
-
 func loadCSAFCVE(c *Cache) {
 	loadCSAFProductStatus(c) // Load statuses before other CSAF load functions
 
 	defer utils.TimeTrack(time.Now(), "CSAF CVEs")
 
-	csafCVEProducts := loadCSAFCVEProducts()
-
-	rows := getAllRows("csaf_product", "id,cpe_id,package_name_id,package_id,module_stream")
+	rows := getAllRows(
+		"csaf_product p join csaf_cve_product cp on p.id = cp.csaf_product_id",
+		"p.id,p.cpe_id,p.package_name_id,p.package_id,p.module_stream,cp.cve_id,cp.csaf_product_status_id",
+	)
 	cnt := getCount("csaf_product", "*")
 
 	cveCache := make(map[CSAFProduct]CSAFCVEs, cnt)
 
-	type CSAFProductRow struct {
-		ID      int
-		Product CSAFProduct
+	type CSAFCVEProductRow struct {
+		ID                  int
+		Product             CSAFProduct
+		CVEID               CVEID
+		CSAFProductStatusID int
 	}
 
 	for rows.Next() {
-		cpr := CSAFProductRow{}
+		cpr := CSAFCVEProductRow{}
 		if err := rows.Scan(&cpr.ID,
 			&cpr.Product.CpeID,
 			&cpr.Product.PackageNameID,
 			&cpr.Product.PackageID,
-			&cpr.Product.ModuleStream); err != nil {
+			&cpr.Product.ModuleStream,
+			&cpr.CVEID,
+			&cpr.CSAFProductStatusID,
+		); err != nil {
 			panic(fmt.Errorf("failed to scan csaf_product row: %s", err.Error()))
 		}
 
-		cveProducts := csafCVEProducts[CSAFProductID(cpr.ID)]
-		cves := CSAFCVEs{
-			Fixed:   make([]CVEID, 0),
-			Unfixed: make([]CVEID, 0),
-		}
-
-		for _, cveProduct := range cveProducts {
-			switch c.CSAFProductStatus[cveProduct.CSAFProductStatusID] {
-			case "fixed":
-				cves.Fixed = append(cves.Fixed, cveProduct.CVEID)
-			case "known_affected":
-				cves.Unfixed = append(cves.Unfixed, cveProduct.CVEID)
-			default:
-				panic(fmt.Sprintf("unknown product status: %s", c.CSAFProductStatus[cveProduct.CSAFProductStatusID]))
-			}
-		}
-
-		cveCache[CSAFProduct{
+		product := CSAFProduct{
 			CpeID:         cpr.Product.CpeID,
 			PackageNameID: cpr.Product.PackageNameID,
 			PackageID:     cpr.Product.PackageID,
 			ModuleStream:  cpr.Product.ModuleStream,
-		}] = cves
+		}
+		if _, ok := cveCache[product]; !ok {
+			cveCache[product] = CSAFCVEs{}
+		}
+
+		fixed := make([]CVEID, 0)
+		unfixed := make([]CVEID, 0)
+		switch c.CSAFProductStatus[cpr.CSAFProductStatusID] {
+		case "fixed":
+			fixed = append(cveCache[product].Fixed, cpr.CVEID)
+		case "known_affected":
+			unfixed = append(cveCache[product].Unfixed, cpr.CVEID)
+		default:
+			panic(fmt.Sprintf("unknown product status: %s", c.CSAFProductStatus[cpr.CSAFProductStatusID]))
+		}
+		cveCache[product] = CSAFCVEs{Fixed: fixed, Unfixed: unfixed}
 	}
 
 	c.CSAFCVEs = cveCache
