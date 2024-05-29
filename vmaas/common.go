@@ -584,3 +584,37 @@ func cveMapValues(cves map[string]VulnerabilityDetail) []VulnerabilityDetail {
 	}
 	return vals
 }
+
+func isApplicable(c *Cache, update, input *utils.Nevra) bool {
+	if update.Name != input.Name {
+		return false
+	}
+	if update.EVRCmp(input) <= 0 {
+		return false
+	}
+	if update.Arch != input.Arch {
+		// check if the u arch is compatible
+		uArchID := c.Arch2ID[update.Arch]
+		iArchID := c.Arch2ID[input.Arch]
+		compatArchs := c.ArchCompat[iArchID]
+		if !compatArchs[uArchID] {
+			return false
+		}
+	}
+	return true
+}
+
+func pkgID2Nevra(c *Cache, pkgID PkgID) utils.Nevra {
+	pkg := c.PackageDetails[pkgID]
+	name := c.ID2Packagename[pkg.NameID]
+	evr := c.ID2Evr[pkg.EvrID]
+	arch := c.ID2Arch[pkg.ArchID]
+	nevra := utils.Nevra{
+		Name:    name,
+		Epoch:   evr.Epoch,
+		Version: evr.Version,
+		Release: evr.Release,
+		Arch:    arch,
+	}
+	return nevra
+}
