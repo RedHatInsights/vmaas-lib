@@ -281,10 +281,8 @@ type CSAFProduct struct {
 }
 
 type CSAFCVEProduct struct {
-	ID                  CSAFCVEID
-	CVEID               CVEID
-	CSAFProductID       CSAFProductID
-	CSAFProductStatusID int
+	CVEID         CVEID
+	CSAFProductID CSAFProductID
 }
 
 type CSAFCVEs struct {
@@ -390,4 +388,9 @@ func (l *ParsedCpe) match(r *ParsedCpe) bool {
 		return false
 	}
 	return cmp(l.Language, r.Language)
+}
+
+type CpeIDNameID struct {
+	CpeID  CpeID
+	NameID NameID
 }

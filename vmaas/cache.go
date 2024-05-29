@@ -73,8 +73,10 @@ type Cache struct {
 	CpeID2Label                     map[CpeID]CpeLabel
 
 	// CSAF
-	CSAFProductStatus map[int]string
-	CSAFCVEs          map[CSAFProduct]CSAFCVEs
+	CSAFProductStatus     map[int]string
+	CSAFCVEs              map[CpeIDNameID]map[CSAFProduct]CSAFCVEs
+	CSAFCVEProduct2Errata map[CSAFCVEProduct]string
+	CSAFProduct2ID        map[CSAFProduct]CSAFProductID
 }
 
 func ShouldReload(c *Cache, latestDumpEndpoint string) bool {
