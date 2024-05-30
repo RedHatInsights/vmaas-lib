@@ -125,17 +125,7 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 			definition.evaluate(c, modules, cvesOval, &cves, cves.UnpatchedCves)
 		}
 	}
-	for _, pp := range products {
-		for _, product := range pp.ProductsUnfixed {
-			cn := CpeIDNameID{CpeID: product.CpeID, NameID: product.PackageNameID}
-			csafCves := c.CSAFCVEs[cn][product]
-			for _, cveID := range csafCves.Unfixed {
-				cve := c.CveNames[int(cveID)]
-				cpe := c.CpeID2Label[product.CpeID]
-				updateCves(cves.UnpatchedCves, cve, pp.Package, nil, cpe)
-			}
-		}
-	}
+	evaluateUnpatchedCves(c, products, &cves)
 
 	// 2. evaluate CVEs from Repositories
 	// if CVE is already in Unpatched list -> skip it
@@ -180,6 +170,23 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 	}
 	evaluateManualCves(c, products, &cves)
 	return &cves, nil
+}
+
+func evaluateUnpatchedCves(c *Cache, products []ProductsPackage, cves *VulnerabilitiesCvesDetails) {
+	for _, pp := range products {
+		for _, product := range pp.ProductsUnfixed {
+			cn := CpeIDNameID{CpeID: product.CpeID, NameID: product.PackageNameID}
+			csafCves := c.CSAFCVEs[cn][product]
+			for _, cveID := range csafCves.Unfixed {
+				cve := c.CveNames[int(cveID)]
+				cpe := c.CpeID2Label[product.CpeID]
+				if _, ok := cves.UnpatchedCves[cve]; !ok {
+					// show only CVE hit for the first package
+					updateCves(cves.UnpatchedCves, cve, pp.Package, nil, cpe)
+				}
+			}
+		}
+	}
 }
 
 func evaluateManualCves(c *Cache, products []ProductsPackage, cves *VulnerabilitiesCvesDetails) {
