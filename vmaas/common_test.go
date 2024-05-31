@@ -522,3 +522,73 @@ func TestProcessInputPackages(t *testing.T) {
 	assert.Equal(t, 2, len(pkgs))
 	assert.Equal(t, 3, len(updates))
 }
+
+func TestPkgID2Nevra(t *testing.T) {
+	c := Cache{
+		ID2Arch:        map[ArchID]string{1: "x86_64"},
+		ID2Packagename: map[NameID]string{1: "kernel"},
+		ID2Evr:         map[EvrID]utils.Evr{1: {Epoch: 0, Version: "1", Release: "2"}},
+		PackageDetails: map[PkgID]PackageDetail{1: {NameID: 1, EvrID: 1, ArchID: 1}},
+	}
+
+	expected := utils.Nevra{Name: "kernel", Epoch: 0, Version: "1", Release: "2", Arch: "x86_64"}
+	nevra := pkgID2Nevra(&c, 1)
+	assert.Equal(t, expected, nevra)
+}
+
+func TestIsApplicabe(t *testing.T) {
+	c := Cache{
+		Arch2ID: map[string]ArchID{"noarch": 1, "x86_64": 2, "aarch64": 3},
+		ID2Arch: map[ArchID]string{1: "noarch", 2: "x86_64", 3: "aarch64"},
+		ArchCompat: map[ArchID]map[ArchID]bool{
+			1: {1: true, 2: true, 3: true},
+			2: {1: true, 2: true},
+			3: {1: true, 3: true},
+		},
+		ID2Packagename: map[NameID]string{1: "kernel", 2: "bash"},
+		ID2Evr: map[EvrID]utils.Evr{
+			1: {Epoch: 0, Version: "1", Release: "1"},
+			2: {Epoch: 0, Version: "2", Release: "2"},
+		},
+		PackageDetails: map[PkgID]PackageDetail{
+			1: {NameID: 1, EvrID: 1, ArchID: 1}, // kernel, noarch
+			2: {NameID: 1, EvrID: 1, ArchID: 2}, // kernel, x86_64
+			3: {NameID: 1, EvrID: 1, ArchID: 3}, // kernel, aarch64
+			4: {NameID: 1, EvrID: 2, ArchID: 1}, // kernel, noarch, newer
+			5: {NameID: 1, EvrID: 2, ArchID: 2}, // kernel, x86_64, newer
+			6: {NameID: 1, EvrID: 2, ArchID: 3}, // kernel, aarch64, newer
+			7: {NameID: 2, EvrID: 2, ArchID: 1}, // bash
+		},
+	}
+
+	kernelNoarch := pkgID2Nevra(&c, 1)
+	kernelX86 := pkgID2Nevra(&c, 2)
+	kernelAarch := pkgID2Nevra(&c, 3)
+	kernelNoarchNew := pkgID2Nevra(&c, 4)
+	kernelX86New := pkgID2Nevra(&c, 5)
+	kernelAarchNew := pkgID2Nevra(&c, 6)
+	bash := pkgID2Nevra(&c, 7)
+
+	// newer noarch is applicable to all other archs
+	assert.True(t, isApplicable(&c, &kernelNoarchNew, &kernelNoarch))
+	assert.True(t, isApplicable(&c, &kernelNoarchNew, &kernelX86))
+	assert.True(t, isApplicable(&c, &kernelNoarchNew, &kernelAarch))
+	// newer x86_64 kernel can be applied only on x86_64 or noarch
+	assert.True(t, isApplicable(&c, &kernelX86New, &kernelX86))
+	assert.True(t, isApplicable(&c, &kernelX86New, &kernelNoarch))
+	// x86_64 cannot be applied on aarch64 and vice versa
+	assert.False(t, isApplicable(&c, &kernelX86New, &kernelAarch))
+	assert.False(t, isApplicable(&c, &kernelAarchNew, &kernelX86))
+	// same or older version cannot be applied
+	assert.False(t, isApplicable(&c, &kernelNoarch, &kernelNoarch))
+	assert.False(t, isApplicable(&c, &kernelX86, &kernelX86))
+	assert.False(t, isApplicable(&c, &kernelAarch, &kernelAarch))
+	assert.False(t, isApplicable(&c, &kernelNoarch, &kernelNoarchNew))
+	assert.False(t, isApplicable(&c, &kernelX86, &kernelX86New))
+	assert.False(t, isApplicable(&c, &kernelAarch, &kernelAarchNew))
+	assert.False(t, isApplicable(&c, &kernelNoarch, &kernelX86))
+	assert.False(t, isApplicable(&c, &kernelNoarch, &kernelAarchNew))
+	// bash cannot be update for kernel or kernel for bash
+	assert.False(t, isApplicable(&c, &bash, &kernelNoarch))
+	assert.False(t, isApplicable(&c, &kernelNoarchNew, &bash))
+}
