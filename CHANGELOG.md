@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.5.1 (2024-06-17)
+
+### Fix
+
+* Evaluate module tests for unfixed CVEs ([`9d93a0f`](https://github.com/RedHatInsights/vmaas-lib/commit/9d93a0fa1f5a8cfc4baceb05c3623b3fe9b0241c))
+
 ## v1.5.0 (2024-05-28)
 
 ### Feature
