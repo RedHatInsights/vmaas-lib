@@ -185,7 +185,7 @@ func (d *ProcessedDefinition) evaluate(
 	dst map[string]VulnerabilityDetail,
 ) {
 	for _, p := range d.Packages {
-		if evaluateCriteria(c, d.DefinitionTypeID, d.CriteriaID, p.NameID, p.Nevra, modules) {
+		if evaluateCriteria(c, d.CriteriaID, p.NameID, p.Nevra, modules) {
 			for _, cve := range cvesOval {
 				_, inCves := cves.Cves[cve]
 				_, inUnpatchedCves := cves.UnpatchedCves[cve]
@@ -486,14 +486,10 @@ func repos2definitions(c *Cache, r *ProcessedRequest) map[DefinitionID]CpeID {
 	return candidateDefinitions
 }
 
-func evaluateCriteria(c *Cache, definitionTypeID int, criteriaID CriteriaID, pkgNameID NameID, nevra utils.Nevra,
+func evaluateCriteria(c *Cache, criteriaID CriteriaID, pkgNameID NameID, nevra utils.Nevra,
 	modules map[string]string,
 ) bool {
-	moduleTestDeps := []ModuleTestID{}
-	// Don't evaluate module tests for unfixed CVE definitions, we're not looking for package updates anyway
-	if definitionTypeID != OvalDefinitionTypeVulnerability {
-		moduleTestDeps = c.OvalCriteriaID2DepModuleTestIDs[criteriaID]
-	}
+	moduleTestDeps := c.OvalCriteriaID2DepModuleTestIDs[criteriaID]
 	testDeps := c.OvalCriteriaID2DepTestIDs[criteriaID]
 	criteriaDeps := c.OvalCriteriaID2DepCriteriaIDs[criteriaID]
 
@@ -539,7 +535,7 @@ func evaluateCriteria(c *Cache, definitionTypeID int, criteriaID CriteriaID, pkg
 		if matches >= requiredMatches {
 			break
 		}
-		if evaluateCriteria(c, definitionTypeID, cr, pkgNameID, nevra, modules) {
+		if evaluateCriteria(c, cr, pkgNameID, nevra, modules) {
 			matches++
 		} else if mustMatch { // AND
 			break
