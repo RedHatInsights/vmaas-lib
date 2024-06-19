@@ -2,6 +2,17 @@
 
 <!--next-version-placeholder-->
 
+## v1.6.0 (2024-06-19)
+
+### Feature
+
+* **csaf:** Manually fixable cves from csaf ([`ec9262b`](https://github.com/RedHatInsights/vmaas-lib/commit/ec9262b89c874d8eec7cb4d3863fceea791c0e47))
+* **load:** Load csaf errata ([`c1c7905`](https://github.com/RedHatInsights/vmaas-lib/commit/c1c7905aa17f315b7ee55124dad3f1107f738ba2))
+
+### Fix
+
+* **csaf:** Show only first package with unpatched cve ([`aa8d0f0`](https://github.com/RedHatInsights/vmaas-lib/commit/aa8d0f0f440ba6456d121cb7ae8ef20e73965ebb))
+
 ## v1.5.1 (2024-06-17)
 
 ### Fix
