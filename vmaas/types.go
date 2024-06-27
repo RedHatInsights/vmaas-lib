@@ -358,7 +358,7 @@ func (l *ParsedCpe) match(r *ParsedCpe) bool {
 		if l != nil && r == nil {
 			return false
 		}
-		if l != nil && r != nil && *l != *r {
+		if l != nil && r != nil && !strings.HasPrefix(*r, *l) {
 			return false
 		}
 		return true

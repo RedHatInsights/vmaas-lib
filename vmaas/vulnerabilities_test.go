@@ -1,6 +1,7 @@
 package vmaas
 
 import (
+	"fmt"
 	"sort"
 	"testing"
 
@@ -108,4 +109,51 @@ func TestCSAF(t *testing.T) {
 	assert.Equal(t, []string{"CVE-1", "CVE-2"}, unpatchedCves)
 	// CVEs from `fixed2` product, `fixed1` is not an update (kernel-1.1-1 to kernel-1.1-1)
 	assert.Equal(t, []string{"CVE-5"}, manualCves)
+}
+
+func TestCPEMatch(t *testing.T) {
+	type cpeTest struct {
+		pattern  CpeLabel
+		repoCpe  CpeLabel
+		expected bool
+	}
+	el := CpeLabel("cpe:/o:redhat:enterprise_linux")
+	el8 := CpeLabel("cpe:/o:redhat:enterprise_linux:8")
+	el9 := CpeLabel("cpe:/o:redhat:enterprise_linux:9")
+	el9Baseos := CpeLabel("cpe:/o:redhat:enterprise_linux:9::baseos")
+	el9BaseosA := CpeLabel("cpe:/a:redhat:enterprise_linux:9::baseos")
+	eus := CpeLabel("cpe:/o:redhat:rhel_eus")
+	sat6 := CpeLabel("cpe:/a:redhat:satellite:6")
+	sat610el7 := CpeLabel("cpe:/a:redhat:satellite:6.10::el7")
+
+	cpeTests := []cpeTest{
+		{el, el8, true},
+		{el, el9, true},
+		{el, el9Baseos, true},
+		{el, el9BaseosA, true},
+		{el, eus, false},
+		{el8, el, false},
+		{el8, el9, false},
+		{el8, el9Baseos, false},
+		{el8, el9BaseosA, false},
+		{el8, el8, true},
+		{el9, el9Baseos, true},
+		{el9, el9BaseosA, true},
+		{el9, el, false},
+		{el9, el8, false},
+		{el9Baseos, el, false},
+		{el9Baseos, el9, false},
+		{el9BaseosA, el, false},
+		{el9BaseosA, el8, false},
+		{el9BaseosA, el9, false},
+		{el9BaseosA, el9Baseos, false},
+		{sat6, sat610el7, true},
+		{sat610el7, sat6, false},
+	}
+	for _, test := range cpeTests {
+		t.Run(fmt.Sprint(test), func(t *testing.T) {
+			res := cpeMatch(test.pattern, test.repoCpe)
+			assert.Equal(t, test.expected, res)
+		})
+	}
 }
