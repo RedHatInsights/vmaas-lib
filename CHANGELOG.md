@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.6.1 (2024-06-27)
+
+### Fix
+
+* Match cpe pattern substrings ([`c64a4d1`](https://github.com/RedHatInsights/vmaas-lib/commit/c64a4d11b4508a0f764da72e66056c282185c774))
+
 ## v1.6.0 (2024-06-19)
 
 ### Feature
