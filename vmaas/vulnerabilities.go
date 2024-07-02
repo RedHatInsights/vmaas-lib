@@ -142,7 +142,7 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 				if _, inUnpatchedCves := cves.UnpatchedCves[cve]; inUnpatchedCves {
 					continue
 				}
-				updateCves(cves.Cves, cve, Package{String: pkg}, []string{update.Erratum}, "")
+				updateCves(cves.Cves, cve, Package{String: pkg}, []string{update.Erratum}, "", nil)
 			}
 		}
 	}
@@ -182,7 +182,7 @@ func evaluateUnpatchedCves(c *Cache, products []ProductsPackage, cves *Vulnerabi
 				cpe := c.CpeID2Label[product.CpeID]
 				if _, ok := cves.UnpatchedCves[cve]; !ok {
 					// show only CVE hit for the first package
-					updateCves(cves.UnpatchedCves, cve, pp.Package, nil, cpe)
+					updateCves(cves.UnpatchedCves, cve, pp.Package, nil, cpe, nil)
 				}
 			}
 		}
@@ -213,7 +213,7 @@ func evaluateManualCves(c *Cache, products []ProductsPackage, cves *Vulnerabilit
 						CSAFProductID: c.CSAFProduct2ID[product],
 					}]
 
-					updateCves(cves.ManualCves, cve, pp.Package, []string{erratum}, cpe)
+					updateCves(cves.ManualCves, cve, pp.Package, []string{erratum}, cpe, nil)
 				}
 			}
 		}
@@ -225,7 +225,8 @@ func (d *ProcessedDefinition) evaluate(
 	dst map[string]VulnerabilityDetail,
 ) {
 	for _, p := range d.Packages {
-		if evaluateCriteria(c, d.CriteriaID, p.NameID, p.Nevra, modules) {
+		resultContext := map[string]interface{}{}
+		if evaluateCriteria(c, d.CriteriaID, p.NameID, p.Nevra, modules, resultContext) {
 			for _, cve := range cvesOval {
 				_, inCves := cves.Cves[cve]
 				_, inUnpatchedCves := cves.UnpatchedCves[cve]
@@ -237,7 +238,12 @@ func (d *ProcessedDefinition) evaluate(
 				for _, erratumID := range c.OvalDefinitionID2ErrataIDs[d.DefinitionID] {
 					errataNames = append(errataNames, c.ErratumID2Name[erratumID])
 				}
-				updateCves(dst, cve, p, errataNames, d.Cpe)
+				if data, has := resultContext["module"]; has {
+					module := data.(ModuleStream)
+					updateCves(dst, cve, p, errataNames, d.Cpe, &module)
+				} else {
+					updateCves(dst, cve, p, errataNames, d.Cpe, nil)
+				}
 			}
 		}
 	}
@@ -548,7 +554,7 @@ func repos2definitions(c *Cache, r *ProcessedRequest) map[DefinitionID]CpeID {
 }
 
 func evaluateCriteria(c *Cache, criteriaID CriteriaID, pkgNameID NameID, nevra utils.Nevra,
-	modules map[string]string,
+	modules map[string]string, resultContext map[string]interface{},
 ) bool {
 	moduleTestDeps := c.OvalCriteriaID2DepModuleTestIDs[criteriaID]
 	testDeps := c.OvalCriteriaID2DepTestIDs[criteriaID]
@@ -576,6 +582,7 @@ func evaluateCriteria(c *Cache, criteriaID CriteriaID, pkgNameID NameID, nevra u
 		}
 		if evaluateModuleTest(c, m, modules) {
 			matches++
+			resultContext["module"] = c.OvalModuleTestDetail[m].ModuleStream
 		} else if mustMatch { // AND
 			break
 		}
@@ -596,7 +603,7 @@ func evaluateCriteria(c *Cache, criteriaID CriteriaID, pkgNameID NameID, nevra u
 		if matches >= requiredMatches {
 			break
 		}
-		if evaluateCriteria(c, cr, pkgNameID, nevra, modules) {
+		if evaluateCriteria(c, cr, pkgNameID, nevra, modules, resultContext) {
 			matches++
 		} else if mustMatch { // AND
 			break
@@ -669,7 +676,9 @@ func evaluateTest(c *Cache, testID TestID, pkgNameID NameID, nevra utils.Nevra) 
 	return matched
 }
 
-func updateCves(cves map[string]VulnerabilityDetail, cve string, pkg Package, errata []string, cpe CpeLabel) {
+func updateCves(cves map[string]VulnerabilityDetail, cve string, pkg Package, errata []string, cpe CpeLabel,
+	module *ModuleStream,
+) {
 	if _, has := cves[cve]; !has {
 		cveDetail := VulnerabilityDetail{
 			CVE:      cve,
@@ -685,6 +694,10 @@ func updateCves(cves map[string]VulnerabilityDetail, cve string, pkg Package, er
 				EVRA: pkg.EVRAStringE(true),
 				Cpe:  cpe,
 			}}
+			if module != nil {
+				cveDetail.Affected[0].ModuleStreamPtrs.Module = &module.Module
+				cveDetail.Affected[0].ModuleStreamPtrs.Stream = &module.Stream
+			}
 		}
 		cves[cve] = cveDetail
 		return
@@ -696,11 +709,16 @@ func updateCves(cves map[string]VulnerabilityDetail, cve string, pkg Package, er
 		vulnDetail.Errata[erratum] = true
 	}
 	if len(cpe) > 0 {
-		vulnDetail.Affected = append(vulnDetail.Affected, AffectedPackage{
+		affectedPackage := AffectedPackage{
 			Name: pkg.Name,
 			EVRA: pkg.EVRAStringE(true),
 			Cpe:  cpe,
-		})
+		}
+		if module != nil {
+			affectedPackage.ModuleStreamPtrs.Module = &module.Module
+			affectedPackage.ModuleStreamPtrs.Stream = &module.Stream
+		}
+		vulnDetail.Affected = append(vulnDetail.Affected, affectedPackage)
 	}
 	cves[cve] = vulnDetail
 }

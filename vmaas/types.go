@@ -116,6 +116,7 @@ type AffectedPackage struct {
 	Name string   `json:"package_name"`
 	EVRA string   `json:"evra"`
 	Cpe  CpeLabel `json:"cpe"`
+	ModuleStreamPtrs
 }
 
 type Vulnerabilities struct {
