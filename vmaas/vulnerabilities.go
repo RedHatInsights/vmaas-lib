@@ -175,6 +175,7 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 func evaluateUnpatchedCves(c *Cache, products []ProductsPackage, cves *VulnerabilitiesCvesDetails) {
 	for _, pp := range products {
 		for _, product := range pp.ProductsUnfixed {
+			module := product.ModuleStream
 			cn := CpeIDNameID{CpeID: product.CpeID, NameID: product.PackageNameID}
 			csafCves := c.CSAFCVEs[cn][product]
 			for _, cveID := range csafCves.Unfixed {
@@ -182,7 +183,11 @@ func evaluateUnpatchedCves(c *Cache, products []ProductsPackage, cves *Vulnerabi
 				cpe := c.CpeID2Label[product.CpeID]
 				if _, ok := cves.UnpatchedCves[cve]; !ok {
 					// show only CVE hit for the first package
-					updateCves(cves.UnpatchedCves, cve, pp.Package, nil, cpe, nil)
+					if module.Module != "" {
+						updateCves(cves.UnpatchedCves, cve, pp.Package, nil, cpe, &module)
+					} else {
+						updateCves(cves.UnpatchedCves, cve, pp.Package, nil, cpe, nil)
+					}
 				}
 			}
 		}
