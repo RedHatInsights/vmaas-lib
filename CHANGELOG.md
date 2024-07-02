@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.7.0 (2024-07-02)
+
+### Feature
+
+* Report affected module for unfixed CVEs in CSAF ([`126ee49`](https://github.com/RedHatInsights/vmaas-lib/commit/126ee4996e4d11d056b0cecca4981afabaa5add6))
+* Report affected module for unfixed CVEs in OVAL ([`1bbfbbc`](https://github.com/RedHatInsights/vmaas-lib/commit/1bbfbbc41707b994e753d76eedf688d3ca599887))
+
 ## v1.6.1 (2024-06-27)
 
 ### Fix
