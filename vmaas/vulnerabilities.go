@@ -236,7 +236,7 @@ func (d *ProcessedDefinition) evaluate(
 				_, inCves := cves.Cves[cve]
 				_, inUnpatchedCves := cves.UnpatchedCves[cve]
 				// Fixable and Unpatched CVEs take precedence over Manually fixable
-				if inCves || inUnpatchedCves {
+				if d.DefinitionTypeID == OvalDefinitionTypePatch && (inCves || inUnpatchedCves) {
 					continue
 				}
 				errataNames := make([]string, 0)
