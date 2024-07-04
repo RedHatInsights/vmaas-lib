@@ -181,13 +181,10 @@ func evaluateUnpatchedCves(c *Cache, products []ProductsPackage, cves *Vulnerabi
 			for _, cveID := range csafCves.Unfixed {
 				cve := c.CveNames[int(cveID)]
 				cpe := c.CpeID2Label[product.CpeID]
-				if _, ok := cves.UnpatchedCves[cve]; !ok {
-					// show only CVE hit for the first package
-					if module.Module != "" {
-						updateCves(cves.UnpatchedCves, cve, pp.Package, nil, cpe, &module)
-					} else {
-						updateCves(cves.UnpatchedCves, cve, pp.Package, nil, cpe, nil)
-					}
+				if module.Module != "" {
+					updateCves(cves.UnpatchedCves, cve, pp.Package, nil, cpe, &module)
+				} else {
+					updateCves(cves.UnpatchedCves, cve, pp.Package, nil, cpe, nil)
 				}
 			}
 		}
@@ -208,10 +205,9 @@ func evaluateManualCves(c *Cache, products []ProductsPackage, cves *Vulnerabilit
 			for _, cveID := range csafCves.Fixed {
 				cve := c.CveNames[int(cveID)]
 				_, inCves := cves.Cves[cve]
-				_, inManualCves := cves.ManualCves[cve]
 				_, inUnpatchedCves := cves.UnpatchedCves[cve]
-				if !(inCves || inManualCves || inUnpatchedCves) {
-					// show only CVE hit on first package which is not in Cves and UnpatchedCves
+				if !(inCves || inUnpatchedCves) {
+					// show only CVE hit which is not in Cves and UnpatchedCves
 					cpe := c.CpeID2Label[product.CpeID]
 					erratum := c.CSAFCVEProduct2Errata[CSAFCVEProduct{
 						CVEID:         cveID,
