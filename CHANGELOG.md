@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.7.1 (2024-07-04)
+
+### Fix
+
+* Detect all affected packages for unfixed vulns in CSAF ([`20214f7`](https://github.com/RedHatInsights/vmaas-lib/commit/20214f79c2fb7f888fdbe1e99fc0f985ac2d76d0))
+* Detect all affected packages for unfixed vulns in OVAL ([`d4139cc`](https://github.com/RedHatInsights/vmaas-lib/commit/d4139cc3836b8fc4cd94f6483cc2cac5b857d3ef))
+
 ## v1.7.0 (2024-07-02)
 
 ### Feature
