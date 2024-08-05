@@ -200,6 +200,7 @@ func evaluateManualCves(c *Cache, products []ProductsPackage, cves *Vulnerabilit
 				continue
 			}
 
+			module := product.ModuleStream
 			cn := CpeIDNameID{CpeID: product.CpeID, NameID: pp.Package.NameID}
 			csafCves := c.CSAFCVEs[cn][product]
 			for _, cveID := range csafCves.Fixed {
@@ -213,8 +214,11 @@ func evaluateManualCves(c *Cache, products []ProductsPackage, cves *Vulnerabilit
 						CVEID:         cveID,
 						CSAFProductID: c.CSAFProduct2ID[product],
 					}]
-
-					updateCves(cves.ManualCves, cve, pp.Package, []string{erratum}, cpe, nil)
+					if module.Module != "" {
+						updateCves(cves.ManualCves, cve, pp.Package, []string{erratum}, cpe, &module)
+					} else {
+						updateCves(cves.ManualCves, cve, pp.Package, []string{erratum}, cpe, nil)
+					}
 				}
 			}
 		}
@@ -439,13 +443,9 @@ func repos2cpes(c *Cache, repoIDs []RepoID) []CpeID {
 
 func productsWithUnfixedCVEs(c *Cache, cpe CpeID, nameID NameID, modules []ModuleStream) []CSAFProduct {
 	products := make([]CSAFProduct, 0, len(modules)+1)
-	product := CSAFProduct{CpeID: cpe, PackageNameID: nameID, ModuleStream: ModuleStream{}}
 	cn := CpeIDNameID{CpeID: cpe, NameID: nameID}
-	if _, ok := c.CSAFCVEs[cn][product]; ok {
-		products = append(products, product)
-	}
 	for _, ms := range modules {
-		product = CSAFProduct{CpeID: cpe, PackageNameID: nameID, ModuleStream: ms}
+		product := CSAFProduct{CpeID: cpe, PackageNameID: nameID, ModuleStream: ms}
 		if _, ok := c.CSAFCVEs[cn][product]; ok {
 			products = append(products, product)
 		}
@@ -453,14 +453,19 @@ func productsWithUnfixedCVEs(c *Cache, cpe CpeID, nameID NameID, modules []Modul
 	return products
 }
 
-func productWithFixedCVEs(c *Cache, cpe CpeID, nameID NameID) ([]CSAFProduct, bool) {
+func productWithFixedCVEs(c *Cache, cpe CpeID, nameID NameID, modules []ModuleStream) ([]CSAFProduct, bool) {
 	cn := CpeIDNameID{CpeID: cpe, NameID: nameID}
 	productCves, ok := c.CSAFCVEs[cn]
 	products := make([]CSAFProduct, 0, len(productCves))
 	for p := range productCves {
-		if p.PackageID != 0 {
+		if p.PackageID == 0 {
 			// fixed product always has PackageID
-			products = append(products, p)
+			continue
+		}
+		for _, module := range modules {
+			if p.ModuleStream == module {
+				products = append(products, p)
+			}
 		}
 	}
 	return products, ok
@@ -468,14 +473,16 @@ func productWithFixedCVEs(c *Cache, cpe CpeID, nameID NameID) ([]CSAFProduct, bo
 
 func cpes2products(c *Cache, cpes []CpeID, nameID NameID, modules []ModuleStream, pkg NevraString) ProductsPackage {
 	productsUnfixed := make([]CSAFProduct, 0, len(cpes)*(len(modules)+1))
-	productsFixed := make([]CSAFProduct, 0, len(cpes)) // fixed products are always without modules
+	productsFixed := make([]CSAFProduct, 0, len(cpes))
+	// add empty module to module list to find affected products without modules
+	modules = append(modules, ModuleStream{})
 	for _, cpe := range cpes {
 		// create unfixed products for every CPE, unfixed product has PackageID=0
 		for srcNameID := range c.NameID2SrcNameIDs[nameID] {
 			productsUnfixed = append(productsUnfixed, productsWithUnfixedCVEs(c, cpe, srcNameID, modules)...)
 		}
 		// create fixed products for every CPE
-		if products, ok := productWithFixedCVEs(c, cpe, nameID); ok {
+		if products, ok := productWithFixedCVEs(c, cpe, nameID, modules); ok {
 			productsFixed = append(productsFixed, products...)
 		}
 	}
