@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.7.2 (2024-08-09)
+
+### Fix
+
+* **fixed_cves:** Use modules of fixed products in evaluation ([`4af5b69`](https://github.com/RedHatInsights/vmaas-lib/commit/4af5b69439bde2943d98bfe03d038340bceff6fe))
+
 ## v1.7.1 (2024-07-04)
 
 ### Fix
