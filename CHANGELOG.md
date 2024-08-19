@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.8.0 (2024-08-19)
+
+### Feature
+
+* Remove oval evaluation ([`a018f4b`](https://github.com/RedHatInsights/vmaas-lib/commit/a018f4b3a16bbff065928ece97dbe754bbb39c19))
+
 ## v1.7.2 (2024-08-09)
 
 ### Fix
