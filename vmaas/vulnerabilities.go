@@ -422,6 +422,7 @@ func cpeMatch(l, r CpeLabel) bool {
 func repos2cpes(c *Cache, repoIDs []RepoID) []CpeID {
 	res := make([]CpeID, 0)
 	repoCpes := make([]CpeID, 0)
+	uniqCpes := make(map[CpeID]bool)
 	for _, repoID := range repoIDs {
 		if cpes, has := c.RepoID2CpeIDs[repoID]; has {
 			repoCpes = append(repoCpes, cpes...)
@@ -433,7 +434,10 @@ func repos2cpes(c *Cache, repoIDs []RepoID) []CpeID {
 			for _, repoCpeID := range repoCpes {
 				repoCpe := c.CpeID2Label[repoCpeID]
 				if cpeMatch(cpeLabel, repoCpe) {
-					res = append(res, cpeID)
+					if !uniqCpes[cpeID] {
+						res = append(res, cpeID)
+						uniqCpes[cpeID] = true
+					}
 				}
 			}
 		}
