@@ -53,9 +53,24 @@ type Cache struct {
 	SrcPkgID2PkgID    map[PkgID][]PkgID
 	String            map[int]string
 
-	ContentSetID2CpeIDs map[ContentSetID][]CpeID
-	RepoID2CpeIDs       map[RepoID][]CpeID
-	CpeID2Label         map[CpeID]CpeLabel
+	// OVAL
+	PackagenameID2definitionIDs map[NameID][]DefinitionID
+	RepoID2CpeIDs               map[RepoID][]CpeID
+	ContentSetID2CpeIDs         map[ContentSetID][]CpeID
+
+	OvaldefinitionDetail            map[DefinitionID]DefinitionDetail
+	OvaldefinitionID2Cves           map[DefinitionID][]string
+	CpeID2OvalDefinitionIDs         map[CpeID][]DefinitionID
+	OvalCriteriaID2DepModuleTestIDs map[CriteriaID][]ModuleTestID
+	OvalCriteriaID2DepTestIDs       map[CriteriaID][]TestID
+	OvalCriteriaID2DepCriteriaIDs   map[CriteriaID][]CriteriaID
+	OvalCriteriaID2Type             map[CriteriaID]int
+	OvalStateID2Arches              map[OvalStateID][]ArchID
+	OvalModuleTestDetail            map[ModuleTestID]OvalModuleTestDetail
+	OvalTestDetail                  map[TestID]OvalTestDetail
+	OvalTestID2States               map[TestID][]OvalState
+	OvalDefinitionID2ErrataIDs      map[DefinitionID][]ErratumID
+	CpeID2Label                     map[CpeID]CpeLabel
 
 	// CSAF
 	CSAFProductStatus     map[int]string
