@@ -2,6 +2,17 @@
 
 <!--next-version-placeholder-->
 
+## v1.9.0 (2024-08-22)
+
+### Feature
+
+* **opts:** Add option to exclude package names from csaf ([`f297f3d`](https://github.com/RedHatInsights/vmaas-lib/commit/f297f3d470d893d449497234ce5d4eb5140da03f))
+
+### Fix
+
+* **csaf:** Make sure cpes are unique ([`74d142f`](https://github.com/RedHatInsights/vmaas-lib/commit/74d142fe84e1c83aa662c91ae273bcde6b4ea3a0))
+* **csaf:** Exclude packages names in csaf eval ([`1d47bfb`](https://github.com/RedHatInsights/vmaas-lib/commit/1d47bfba02dede246cec36fb7ed9d956bf0ab1a7))
+
 ## v1.8.0 (2024-08-19)
 
 ### Feature
