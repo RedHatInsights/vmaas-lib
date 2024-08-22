@@ -27,7 +27,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-${{ matrix.go-version }}-
       # run tests
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go-version }}
       - uses: actions/checkout@v4

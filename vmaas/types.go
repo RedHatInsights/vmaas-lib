@@ -19,8 +19,13 @@ type (
 	ArchID        int
 	ErratumID     int
 	ContentSetID  int
+	DefinitionID  int
 	CpeID         int
 	CpeLabel      string
+	CriteriaID    int
+	TestID        int
+	ModuleTestID  int
+	OvalStateID   int
 	CSAFProductID int
 	CSAFCVEID     int
 	CVEID         int
@@ -236,6 +241,27 @@ type ErratumDetail struct {
 	URL            string
 	ThirdParty     bool
 	RequiresReboot bool
+}
+
+type DefinitionDetail struct {
+	ID               DefinitionID
+	DefinitionTypeID int
+	CriteriaID       CriteriaID
+}
+
+type OvalTestDetail struct {
+	PkgNameID      NameID
+	CheckExistence int
+}
+
+type OvalModuleTestDetail struct {
+	ModuleStream ModuleStream
+}
+
+type OvalState struct {
+	ID           OvalStateID
+	EvrID        EvrID
+	OperationEvr int
 }
 
 type NameArch struct {

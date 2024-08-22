@@ -29,7 +29,7 @@ func (u unfixedOption) apply(opts *options) {
 	opts.evalUnfixed = bool(u)
 }
 
-// Option to evaluate unfixed CVEs by CSAF
+// Option to evaluate unfixed CVEs by OVAL
 func WithUnfixed(u bool) Option {
 	return unfixedOption(u)
 }
