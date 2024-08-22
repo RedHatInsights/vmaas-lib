@@ -1,10 +1,11 @@
 package vmaas
 
-var defaultOpts = options{20, true}
+var defaultOpts = options{20, true, map[string]bool{"kernel-alt": true}}
 
 type options struct {
-	maxGoroutines int
-	evalUnfixed   bool
+	maxGoroutines    int
+	evalUnfixed      bool
+	excludedPackages map[string]bool
 }
 
 type Option interface {
@@ -39,4 +40,15 @@ func applyOptions(api *API, opts []Option) {
 	for _, o := range opts {
 		o.apply(api.options)
 	}
+}
+
+type excludedPkgsOption map[string]bool
+
+func (p excludedPkgsOption) apply(opts *options) {
+	opts.excludedPackages = p
+}
+
+// Option to set excluded package names
+func WithExcludedPackages(pkgs map[string]bool) Option {
+	return excludedPkgsOption(pkgs)
 }
