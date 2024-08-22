@@ -87,7 +87,7 @@ func TestCSAF(t *testing.T) {
 
 	products := make([]ProductsPackage, 0, len(matrix))
 	for _, m := range matrix {
-		pp := cpes2products(&c, []CpeID{1, 2}, m.nameID, []ModuleStream{ms}, m.pkg)
+		pp := cpes2products(&c, []CpeID{1, 2}, m.nameID, []ModuleStream{ms}, m.pkg, &defaultOpts)
 		assert.Equal(t, m.fixed, pp.ProductsFixed)
 		assert.Equal(t, m.unfixed, pp.ProductsUnfixed)
 		products = append(products, pp)
