@@ -77,7 +77,7 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 
 	// get CPEs and ContentSets from repos
 	processed.processRepos(c)
-	products := processed.processProducts(c)
+	products := processed.processProducts(c, opts)
 
 	modules := make(map[string]string)
 	for _, m := range processed.Updates.ModuleList {
@@ -178,7 +178,7 @@ func (r *ProcessedRequest) processRepos(c *Cache) {
 	r.ContentSets = contentSetIDs
 }
 
-func (r *ProcessedRequest) processProducts(c *Cache) []ProductsPackage {
+func (r *ProcessedRequest) processProducts(c *Cache, opts *options) []ProductsPackage {
 	productsPackages := make([]ProductsPackage, 0)
 	if r.OriginalRequest.UseCsaf {
 		csCpes := make([]CpeID, 0)
@@ -197,11 +197,11 @@ func (r *ProcessedRequest) processProducts(c *Cache) []ProductsPackage {
 
 		for _, pkg := range r.Packages {
 			nameID := c.Packagename2ID[pkg.Nevra.Name]
-			products := cpes2products(c, r.Cpes, nameID, r.Updates.ModuleList, pkg)
+			products := cpes2products(c, r.Cpes, nameID, r.Updates.ModuleList, pkg, opts)
 
 			if (len(products.ProductsFixed) + len(products.ProductsUnfixed)) == 0 {
 				// use CPEs from Content Sets if we haven't found any products
-				products = cpes2products(c, csCpes, nameID, r.Updates.ModuleList, pkg)
+				products = cpes2products(c, csCpes, nameID, r.Updates.ModuleList, pkg, opts)
 			}
 			productsPackages = append(productsPackages, products)
 		}
@@ -318,7 +318,9 @@ func productWithFixedCVEs(c *Cache, cpe CpeID, nameID NameID, modules []ModuleSt
 	return products, ok
 }
 
-func cpes2products(c *Cache, cpes []CpeID, nameID NameID, modules []ModuleStream, pkg NevraString) ProductsPackage {
+func cpes2products(c *Cache, cpes []CpeID, nameID NameID, modules []ModuleStream, pkg NevraString,
+	opts *options,
+) ProductsPackage {
 	productsUnfixed := make([]CSAFProduct, 0, len(cpes)*(len(modules)+1))
 	productsFixed := make([]CSAFProduct, 0, len(cpes))
 	// add empty module to module list to find affected products without modules
@@ -326,6 +328,10 @@ func cpes2products(c *Cache, cpes []CpeID, nameID NameID, modules []ModuleStream
 	for _, cpe := range cpes {
 		// create unfixed products for every CPE, unfixed product has PackageID=0
 		for srcNameID := range c.NameID2SrcNameIDs[nameID] {
+			srcName := c.ID2Packagename[srcNameID]
+			if opts.excludedPackages[srcName] {
+				continue
+			}
 			productsUnfixed = append(productsUnfixed, productsWithUnfixedCVEs(c, cpe, srcNameID, modules)...)
 		}
 		// create fixed products for every CPE
