@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.9.1 (2024-08-27)
+
+### Fix
+
+* **csaf:** Duplicate cpes while processing ([`f4fde94`](https://github.com/RedHatInsights/vmaas-lib/commit/f4fde94b05e10875836dc41c13fa0e8932dcc9f0))
+
 ## v1.9.0 (2024-08-22)
 
 ### Feature
