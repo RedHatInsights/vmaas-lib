@@ -259,35 +259,27 @@ func (r *ProcessedRequest) processRepos(c *Cache) {
 	repoIDs, newerReleaseverRepoIDs, contentSetIDs := repos2IDs(c, r.OriginalRequest)
 	cpes := repos2cpes(c, repoIDs)
 	newerReleaseverCpes := repos2cpes(c, newerReleaseverRepoIDs)
+	csCpes := []CpeID{}
+	if r.OriginalRequest.UseCsaf {
+		// cpes of content sets are needed only for CSAF
+		csCpes = contentSets2cpes(c, contentSetIDs)
+	}
 	r.Cpes = cpes
 	r.NewerReleaseverCpes = newerReleaseverCpes
 	r.ContentSets = contentSetIDs
+	r.ContentSetsCpes = csCpes
 }
 
 func (r *ProcessedRequest) processProducts(c *Cache, opts *options) []ProductsPackage {
 	productsPackages := make([]ProductsPackage, 0)
 	if r.OriginalRequest.UseCsaf {
-		csCpes := make([]CpeID, 0)
-		for _, csID := range r.ContentSets {
-			if cpes, has := c.ContentSetID2CpeIDs[csID]; has {
-				for cpeID, cpeLabel := range c.CpeID2Label {
-					for _, cpe := range cpes {
-						csCpe := c.CpeID2Label[cpe]
-						if cpeMatch(cpeLabel, csCpe) {
-							csCpes = append(csCpes, cpeID)
-						}
-					}
-				}
-			}
-		}
-
 		for _, pkg := range r.Packages {
 			nameID := c.Packagename2ID[pkg.Nevra.Name]
 			products := cpes2products(c, r.Cpes, nameID, r.Updates.ModuleList, pkg, opts)
 
 			if (len(products.ProductsFixed) + len(products.ProductsUnfixed)) == 0 {
 				// use CPEs from Content Sets if we haven't found any products
-				products = cpes2products(c, csCpes, nameID, r.Updates.ModuleList, pkg, opts)
+				products = cpes2products(c, r.ContentSetsCpes, nameID, r.Updates.ModuleList, pkg, opts)
 			}
 			productsPackages = append(productsPackages, products)
 		}
@@ -419,30 +411,42 @@ func cpeMatch(l, r CpeLabel) bool {
 	return lParsed.match(rParsed)
 }
 
-func repos2cpes(c *Cache, repoIDs []RepoID) []CpeID {
+func allMatchingCpes(c *Cache, repoCpes []CpeID) []CpeID {
 	res := make([]CpeID, 0)
+	if len(repoCpes) > 0 {
+		for cpeID, cpeLabel := range c.CpeID2Label {
+			for _, repoCpeID := range repoCpes {
+				repoCpe := c.CpeID2Label[repoCpeID]
+				if cpeMatch(cpeLabel, repoCpe) {
+					res = append(res, cpeID)
+					break
+				}
+			}
+		}
+	}
+	return res
+}
+
+func repos2cpes(c *Cache, repoIDs []RepoID) []CpeID {
 	repoCpes := make([]CpeID, 0)
-	uniqCpes := make(map[CpeID]bool)
 	for _, repoID := range repoIDs {
 		if cpes, has := c.RepoID2CpeIDs[repoID]; has {
 			repoCpes = append(repoCpes, cpes...)
 		}
 	}
 
-	if len(repoCpes) > 0 {
-		for cpeID, cpeLabel := range c.CpeID2Label {
-			for _, repoCpeID := range repoCpes {
-				repoCpe := c.CpeID2Label[repoCpeID]
-				if cpeMatch(cpeLabel, repoCpe) {
-					if !uniqCpes[cpeID] {
-						res = append(res, cpeID)
-						uniqCpes[cpeID] = true
-					}
-				}
-			}
+	return allMatchingCpes(c, repoCpes)
+}
+
+func contentSets2cpes(c *Cache, csIDs []ContentSetID) []CpeID {
+	csCpes := make([]CpeID, 0)
+	for _, csID := range csIDs {
+		if cpes, has := c.ContentSetID2CpeIDs[csID]; has {
+			csCpes = append(csCpes, cpes...)
 		}
 	}
-	return res
+
+	return allMatchingCpes(c, csCpes)
 }
 
 func productsWithUnfixedCVEs(c *Cache, cpe CpeID, nameID NameID, modules []ModuleStream) []CSAFProduct {

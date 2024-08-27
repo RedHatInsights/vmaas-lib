@@ -19,6 +19,7 @@ type ProcessedRequest struct {
 	Packages            []NevraString
 	Cpes                []CpeID
 	NewerReleaseverCpes []CpeID
+	ContentSetsCpes     []CpeID
 	ContentSets         []ContentSetID
 	OriginalRequest     *Request
 }
