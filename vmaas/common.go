@@ -1,18 +1,38 @@
 package vmaas
 
 import (
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
 )
 
 const SecurityErrataType = "security"
 
-var ErrProcessingInput = errors.New("processing input")
+var (
+	ErrProcessingInput = errors.New("processing input")
+	ReleaseverRegex    = regexp.MustCompile(`^\d+\.\d+$`)
+)
+
+type repoIDMaps struct {
+	currentReleasever map[RepoID]bool
+	newerReleasever   map[RepoID]bool
+}
+
+type repoIDSlices struct {
+	currentReleasever []RepoID
+	newerReleasever   []RepoID
+}
+
+type repoIDReleasevers struct {
+	currentReleasever RepoID
+	newerReleasever   RepoID
+}
 
 type ProcessedRequest struct {
 	Updates             *Updates
@@ -110,7 +130,7 @@ func processInputPackages(c *Cache, request *Request) ([]NevraString, UpdateList
 }
 
 func processUpdates(c *Cache, opts *options, updateList UpdateList, packages []NevraString,
-	repoIDs map[RepoID]bool, moduleIDs map[int]bool, r *Request,
+	repoIDs repoIDMaps, moduleIDs map[int]bool, r *Request,
 ) UpdateList {
 	type pkgUpdates struct {
 		UpdateDetail
@@ -142,14 +162,13 @@ func processUpdates(c *Cache, opts *options, updateList UpdateList, packages []N
 	return updateList
 }
 
-func processPackagesUpdates(c *Cache, opts *options, nevra utils.Nevra, repoIDs map[RepoID]bool,
+func processPackagesUpdates(c *Cache, opts *options, nevra utils.Nevra, repoIDs repoIDMaps,
 	moduleIDs map[int]bool, r *Request,
 ) UpdateDetail {
 	updateDetail := UpdateDetail{}
 	nevraIDs := extractNevraIDs(c, &nevra)
 
 	var updatePkgIDs []PkgID
-	var filteredRepos []RepoID
 	pkgFromModule := false
 	if len(nevraIDs.EvrIDs) > 0 {
 		// nevraUpdates
@@ -165,7 +184,7 @@ func processPackagesUpdates(c *Cache, opts *options, nevra utils.Nevra, repoIDs 
 	}
 
 	// get repositories for update packages
-	filteredRepos = repositoriesByPkgs(c, opts, updatePkgIDs, repoIDs)
+	filteredRepos := repositoriesByPkgs(c, opts, updatePkgIDs, repoIDs)
 
 	for _, u := range updatePkgIDs {
 		pkgUpdates(c, u, nevraIDs.ArchID, r.SecurityOnly, moduleIDs,
@@ -194,7 +213,7 @@ func processPackagesUpdates(c *Cache, opts *options, nevra utils.Nevra, repoIDs 
 }
 
 func pkgUpdates(c *Cache, pkgID PkgID, archID ArchID, securityOnly bool, modules map[int]bool,
-	repoIDs []RepoID, thirdparty bool, currentPkgFromModule bool, updateDetail *UpdateDetail,
+	repoIDs repoIDSlices, thirdparty bool, currentPkgFromModule bool, updateDetail *UpdateDetail,
 ) {
 	if archID == 0 {
 		return
@@ -223,7 +242,7 @@ func pkgUpdates(c *Cache, pkgID PkgID, archID ArchID, securityOnly bool, modules
 }
 
 func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErratumID, modules map[int]bool,
-	repoIDs []RepoID, nevra utils.Nevra, securityOnly, thirdparty bool, currentPkgFromModule bool,
+	repoIDs repoIDSlices, nevra utils.Nevra, securityOnly, thirdparty bool, currentPkgFromModule bool,
 	updateDetail *UpdateDetail,
 ) {
 	erratumName := c.ErratumID2Name[erratumID]
@@ -255,32 +274,41 @@ func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErratumID, modules map[in
 	}
 
 	repos := filterErrataRepos(c, erratumID, repoIDs)
-	for _, r := range repos {
-		// filter out update package if it does not exist in the enabled repo
-		pkgInRepo := false
-		pkgRepos := c.PkgID2RepoIDs[pkgID]
-		for _, pkgRepo := range pkgRepos {
-			if r == pkgRepo {
-				pkgInRepo = true
-				break
-			}
-		}
-		if !pkgInRepo {
-			continue
-		}
-
-		details := c.RepoDetails[r]
-		updateDetail.AvailableUpdates = append(updateDetail.AvailableUpdates, Update{
-			Package:     nevra.String(),
-			PackageName: nevra.Name,
-			EVRA:        nevra.EVRAStringE(true),
-			Erratum:     erratumName,
-			Repository:  details.Label,
-			Basearch:    details.Basearch,
-			Releasever:  details.Releasever,
-			nevra:       nevra,
-		})
+	for _, r := range repos.currentReleasever {
+		buildUpdateDetail(c, r, pkgID, nevra, erratumName, false, updateDetail)
 	}
+	for _, r := range repos.newerReleasever {
+		buildUpdateDetail(c, r, pkgID, nevra, erratumName, true, updateDetail)
+	}
+}
+
+func buildUpdateDetail(c *Cache, repoID RepoID, pkgID PkgID, nevra utils.Nevra,
+	erratumName string, manuallyFixable bool, updateDetail *UpdateDetail,
+) {
+	// filter out update package if it does not exist in the enabled repo
+	pkgInRepo := false
+	pkgRepos := c.PkgID2RepoIDs[pkgID]
+	for _, pkgRepo := range pkgRepos {
+		if repoID == pkgRepo {
+			pkgInRepo = true
+			break
+		}
+	}
+	if !pkgInRepo {
+		return
+	}
+	details := c.RepoDetails[repoID]
+	updateDetail.AvailableUpdates = append(updateDetail.AvailableUpdates, Update{
+		Package:         nevra.String(),
+		PackageName:     nevra.Name,
+		EVRA:            nevra.EVRAStringE(true),
+		Erratum:         erratumName,
+		Repository:      details.Label,
+		Basearch:        details.Basearch,
+		Releasever:      details.Releasever,
+		nevra:           nevra,
+		manuallyFixable: manuallyFixable,
+	})
 }
 
 // Decide whether the errata should be filtered base on 'security only' rule
@@ -292,10 +320,11 @@ func filterNonSecurity(errataDetail ErratumDetail, securityOnly bool) bool {
 	return !isSecurity
 }
 
-func repositoriesByPkgs(c *Cache, opts *options, pkgIDs []PkgID, repoIDs map[RepoID]bool) []RepoID {
-	res := []RepoID{}
-	seen := map[RepoID]bool{}
-	repos := make(chan RepoID)
+func repositoriesByPkgs(c *Cache, opts *options, pkgIDs []PkgID, repoIDs repoIDMaps) repoIDSlices {
+	res := repoIDSlices{make([]RepoID, 0), make([]RepoID, 0)}
+	seenCurrent := map[RepoID]bool{}
+	seenNewer := map[RepoID]bool{}
+	repos := make(chan repoIDReleasevers)
 	wg := sync.WaitGroup{}
 	maxGoroutines := make(chan struct{}, opts.maxGoroutines)
 	for _, p := range pkgIDs {
@@ -312,29 +341,45 @@ func repositoriesByPkgs(c *Cache, opts *options, pkgIDs []PkgID, repoIDs map[Rep
 		close(repos)
 	}()
 	for r := range repos {
-		if !seen[r] {
-			seen[r] = true
-			res = append(res, r)
+		if r.currentReleasever != 0 && !seenCurrent[r.currentReleasever] {
+			seenCurrent[r.currentReleasever] = true
+			res.currentReleasever = append(res.currentReleasever, r.currentReleasever)
+		}
+		if r.newerReleasever != 0 && !seenNewer[r.newerReleasever] {
+			seenNewer[r.newerReleasever] = true
+			res.newerReleasever = append(res.newerReleasever, r.newerReleasever)
 		}
 	}
 	return res
 }
 
-func filterPkgRepos(c *Cache, pkgID PkgID, repoIDs map[RepoID]bool, res chan RepoID) {
+func filterPkgRepos(c *Cache, pkgID PkgID, repoIDs repoIDMaps, repos chan repoIDReleasevers) {
 	pkgRepos := c.PkgID2RepoIDs[pkgID]
 	for _, r := range pkgRepos {
-		if repoIDs[r] {
-			res <- r
+		repo := repoIDReleasevers{}
+		if repoIDs.currentReleasever[r] {
+			repo.currentReleasever = r
+		}
+		if repoIDs.newerReleasever[r] {
+			repo.newerReleasever = r
+		}
+		if repo.currentReleasever != 0 || repo.newerReleasever != 0 {
+			repos <- repo
 		}
 	}
 }
 
-func filterErrataRepos(c *Cache, erratumID ErratumID, pkgRepos []RepoID) []RepoID {
+func filterErrataRepos(c *Cache, erratumID ErratumID, pkgRepos repoIDSlices) repoIDSlices {
 	erratumRepos := c.ErratumID2RepoIDs[erratumID]
-	result := []RepoID{}
-	for _, rid := range pkgRepos {
+	result := repoIDSlices{make([]RepoID, 0), make([]RepoID, 0)}
+	for _, rid := range pkgRepos.currentReleasever {
 		if erratumRepos[rid] {
-			result = append(result, rid)
+			result.currentReleasever = append(result.currentReleasever, rid)
+		}
+	}
+	for _, rid := range pkgRepos.newerReleasever {
+		if erratumRepos[rid] {
+			result.newerReleasever = append(result.newerReleasever, rid)
 		}
 	}
 
@@ -381,7 +426,7 @@ func optimisticUpdates(c *Cache, nevraIDs *NevraIDs, nevra *utils.Nevra) []PkgID
 	return filteredUpdates
 }
 
-func nevraUpdates(c *Cache, n *NevraIDs, modules map[int]bool, repoIDs map[RepoID]bool) ([]PkgID, bool) {
+func nevraUpdates(c *Cache, n *NevraIDs, modules map[int]bool, repoIDs repoIDMaps) ([]PkgID, bool) {
 	currentNevraPkgID := nevraPkgID(c, n)
 	// Package with given NEVRA not found in cache/DB
 	if currentNevraPkgID == 0 {
@@ -416,15 +461,23 @@ func nevraPkgID(c *Cache, n *NevraIDs) PkgID {
 	return nPkgID
 }
 
-func isPkgFromEnabledModule(c *Cache, pkgID PkgID, modules map[int]bool, repoIDs map[RepoID]bool) bool {
+func isPkgFromEnabledModule(c *Cache, pkgID PkgID, modules map[int]bool, repoIDs repoIDMaps) bool {
 	errata := c.PkgID2ErrataIDs[pkgID]
 	for _, eid := range errata {
 		erratumRepos := c.ErratumID2RepoIDs[eid]
 		validRepo := false
-		for r := range repoIDs {
+		for r := range repoIDs.currentReleasever {
 			if erratumRepos[r] {
 				validRepo = true
 				break
+			}
+		}
+		if !validRepo {
+			for r := range repoIDs.newerReleasever {
+				if erratumRepos[r] {
+					validRepo = true
+					break
+				}
 			}
 		}
 		if !validRepo {
@@ -490,22 +543,27 @@ func filterPkgList(pkgs []string, latestOnly bool) []string {
 	return filtered
 }
 
-func getRepoIDs(c *Cache, u *Updates) map[RepoID]bool {
-	res := map[RepoID]bool{}
+func getRepoIDs(c *Cache, u *Updates) repoIDMaps { //nolint: gocognit
+	current := map[RepoID]bool{}
+	newer := map[RepoID]bool{}
 	if u.RepoList == nil && len(u.RepoPaths) == 0 {
 		for _, r := range c.RepoIDs {
 			if passReleasever(c, u.Releasever, r) && passBasearch(c, u.Basearch, r) {
-				res[r] = true
+				current[r] = true
+			} else if passBasearch(c, u.Basearch, r) && isNewerReleasever(c, u.Releasever, r) {
+				newer[r] = true
 			}
 		}
 	}
 	if u.RepoList != nil {
-		res = make(map[RepoID]bool, len(*u.RepoList))
+		current = make(map[RepoID]bool, len(*u.RepoList))
 		for _, label := range *u.RepoList {
 			repoIDsCache := c.RepoLabel2IDs[label]
 			for _, r := range repoIDsCache {
-				if !res[r] && passReleasever(c, u.Releasever, r) && passBasearch(c, u.Basearch, r) {
-					res[r] = true
+				if !current[r] && passReleasever(c, u.Releasever, r) && passBasearch(c, u.Basearch, r) {
+					current[r] = true
+				} else if !newer[r] && passBasearch(c, u.Basearch, r) && isNewerReleasever(c, u.Releasever, r) {
+					newer[r] = true
 				}
 			}
 		}
@@ -514,12 +572,14 @@ func getRepoIDs(c *Cache, u *Updates) map[RepoID]bool {
 		path = strings.TrimSuffix(path, "/")
 		repoIDsCache := c.RepoPath2IDs[path]
 		for _, r := range repoIDsCache {
-			if !res[r] && passReleasever(c, u.Releasever, r) && passBasearch(c, u.Basearch, r) {
-				res[r] = true
+			if !current[r] && passReleasever(c, u.Releasever, r) && passBasearch(c, u.Basearch, r) {
+				current[r] = true
+			} else if !newer[r] && passBasearch(c, u.Basearch, r) && isNewerReleasever(c, u.Releasever, r) {
+				newer[r] = true
 			}
 		}
 	}
-	return res
+	return repoIDMaps{current, newer}
 }
 
 func passReleasever(c *Cache, releasever *string, repoID RepoID) bool {
@@ -542,6 +602,40 @@ func passBasearch(c *Cache, basearch *string, repoID RepoID) bool {
 		return true
 	}
 	return (detail.Basearch == "" && strings.Contains(detail.URL, *basearch)) || detail.Basearch == *basearch
+}
+
+func isNewerReleasever(c *Cache, requestReleasever *string, repoID RepoID) bool {
+	if requestReleasever == nil {
+		return false
+	}
+	if !ReleaseverRegex.MatchString(*requestReleasever) {
+		return false
+	}
+
+	detail, ok := c.RepoDetails[repoID]
+	if !ok {
+		return false
+	}
+	candidateReleasever := detail.Releasever
+	if !ReleaseverRegex.MatchString(candidateReleasever) {
+		return false
+	}
+
+	if candidateReleasever != *requestReleasever {
+		parsedRequestReleasever, err := version.NewVersion(*requestReleasever)
+		if err != nil {
+			return false
+		}
+		parsedCandidateReleasever, err := version.NewVersion(candidateReleasever)
+		if err != nil {
+			return false
+		}
+		// repository with higher releasever
+		if parsedCandidateReleasever.GreaterThan(parsedRequestReleasever) {
+			return true
+		}
+	}
+	return false
 }
 
 func getModules(c *Cache, modules []ModuleStream) map[int]bool {

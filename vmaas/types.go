@@ -60,6 +60,8 @@ type Update struct {
 	Releasever  string `json:"releasever"`
 	// helper for sorting
 	nevra utils.Nevra `json:"-"`
+	// helper to determine manually fixable errata/cves
+	manuallyFixable bool `json:"-"`
 }
 
 type UpdateDetail struct {
