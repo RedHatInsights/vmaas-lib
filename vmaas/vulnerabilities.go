@@ -131,6 +131,7 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 	// if CVE is already in Unpatched list -> skip it
 	updates := processed.evaluateRepositories(c, opts)
 	seenPkgErratum := map[packageErratum]bool{}
+	tmpManualCves := map[string]VulnerabilityDetail{}
 	for pkg, upDetail := range updates.UpdateList {
 		for _, update := range upDetail.AvailableUpdates {
 			pe := packageErratum{pkg, update.Erratum}
@@ -142,8 +143,18 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 				if _, inUnpatchedCves := cves.UnpatchedCves[cve]; inUnpatchedCves {
 					continue
 				}
-				updateCves(cves.Cves, cve, Package{String: pkg}, []string{update.Erratum}, "", nil)
+				if update.manuallyFixable {
+					updateCves(tmpManualCves, cve, Package{String: pkg}, []string{update.Erratum}, "", nil)
+				} else {
+					updateCves(cves.Cves, cve, Package{String: pkg}, []string{update.Erratum}, "", nil)
+				}
 			}
+		}
+	}
+	// store to cves.ManualCves only CVEs not found in cves.Cves
+	for cve, detail := range tmpManualCves {
+		if _, ok := cves.Cves[cve]; !ok {
+			cves.ManualCves[cve] = detail
 		}
 	}
 
