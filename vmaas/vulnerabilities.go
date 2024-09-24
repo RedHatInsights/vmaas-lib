@@ -179,7 +179,11 @@ func evaluateUnpatchedCves(c *Cache, products []ProductsPackage, cves *Vulnerabi
 			cn := CpeIDNameID{CpeID: product.CpeID, NameID: product.PackageNameID}
 			csafCves := c.CSAFCVEs[cn][product]
 			for _, cveID := range csafCves.Unfixed {
-				cve := c.CveNames[int(cveID)]
+				cve, ok := c.CveNames[int(cveID)]
+				if !ok {
+					utils.LogWarn("cve_id", cveID, "Missing cve_id to name mapping, CVE might be removed by ProdSec")
+					continue
+				}
 				cpe := c.CpeID2Label[product.CpeID]
 				if module.Module != "" {
 					updateCves(cves.UnpatchedCves, cve, pp.Package, nil, cpe, &module)
@@ -204,7 +208,11 @@ func evaluateManualCves(c *Cache, products []ProductsPackage, cves *Vulnerabilit
 			cn := CpeIDNameID{CpeID: product.CpeID, NameID: pp.Package.NameID}
 			csafCves := c.CSAFCVEs[cn][product]
 			for _, cveID := range csafCves.Fixed {
-				cve := c.CveNames[int(cveID)]
+				cve, ok := c.CveNames[int(cveID)]
+				if !ok {
+					utils.LogWarn("cve_id", cveID, "Missing cve_id to name mapping, CVE might be removed by ProdSec")
+					continue
+				}
 				_, inCves := cves.Cves[cve]
 				_, inUnpatchedCves := cves.UnpatchedCves[cve]
 				if !(inCves || inUnpatchedCves) {
