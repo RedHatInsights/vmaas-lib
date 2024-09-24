@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.9.2 (2024-09-24)
+
+### Fix
+
+* Skip cves missing in mapping ([`bfc8561`](https://github.com/RedHatInsights/vmaas-lib/commit/bfc8561e8d14b5a3c261cc2a3a751fe7613cf8b8))
+
 ## v1.9.1 (2024-08-27)
 
 ### Fix
