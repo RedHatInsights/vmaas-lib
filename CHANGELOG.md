@@ -2,6 +2,18 @@
 
 <!--next-version-placeholder-->
 
+## v1.10.0 (2024-09-25)
+
+### Feature
+
+* Return manually fixable cves from repositories in vulnerabilities receiver ([`986be63`](https://github.com/RedHatInsights/vmaas-lib/commit/986be63d5b097820a3a96bb0d4eff40edcd86017))
+* Return only fixable updates from updates receiver ([`357badd`](https://github.com/RedHatInsights/vmaas-lib/commit/357badd9b64603b0e2f9b5bbda7696fb9ac69fa1))
+* Find updates in repos with newer releasever ([`cb5df58`](https://github.com/RedHatInsights/vmaas-lib/commit/cb5df58478354f9c7a6a35fbd88380d935deda81))
+
+### Fix
+
+* **csaf:** Use cpes from newer release ver for eus updates ([`f6f726e`](https://github.com/RedHatInsights/vmaas-lib/commit/f6f726e92a92469086db605a28b05829ac33321e))
+
 ## v1.9.2 (2024-09-24)
 
 ### Fix
