@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.10.1 (2024-09-25)
+
+### Fix
+
+* **udpates:** Slice allocation ([`214fb7a`](https://github.com/RedHatInsights/vmaas-lib/commit/214fb7a812f7b5ef6666018b4f86050966487e63))
+
 ## v1.10.0 (2024-09-25)
 
 ### Feature
