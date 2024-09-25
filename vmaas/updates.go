@@ -26,7 +26,7 @@ func (r *Request) updates(c *Cache, opts *options) (*Updates, error) {
 		LastChange: updates.LastChange,
 	}
 	for pkg, detail := range updates.UpdateList {
-		updates := make([]Update, len(detail.AvailableUpdates))
+		updates := make([]Update, 0, len(detail.AvailableUpdates))
 		for _, u := range detail.AvailableUpdates {
 			if !u.manuallyFixable {
 				updates = append(updates, u)
