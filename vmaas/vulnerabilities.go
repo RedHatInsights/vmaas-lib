@@ -60,6 +60,7 @@ type Package struct {
 type packageErratum struct {
 	pkg     string
 	erratum string
+	manual  bool
 }
 
 func (r *Request) vulnerabilities(c *Cache, opts *options) (*Vulnerabilities, error) {
@@ -134,7 +135,7 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 	tmpManualCves := map[string]VulnerabilityDetail{}
 	for pkg, upDetail := range updates.UpdateList {
 		for _, update := range upDetail.AvailableUpdates {
-			pe := packageErratum{pkg, update.Erratum}
+			pe := packageErratum{pkg, update.Erratum, update.manuallyFixable}
 			if seenPkgErratum[pe] {
 				continue
 			}
