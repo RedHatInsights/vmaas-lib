@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.10.2 (2024-09-27)
+
+### Fix
+
+* Iterate over all fixable and manually fixable errata ([`5767402`](https://github.com/RedHatInsights/vmaas-lib/commit/5767402f254e004402e468c94a552527995478a2))
+
 ## v1.10.1 (2024-09-25)
 
 ### Fix
