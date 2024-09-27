@@ -6,6 +6,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
@@ -186,7 +187,14 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 
 func evaluateUnpatchedCves(c *Cache, products []ProductsPackage, cves *VulnerabilitiesCvesDetails) {
 	for _, pp := range products {
+		seenProducts := make(map[CSAFProduct]bool, len(pp.ProductsUnfixed))
 		for _, product := range pp.ProductsUnfixed {
+			if seenProducts[product] {
+				// duplicate product in pp.ProductsUnfixed
+				// skip processing of already processed product
+				continue
+			}
+			seenProducts[product] = true
 			module := product.ModuleStream
 			cn := CpeIDNameID{CpeID: product.CpeID, NameID: product.PackageNameID}
 			csafCves := c.CSAFCVEs[cn][product]
@@ -210,7 +218,14 @@ func evaluateUnpatchedCves(c *Cache, products []ProductsPackage, cves *Vulnerabi
 func evaluateManualCves(c *Cache, products []ProductsPackage, cves *VulnerabilitiesCvesDetails) {
 	for _, pp := range products {
 		pp := pp // make copy because &pp is used
+		seenProducts := make(map[CSAFProduct]bool, len(pp.ProductsFixed))
 		for _, product := range pp.ProductsFixed {
+			if seenProducts[product] {
+				// duplicate product in pp.ProductsFixed
+				// skip processing of already processed product
+				continue
+			}
+			seenProducts[product] = true
 			updateNevra := pkgID2Nevra(c, product.PackageID)
 			if !isApplicable(c, &updateNevra, &pp.Package.Nevra) {
 				continue
@@ -766,7 +781,21 @@ func updateCves(cves map[string]VulnerabilityDetail, cve string, pkg Package, er
 			affectedPackage.ModuleStreamPtrs.Module = &module.Module
 			affectedPackage.ModuleStreamPtrs.Stream = &module.Stream
 		}
-		vulnDetail.Affected = append(vulnDetail.Affected, affectedPackage)
+		vulnDetail.Affected = appendUniq(vulnDetail.Affected, &affectedPackage)
 	}
 	cves[cve] = vulnDetail
+}
+
+func appendUniq(affected []AffectedPackage, item *AffectedPackage) []AffectedPackage {
+	if item == nil {
+		return affected
+	}
+
+	for _, a := range affected {
+		if cmp.Equal(a, *item) {
+			return affected
+		}
+	}
+	affected = append(affected, *item)
+	return affected
 }
