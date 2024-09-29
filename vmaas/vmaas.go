@@ -54,6 +54,10 @@ func (api *API) VulnerabilitiesExtended(request *Request) (*VulnerabilitiesExten
 	return request.vulnerabilitiesExtended(api.Cache, api.options)
 }
 
+func (api *API) Cves(request *CvesRequest) (*Cves, error) {
+	return request.cves(api.Cache)
+}
+
 func (api *API) LoadCacheFromFile(cachePath string) error {
 	var err error
 	api.Cache, err = loadCache(cachePath, api.options)
