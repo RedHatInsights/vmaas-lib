@@ -505,6 +505,7 @@ func loadErrata(c *Cache) {
 	c.ErratumID2Name = erratumID2Name
 }
 
+//nolint:lll
 func loadCves(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "CveDetail")
 
@@ -512,19 +513,26 @@ func loadCves(c *Cache) {
 	cveID2pkg := loadInt2Ints("cve_pkg", "cve_id,pkg_id", "cveID2pkg")
 	cve2eid := loadString2Ints("errata_cve", "cve,errata_id", "cve2eid")
 
-	rows := getAllRows("cve_detail", "*")
+	rows := getAllRows("cve_detail", "id, name, COALESCE(redhat_url, ''), COALESCE(secondary_url, ''), COALESCE(cvss3_score, ''), COALESCE(cvss3_metrics, ''), impact, COALESCE(published_date, ''), COALESCE(modified_date, ''), COALESCE(iava, ''), description, COALESCE(cvss2_score, ''), COALESCE(cvss2_metrics, ''), source")
 	cnt := getCount("cve_detail", "*")
 	cveDetails := make(map[string]CveDetail, cnt)
 	cveNames := make(map[int]string, cnt)
 	var cveID int
-	var cveName string
+	var publishedDateStr, modifiedDateStr string
 	for rows.Next() {
 		var det CveDetail
-		err := rows.Scan(&cveID, &cveName, &det.RedHatURL, &det.SecondaryURL, &det.Cvss3Score, &det.Cvss3Metrics,
-			&det.Impact, &det.PublishedDate, &det.ModifiedDate, &det.Iava, &det.Description, &det.Cvss2Score,
+		err := rows.Scan(&cveID, &det.Name, &det.RedHatURL, &det.SecondaryURL, &det.Cvss3Score, &det.Cvss3Metrics,
+			&det.Impact, &publishedDateStr, &modifiedDateStr, &det.Iava, &det.Description, &det.Cvss2Score,
 			&det.Cvss2Metrics, &det.Source)
 		if err != nil {
 			panic(err)
+		}
+
+		if publishedDate, err := time.Parse(time.RFC3339, publishedDateStr); err == nil {
+			det.PublishedDate = &publishedDate
+		}
+		if modifiedDate, err := time.Parse(time.RFC3339, modifiedDateStr); err == nil {
+			det.ModifiedDate = &modifiedDate
 		}
 
 		cwes, ok := cveID2cwes[cveID]
@@ -538,12 +546,12 @@ func loadCves(c *Cache) {
 			det.PkgIDs = pkgs
 		}
 
-		eids, ok := cve2eid[cveName]
+		eids, ok := cve2eid[det.Name]
 		if ok {
 			det.ErrataIDs = eids
 		}
-		cveDetails[cveName] = det
-		cveNames[cveID] = cveName
+		cveDetails[det.Name] = det
+		cveNames[cveID] = det.Name
 	}
 	c.CveDetail = cveDetails
 	c.CveNames = cveNames
