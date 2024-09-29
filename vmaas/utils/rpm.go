@@ -78,10 +78,10 @@ func ParseNameEVRA(name, evra string, epochRequired bool) (Nevra, error) {
 }
 
 func (n *Nevra) StringE(showEpoch bool) string {
-	if n.Epoch != 0 || showEpoch {
-		return fmt.Sprintf("%s-%d:%s-%s.%s", n.Name, n.Epoch, n.Version, n.Release, n.Arch)
+	if evra := n.EVRAStringE(showEpoch); n.Name != "" && evra != "" {
+		return fmt.Sprintf("%s-%s", n.Name, evra)
 	}
-	return fmt.Sprintf("%s-%s-%s.%s", n.Name, n.Version, n.Release, n.Arch)
+	return ""
 }
 
 func (n *Nevra) String() string {
@@ -89,6 +89,9 @@ func (n *Nevra) String() string {
 }
 
 func (n *Nevra) EVRStringE(showEpoch bool) string {
+	if n.Epoch == 0 && n.Version == "" && n.Release == "" {
+		return ""
+	}
 	if n.Epoch != 0 || showEpoch {
 		return fmt.Sprintf("%d:%s-%s", n.Epoch, n.Version, n.Release)
 	}
@@ -100,10 +103,10 @@ func (n *Nevra) EVRString() string {
 }
 
 func (n *Nevra) EVRAStringE(showEpoch bool) string {
-	if n.Epoch != 0 || showEpoch {
-		return fmt.Sprintf("%d:%s-%s.%s", n.Epoch, n.Version, n.Release, n.Arch)
+	if evr := n.EVRStringE(showEpoch); evr != "" {
+		return fmt.Sprintf("%s.%s", evr, n.Arch)
 	}
-	return fmt.Sprintf("%s-%s.%s", n.Version, n.Release, n.Arch)
+	return ""
 }
 
 func (n *Nevra) EVRAString() string {
