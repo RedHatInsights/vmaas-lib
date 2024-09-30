@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.10.3 (2024-09-30)
+
+### Fix
+
+* Skip processing of duplicate products ([`2cc6f3c`](https://github.com/RedHatInsights/vmaas-lib/commit/2cc6f3c94a248ae1f803bb9039d51a285bd4ba61))
+
 ## v1.10.2 (2024-09-27)
 
 ### Fix
