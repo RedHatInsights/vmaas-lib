@@ -337,10 +337,11 @@ func contentSets2cpes(c *Cache, csIDs []ContentSetID) []CpeID {
 }
 
 func productsWithUnfixedCVEs(c *Cache, cpe CpeID, nameID NameID, modules []ModuleStream) []CSAFProduct {
-	products := make([]CSAFProduct, 0, len(modules)+1)
+	products := make([]CSAFProduct, 0, len(modules))
 	cn := CpeIDNameID{CpeID: cpe, NameID: nameID}
+	product := CSAFProduct{CpeID: cpe, PackageNameID: nameID}
 	for _, ms := range modules {
-		product := CSAFProduct{CpeID: cpe, PackageNameID: nameID, ModuleStream: ms}
+		product.ModuleStream = ms
 		if _, ok := c.CSAFCVEs[cn][product]; ok {
 			products = append(products, product)
 		}
