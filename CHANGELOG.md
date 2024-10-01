@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.11.0 (2024-10-01)
+
+### Feature
+
+* Remove oval evaluation ([`1ec86dc`](https://github.com/RedHatInsights/vmaas-lib/commit/1ec86dca7374f465fe1be24f1805eb0a52030255))
+
 ## v1.10.3 (2024-09-30)
 
 ### Fix
