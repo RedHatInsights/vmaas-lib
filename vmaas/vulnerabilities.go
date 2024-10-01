@@ -4,7 +4,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
@@ -438,21 +437,7 @@ func updateCves(cves map[string]VulnerabilityDetail, cve string, pkg Package, er
 			affectedPackage.ModuleStreamPtrs.Module = &module.Module
 			affectedPackage.ModuleStreamPtrs.Stream = &module.Stream
 		}
-		vulnDetail.Affected = appendUniq(vulnDetail.Affected, &affectedPackage)
+		vulnDetail.Affected = append(vulnDetail.Affected, affectedPackage)
 	}
 	cves[cve] = vulnDetail
-}
-
-func appendUniq(affected []AffectedPackage, item *AffectedPackage) []AffectedPackage {
-	if item == nil {
-		return affected
-	}
-
-	for _, a := range affected {
-		if cmp.Equal(a, *item) {
-			return affected
-		}
-	}
-	affected = append(affected, *item)
-	return affected
 }
