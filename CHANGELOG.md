@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.11.1 (2024-10-01)
+
+### Fix
+
+* Revert appendUniq due to performance hit ([`cda7483`](https://github.com/RedHatInsights/vmaas-lib/commit/cda7483d6c53b2919b57741b77efe0ecb850e132))
+
 ## v1.11.0 (2024-10-01)
 
 ### Feature
