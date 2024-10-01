@@ -4,7 +4,6 @@ go 1.21
 
 require (
 	github.com/ezamriy/gorpm v0.0.0-20160905202458-25f7273cbf51
-	github.com/google/go-cmp v0.6.0
 	github.com/hashicorp/go-version v1.7.0
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/pkg/errors v0.9.1
