@@ -63,7 +63,7 @@ func (r *Request) vulnerabilitiesExtended(c *Cache, opts *options) (*Vulnerabili
 	return &vuln, nil
 }
 
-func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDetails, error) {
+func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDetails, error) { //nolint: funlen
 	cves := VulnerabilitiesCvesDetails{
 		Cves:          make(map[string]VulnerabilityDetail),
 		ManualCves:    make(map[string]VulnerabilityDetail),
