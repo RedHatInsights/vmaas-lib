@@ -207,11 +207,8 @@ func (r *ProcessedRequest) processRepos(c *Cache) {
 	repoIDs, newerReleaseverRepoIDs, contentSetIDs := repos2IDs(c, r.OriginalRequest)
 	cpes := repos2cpes(c, repoIDs)
 	newerReleaseverCpes := repos2cpes(c, newerReleaseverRepoIDs)
-	csCpes := []CpeID{}
-	if r.OriginalRequest.UseCsaf {
-		// cpes of content sets are needed only for CSAF
-		csCpes = contentSets2cpes(c, contentSetIDs)
-	}
+	// cpes of content sets are needed only for CSAF
+	csCpes := contentSets2cpes(c, contentSetIDs)
 	r.Cpes = cpes
 	r.NewerReleaseverCpes = newerReleaseverCpes
 	r.ContentSets = contentSetIDs
@@ -220,23 +217,21 @@ func (r *ProcessedRequest) processRepos(c *Cache) {
 
 func (r *ProcessedRequest) processProducts(c *Cache, opts *options) []ProductsPackage {
 	productsPackages := make([]ProductsPackage, 0)
-	if r.OriginalRequest.UseCsaf {
-		for _, pkg := range r.Packages {
-			nameID := c.Packagename2ID[pkg.Nevra.Name]
-			products := cpes2products(c, r.Cpes, nameID, r.Updates.ModuleList, pkg, opts)
-			if opts.newerReleaseverCsaf && len(r.Cpes) > 0 {
-				// look at newer releasever cpes only when there is a CPE hit for EUS repo
-				newerReleaseverProducts := cpes2products(c, r.NewerReleaseverCpes, nameID, r.Updates.ModuleList, pkg, opts)
-				products.ProductsFixed = append(products.ProductsFixed, newerReleaseverProducts.ProductsFixed...)
-				products.ProductsUnfixed = append(products.ProductsUnfixed, newerReleaseverProducts.ProductsUnfixed...)
-			}
-
-			if len(r.Cpes) == 0 {
-				// use CPEs from Content Sets if we haven't found any Cpes from repos
-				products = cpes2products(c, r.ContentSetsCpes, nameID, r.Updates.ModuleList, pkg, opts)
-			}
-			productsPackages = append(productsPackages, products)
+	for _, pkg := range r.Packages {
+		nameID := c.Packagename2ID[pkg.Nevra.Name]
+		products := cpes2products(c, r.Cpes, nameID, r.Updates.ModuleList, pkg, opts)
+		if opts.newerReleaseverCsaf && len(r.Cpes) > 0 {
+			// look at newer releasever cpes only when there is a CPE hit for EUS repo
+			newerReleaseverProducts := cpes2products(c, r.NewerReleaseverCpes, nameID, r.Updates.ModuleList, pkg, opts)
+			products.ProductsFixed = append(products.ProductsFixed, newerReleaseverProducts.ProductsFixed...)
+			products.ProductsUnfixed = append(products.ProductsUnfixed, newerReleaseverProducts.ProductsUnfixed...)
 		}
+
+		if len(r.Cpes) == 0 {
+			// use CPEs from Content Sets if we haven't found any Cpes from repos
+			products = cpes2products(c, r.ContentSetsCpes, nameID, r.Updates.ModuleList, pkg, opts)
+		}
+		productsPackages = append(productsPackages, products)
 	}
 	return productsPackages
 }
