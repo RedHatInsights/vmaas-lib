@@ -11,7 +11,6 @@ func main() {
 	request := vmaas.Request{
 		Packages: []string{"kernel-0:3.10.0-957.5.1.el7.x86_64"},
 		Repos:    &repo,
-		UseCsaf:  true,
 	}
 
 	vulnerabilities, _ := api.Vulnerabilities(&request)
