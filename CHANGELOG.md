@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.12.0 (2024-10-15)
+
+### Feature
+
+* Remove use_csaf from request struct ([`41aeae1`](https://github.com/RedHatInsights/vmaas-lib/commit/41aeae109fc82659b3f8c6449489c68cd29d0396))
+
 ## v1.11.3 (2024-10-15)
 
 ### Fix
