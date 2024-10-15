@@ -1,11 +1,13 @@
 package vmaas
 
-var defaultOpts = options{20, true, map[string]bool{"kernel-alt": true}}
+var defaultOpts = options{20, true, map[string]bool{"kernel-alt": true}, true, true}
 
 type options struct {
-	maxGoroutines    int
-	evalUnfixed      bool
-	excludedPackages map[string]bool
+	maxGoroutines        int
+	evalUnfixed          bool
+	excludedPackages     map[string]bool
+	newerReleaseverRepos bool
+	newerReleaseverCsaf  bool
 }
 
 type Option interface {
@@ -51,4 +53,28 @@ func (p excludedPkgsOption) apply(opts *options) {
 // Option to set excluded package names
 func WithExcludedPackages(pkgs map[string]bool) Option {
 	return excludedPkgsOption(pkgs)
+}
+
+type newerReleaseverReposOption bool
+
+func (n newerReleaseverReposOption) apply(opts *options) {
+	opts.newerReleaseverRepos = bool(n)
+}
+
+// Option to look for updates/cves in newer release version
+// when evaluating from repositories
+func WithNewerReleaseverRepos(n bool) Option {
+	return newerReleaseverReposOption(n)
+}
+
+type newerReleaseverCsafOption bool
+
+func (n newerReleaseverCsafOption) apply(opts *options) {
+	opts.newerReleaseverCsaf = bool(n)
+}
+
+// Option to look for updates/cves in newer release version
+// when evaluating from CSAF
+func WithNewerReleaseverCsaf(n bool) Option {
+	return newerReleaseverCsafOption(n)
 }
