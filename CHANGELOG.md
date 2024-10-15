@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.11.2 (2024-10-15)
+
+### Fix
+
+* Reuse product struct for products with unfixed cves ([`986885f`](https://github.com/RedHatInsights/vmaas-lib/commit/986885f95162ecd8277b24f7b4dddf14aa37b922))
+
 ## v1.11.1 (2024-10-01)
 
 ### Fix
