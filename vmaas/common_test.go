@@ -126,13 +126,13 @@ func TestGetRepoIDs(t *testing.T) {
 	}
 
 	// missing repolist, return all repos available in cache
-	res := getRepoIDs(&c, &updates)
+	res := getRepoIDs(&c, &updates, &defaultOpts)
 	assert.Equal(t, 3, len(res.currentReleasever))
 	assert.False(t, hasDuplicities(res.currentReleasever))
 
 	// missing repolist, with releasever
 	updates.Releasever = &x8664
-	res = getRepoIDs(&c, &updates)
+	res = getRepoIDs(&c, &updates, &defaultOpts)
 	assert.Equal(t, 3, len(res.currentReleasever))
 	assert.False(t, hasDuplicities(res.currentReleasever))
 	updates.Releasever = nil
@@ -140,7 +140,7 @@ func TestGetRepoIDs(t *testing.T) {
 	// empty repolist, empty response
 	repolist := []string{}
 	updates.RepoList = &repolist
-	res = getRepoIDs(&c, &updates)
+	res = getRepoIDs(&c, &updates, &defaultOpts)
 	assert.Equal(t, 0, len(res.currentReleasever))
 
 	// labels to ids
@@ -150,24 +150,24 @@ func TestGetRepoIDs(t *testing.T) {
 	}
 	repolist = []string{"repo1", "repo2"}
 	updates.RepoList = &repolist
-	res = getRepoIDs(&c, &updates)
+	res = getRepoIDs(&c, &updates, &defaultOpts)
 	assert.Equal(t, 3, len(res.currentReleasever))
 	assert.False(t, hasDuplicities(res.currentReleasever))
 
 	// releasever & basearch
 	updates.Releasever = &x8664
 	updates.Basearch = &el9
-	res = getRepoIDs(&c, &updates)
+	res = getRepoIDs(&c, &updates, &defaultOpts)
 	assert.Equal(t, 3, len(res.currentReleasever))
 	assert.False(t, hasDuplicities(res.currentReleasever))
 
 	updates.Basearch = nil
-	res = getRepoIDs(&c, &updates)
+	res = getRepoIDs(&c, &updates, &defaultOpts)
 	assert.Equal(t, 3, len(res.currentReleasever))
 	assert.False(t, hasDuplicities(res.currentReleasever))
 
 	updates.Basearch = &other
-	res = getRepoIDs(&c, &updates)
+	res = getRepoIDs(&c, &updates, &defaultOpts)
 	assert.Equal(t, 0, len(res.currentReleasever))
 	assert.False(t, hasDuplicities(res.currentReleasever))
 
@@ -184,7 +184,7 @@ func TestGetRepoIDs(t *testing.T) {
 	updates.Releasever = nil
 	updates.Basearch = nil
 	updates.RepoPaths = []string{"/content/dist/rhel/rhui/server/7/7Server/x86_64/os/"}
-	res = getRepoIDs(&c, &updates)
+	res = getRepoIDs(&c, &updates, &defaultOpts)
 	assert.Equal(t, 4, len(res.currentReleasever))
 	assert.False(t, hasDuplicities(res.currentReleasever))
 	updates.RepoPaths = []string{}
@@ -192,13 +192,13 @@ func TestGetRepoIDs(t *testing.T) {
 	// invalid label
 	invalidRepolist := []string{"invalid"}
 	updates.RepoList = &invalidRepolist
-	res = getRepoIDs(&c, &updates)
+	res = getRepoIDs(&c, &updates, &defaultOpts)
 	assert.Equal(t, 0, len(res.currentReleasever))
 
 	updates.Basearch = nil
 	updates.Releasever = nil
 	updates.RepoList = &invalidRepolist
-	res = getRepoIDs(&c, &updates)
+	res = getRepoIDs(&c, &updates, &defaultOpts)
 	assert.Equal(t, 0, len(res.currentReleasever))
 }
 

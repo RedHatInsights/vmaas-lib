@@ -224,7 +224,7 @@ func (r *ProcessedRequest) processProducts(c *Cache, opts *options) []ProductsPa
 		for _, pkg := range r.Packages {
 			nameID := c.Packagename2ID[pkg.Nevra.Name]
 			products := cpes2products(c, r.Cpes, nameID, r.Updates.ModuleList, pkg, opts)
-			if len(r.Cpes) > 0 {
+			if opts.newerReleaseverCsaf && len(r.Cpes) > 0 {
 				// look at newer releasever cpes only when there is a CPE hit for EUS repo
 				newerReleaseverProducts := cpes2products(c, r.NewerReleaseverCpes, nameID, r.Updates.ModuleList, pkg, opts)
 				products.ProductsFixed = append(products.ProductsFixed, newerReleaseverProducts.ProductsFixed...)

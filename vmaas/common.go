@@ -50,7 +50,7 @@ func (r *ProcessedRequest) evaluateRepositories(c *Cache, opts *options) *Update
 	}
 
 	// Get list of valid repository IDs based on input parameters
-	repoIDs := getRepoIDs(c, r.Updates)
+	repoIDs := getRepoIDs(c, r.Updates, opts)
 
 	moduleIDs := getModules(c, r.Updates.ModuleList)
 
@@ -543,14 +543,14 @@ func filterPkgList(pkgs []string, latestOnly bool) []string {
 	return filtered
 }
 
-func getRepoIDs(c *Cache, u *Updates) repoIDMaps { //nolint: gocognit
+func getRepoIDs(c *Cache, u *Updates, opts *options) repoIDMaps { //nolint: gocognit
 	current := map[RepoID]bool{}
 	newer := map[RepoID]bool{}
 	if u.RepoList == nil && len(u.RepoPaths) == 0 {
 		for _, r := range c.RepoIDs {
 			if passReleasever(c, u.Releasever, r) && passBasearch(c, u.Basearch, r) {
 				current[r] = true
-			} else if passBasearch(c, u.Basearch, r) && isNewerReleasever(c, u.Releasever, r) {
+			} else if passBasearch(c, u.Basearch, r) && isNewerReleasever(c, u.Releasever, r, opts) {
 				newer[r] = true
 			}
 		}
@@ -562,7 +562,7 @@ func getRepoIDs(c *Cache, u *Updates) repoIDMaps { //nolint: gocognit
 			for _, r := range repoIDsCache {
 				if !current[r] && passReleasever(c, u.Releasever, r) && passBasearch(c, u.Basearch, r) {
 					current[r] = true
-				} else if !newer[r] && passBasearch(c, u.Basearch, r) && isNewerReleasever(c, u.Releasever, r) {
+				} else if !newer[r] && passBasearch(c, u.Basearch, r) && isNewerReleasever(c, u.Releasever, r, opts) {
 					newer[r] = true
 				}
 			}
@@ -574,7 +574,7 @@ func getRepoIDs(c *Cache, u *Updates) repoIDMaps { //nolint: gocognit
 		for _, r := range repoIDsCache {
 			if !current[r] && passReleasever(c, u.Releasever, r) && passBasearch(c, u.Basearch, r) {
 				current[r] = true
-			} else if !newer[r] && passBasearch(c, u.Basearch, r) && isNewerReleasever(c, u.Releasever, r) {
+			} else if !newer[r] && passBasearch(c, u.Basearch, r) && isNewerReleasever(c, u.Releasever, r, opts) {
 				newer[r] = true
 			}
 		}
@@ -604,7 +604,10 @@ func passBasearch(c *Cache, basearch *string, repoID RepoID) bool {
 	return (detail.Basearch == "" && strings.Contains(detail.URL, *basearch)) || detail.Basearch == *basearch
 }
 
-func isNewerReleasever(c *Cache, requestReleasever *string, repoID RepoID) bool {
+func isNewerReleasever(c *Cache, requestReleasever *string, repoID RepoID, opts *options) bool {
+	if !opts.newerReleaseverRepos {
+		return false // option is disabled
+	}
 	if requestReleasever == nil {
 		return false
 	}
