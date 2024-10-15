@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.11.3 (2024-10-15)
+
+### Fix
+
+* Options to disable newerReleasever from repos and csaf ([`f737060`](https://github.com/RedHatInsights/vmaas-lib/commit/f73706094a0b3337e296265293e5772f4adc848e))
+
 ## v1.11.2 (2024-10-15)
 
 ### Fix
