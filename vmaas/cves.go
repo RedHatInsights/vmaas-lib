@@ -121,8 +121,6 @@ func (req *CvesRequest) cves(c *Cache) (*Cves, error) { // TODO: implement opts
 	cves = filterInputCves(c, cves, req)
 	cves, paginationDetails := utils.Paginate(cves, req.PageNumber, req.PageSize)
 
-	// TODO: write tests for everything
-
 	res := Cves{
 		Cves:              c.loadCveDetails(cves),
 		LastChange:        c.DBChange.LastChange,
