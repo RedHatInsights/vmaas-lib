@@ -51,6 +51,8 @@ type CvesRequest struct {
 	RHOnly              bool       `json:"rh_only"`
 	AreErrataAssociated bool       `json:"errata_associated"`
 	ThirdParty          bool       `json:"third_party"`
+	PageNumber          int        `json:"page"`
+	PageSize            int        `json:"page_size"`
 }
 
 type Update struct {
