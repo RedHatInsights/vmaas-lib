@@ -58,7 +58,7 @@ func (req *CvesRequest) getSortedCves(c *Cache) ([]string, error) {
 	if len(cves) == 0 {
 		return nil, errors.New("cve_list must contain at least one item")
 	}
-	// TODO: implement expanding by regex
+	cves = utils.TryExpandRegexPattern(cves, c.CveDetail)
 	slices.Sort(cves)
 	return cves, nil
 }
