@@ -106,3 +106,42 @@ func ShouldReload(c *Cache, latestDumpEndpoint string) bool {
 	utils.LogDebug("latest", latest, "exported", exported, "Cache reload not needed")
 	return false
 }
+
+func (c *Cache) errataIDs2Names(eids []int) []string {
+	names := make([]string, 0, len(eids))
+	for _, eid := range eids {
+		names = append(names, c.ErratumID2Name[ErratumID(eid)])
+	}
+	return names
+}
+
+func (c *Cache) pkgDetail2Nevra(pkgDetail PackageDetail) string {
+	evr := c.ID2Evr[pkgDetail.EvrID]
+	nevra := utils.Nevra{
+		Name:    c.ID2Packagename[pkgDetail.NameID],
+		Epoch:   evr.Epoch,
+		Version: evr.Version,
+		Release: evr.Release,
+		Arch:    c.ID2Arch[pkgDetail.ArchID],
+	}
+	return nevra.String()
+}
+
+func (c *Cache) packageIDs2Nevras(pkgIDs []int) ([]string, []string) {
+	binPackages := make([]string, 0, len(pkgIDs))
+	sourcePackages := make([]string, 0, len(pkgIDs))
+	sourceArchID := c.Arch2ID["src"]
+	for _, pkgID := range pkgIDs {
+		pkgDetail := c.PackageDetails[PkgID(pkgID)]
+		nevra := c.pkgDetail2Nevra(pkgDetail)
+		if nevra == "" {
+			continue
+		}
+		if pkgDetail.ArchID == sourceArchID {
+			sourcePackages = append(sourcePackages, nevra)
+		} else {
+			binPackages = append(binPackages, nevra)
+		}
+	}
+	return binPackages, sourcePackages
+}
