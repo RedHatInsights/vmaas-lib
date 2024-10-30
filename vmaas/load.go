@@ -22,9 +22,9 @@ var (
 )
 
 var loadFuncs = []func(c *Cache){
-	loadPkgNames, loadUpdates, loadUpdatesIndex, loadEvrMaps, loadArchs, loadArchCompat, loadPkgDetails,
-	loadRepoDetails, loadLabel2ContentSetID, loadPkgRepos, loadErrata, loadPkgErratum, loadErrataRepoIDs,
-	loadCves, loadPkgErratumModule, loadModule2IDs, loadModuleRequires, loadDBChanges, loadString,
+	loadPkgNames, loadUpdates, loadUpdatesIndex, loadEvrMaps, loadArchs, loadArchCompat, loadRepoDetails,
+	loadLabel2ContentSetID, loadPkgRepos, loadErrata, loadPkgErratum, loadErrataRepoIDs, loadCves,
+	loadPkgErratumModule, loadModule2IDs, loadModuleRequires, loadDBChanges, loadString,
 	// CSAF
 	loadRepoCpes, loadContentSet2Cpes, loadCpeID2Label, loadCSAFCVE,
 }
@@ -453,27 +453,35 @@ func loadLabel2ContentSetID(c *Cache) {
 func loadErrata(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "ErratumDetails, ErratumID2Name")
 
+	loadPkgDetails(c)
 	erID2cves := loadInt2Strings("errata_cve", "errata_id,cve", "erID2cves")
 	erID2pkgIDs := loadInt2Ints("pkg_errata", "errata_id,pkg_id", "erID2pkgID")
-	erID2modulePkgIDs := loadInt2Ints("errata_modulepkg", "errata_id,pkg_id", "erID2modulePkgIDs")
 	erID2bzs := loadInt2Strings("errata_bugzilla", "errata_id,bugzilla", "erID2bzs")
 	erID2refs := loadInt2Strings("errata_refs", "errata_id,ref", "erID2refs")
-	erID2modules := loadErrataModules()
+	erID2modules := loadErrataModules(c)
 
-	cols := "ID,name,synopsis,summary,type,severity,description,solution,issued,updated,url,third_party,requires_reboot" //nolint:lll,nolintlint
+	cols := "ID,name,synopsis,COALESCE(summary, ''),type,COALESCE(severity, ''),COALESCE(description, ''),COALESCE(solution, ''),issued,COALESCE(updated, ''),url,third_party,requires_reboot" //nolint:lll,nolintlint
 	rows := getAllRows("errata_detail", cols)
 	erratumDetails := map[string]ErratumDetail{}
 	erratumID2Name := map[ErratumID]string{}
 	var erratumID ErratumID
+	var issuedStr, updatedStr string
 	var errataName string
 	for rows.Next() {
 		var det ErratumDetail
 		err := rows.Scan(&erratumID, &errataName, &det.Synopsis, &det.Summary, &det.Type, &det.Severity,
-			&det.Description, &det.Solution, &det.Issued, &det.Updated, &det.URL, &det.ThirdParty, &det.RequiresReboot)
+			&det.Description, &det.Solution, &issuedStr, &updatedStr, &det.URL, &det.ThirdParty, &det.RequiresReboot)
 		if err != nil {
 			panic(err)
 		}
 		erratumID2Name[erratumID] = errataName
+
+		if issued, err := time.Parse(time.RFC3339, issuedStr); err == nil {
+			det.Issued = &issued
+		}
+		if updated, err := time.Parse(time.RFC3339, updatedStr); err == nil {
+			det.Updated = &updated
+		}
 
 		det.ID = erratumID
 		if cves, ok := erID2cves[int(erratumID)]; ok {
@@ -482,10 +490,6 @@ func loadErrata(c *Cache) {
 
 		if pkgIDs, ok := erID2pkgIDs[int(erratumID)]; ok {
 			det.PkgIDs = pkgIDs
-		}
-
-		if modulePkgIDs, ok := erID2modulePkgIDs[int(erratumID)]; ok {
-			det.ModulePkgIDs = modulePkgIDs
 		}
 
 		if bzs, ok := erID2bzs[int(erratumID)]; ok {
@@ -739,27 +743,67 @@ func loadString2Ints(table, cols, info string) map[string][]int {
 	return int2strs
 }
 
-func loadErrataModules() map[int][]Module {
-	defer utils.TimeTrack(time.Now(), "errata2module")
+func loadEms2PkgIDs() map[ems][]int {
+	rows := getAllRows("errata_modulepkg", "pkg_id, errata_id, module_stream_id")
+	cnt := getCount("errata_modulepkg", "pkg_id")
+	ems2PkgIDs := make(map[ems][]int, cnt)
 
-	rows := getAllRows("errata_module", "*")
-	cnt := getCount("errata_module", "errata_id")
-	erID2modules := make(map[int][]Module, cnt)
-	var erID int
-	var mod Module
+	var key ems
+	var pkgID int
 	for rows.Next() {
-		err := rows.Scan(&erID, &mod.Name, &mod.StreamID, &mod.Stream, &mod.Version, &mod.Context)
+		err := rows.Scan(&pkgID, &key.ErratumID, &key.ModuleStreamID)
 		if err != nil {
 			panic(err)
 		}
 
-		_, ok := erID2modules[erID]
-		if !ok {
-			erID2modules[erID] = []Module{}
+		ems2PkgIDs[key] = append(ems2PkgIDs[key], pkgID)
+	}
+	return ems2PkgIDs
+}
+
+func loadErrataModules(c *Cache) map[int][]Module {
+	defer utils.TimeTrack(time.Now(), "errata2module")
+
+	ems2PkgIDs := loadEms2PkgIDs()
+	rows := getAllRows("errata_module", "errata_id, module_name, module_stream_id, module_stream, module_version, module_context") //nolint:lll
+	cnt := getCount("errata_module", "errata_id")
+
+	ensvc2StreamIDs := make(map[ensvc][]int, cnt)
+	var streamID int
+	var key ensvc
+	for rows.Next() {
+		err := rows.Scan(&key.ErratumID, &key.Name, &streamID, &key.Stream, &key.Version, &key.Context)
+		if err != nil {
+			panic(err)
+		}
+		ensvc2StreamIDs[key] = append(ensvc2StreamIDs[key], streamID)
+	}
+
+	erID2modules := make(map[int][]Module, cnt)
+	for ensvc, streamIDs := range ensvc2StreamIDs {
+		var pkgIDs []int
+		for _, streamID := range streamIDs {
+			ems := ems{
+				ErratumID:      ensvc.ErratumID,
+				ModuleStreamID: streamID,
+			}
+			pkgIDs = append(pkgIDs, ems2PkgIDs[ems]...)
 		}
 
-		erID2modules[erID] = append(erID2modules[erID], mod)
+		binPackages, sourcePackages := c.packageIDs2Nevras(pkgIDs)
+
+		mod := Module{
+			Name:              ensvc.Name,
+			Stream:            ensvc.Stream,
+			Version:           ensvc.Version,
+			Context:           ensvc.Context,
+			PackageList:       binPackages,
+			SourcePackageList: sourcePackages,
+		}
+
+		erID2modules[ensvc.ErratumID] = append(erID2modules[ensvc.ErratumID], mod)
 	}
+
 	return erID2modules
 }
 
