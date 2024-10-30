@@ -55,6 +55,43 @@ type CvesRequest struct {
 	PageSize            int        `json:"page_size"`
 }
 
+type StringSlice []string
+
+func (t *StringSlice) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" || string(data) == `""` || len(data) == 0 {
+		return nil
+	}
+	if data[0] == '[' {
+		var val []string
+		err := json.Unmarshal(data, &val)
+		if err != nil {
+			return err
+		}
+		*t = val
+		return nil
+	}
+	if data[0] == '"' {
+		var val string
+		err := json.Unmarshal(data, &val)
+		if err != nil {
+			return err
+		}
+		*t = []string{val}
+		return nil
+	}
+	return errors.New("failed to unmarshall StringSlice")
+}
+
+type ErrataRequest struct {
+	Errata        []string    `json:"errata_list"`
+	ModifiedSince *time.Time  `json:"modified_since"`
+	ThirdParty    bool        `json:"third_party"`
+	Type          StringSlice `json:"type"`
+	Severity      StringSlice `json:"severity"`
+	PageNumber    int         `json:"page_number"`
+	PageSize      int         `json:"page_size"`
+}
+
 type Update struct {
 	Package     string `json:"package"`
 	PackageName string `json:"package_name"`
@@ -207,13 +244,12 @@ type PkgErratum struct {
 }
 
 type Module struct {
-	Name              string
-	StreamID          int
-	Stream            string
-	Version           string
-	Context           string
-	PackageList       []string
-	SourcePackageList []string
+	Name              string   `json:"module_name"`
+	Stream            string   `json:"module_stream"`
+	Version           string   `json:"module_version"`
+	Context           string   `json:"module_context"`
+	PackageList       []string `json:"package_list"`
+	SourcePackageList []string `json:"source_package_list"`
 }
 
 type ModuleStream struct {
@@ -235,24 +271,28 @@ type DBChange struct {
 }
 
 type ErratumDetail struct {
-	ID             ErratumID
-	Synopsis       string
-	Summary        *string
-	Type           string
-	Severity       *string
-	Description    *string
-	CVEs           []string
-	PkgIDs         []int
-	ModulePkgIDs   []int
-	Bugzillas      []string
-	Refs           []string
-	Modules        []Module
-	Solution       *string
-	Issued         *string
-	Updated        *string
-	URL            string
-	ThirdParty     bool
-	RequiresReboot bool
+	Synopsis       string `json:"synopsis"`
+	Summary        string `json:"summary"`
+	Type           string `json:"type"`
+	Severity       string `json:"severity"`
+	Description    string `json:"description"`
+	Solution       string `json:"solution"`
+	URL            string `json:"url"`
+	ThirdParty     bool   `json:"third_party"`
+	RequiresReboot bool   `json:"requires_reboot"`
+
+	ID        ErratumID  `json:"-"`
+	Issued    *time.Time `json:"issued"`
+	Updated   *time.Time `json:"updated"`
+	CVEs      []string   `json:"cve_list"`
+	PkgIDs    []int      `json:"-"`
+	Bugzillas []string   `json:"bugzilla_list"`
+	Refs      []string   `json:"reference_list"`
+	Modules   []Module   `json:"modules_list"`
+
+	PackageList       []string `json:"package_list"`
+	SourcePackageList []string `json:"source_package_list"`
+	ReleaseVersions   []string `json:"release_versions"`
 }
 
 type NameArch struct {
@@ -385,4 +425,17 @@ func (l *ParsedCpe) match(r *ParsedCpe) bool {
 type CpeIDNameID struct {
 	CpeID  CpeID
 	NameID NameID
+}
+
+type ems struct {
+	ErratumID      int
+	ModuleStreamID int
+}
+
+type ensvc struct {
+	ErratumID int
+	Name      string
+	Stream    string
+	Version   string
+	Context   string
 }
