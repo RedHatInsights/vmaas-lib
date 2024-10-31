@@ -30,6 +30,7 @@ func TestPackageIDs2Nevras(t *testing.T) {
 	assert.Equal(t, "kernel-devel-1:1-1.src", sourcePackages[0])
 }
 
+//nolint:funlen
 func mockCache() *Cache {
 	modifiedDate, _ := time.Parse(time.RFC3339, "2024-10-03T11:44:00+02:00")
 	publishedDate, _ := time.Parse(time.RFC3339, "2024-10-03T11:44:00+02:00")
@@ -56,9 +57,42 @@ func mockCache() *Cache {
 			3: {NameID: 2, EvrID: 1, ArchID: 2}, // kernel-devel-1:1-1
 		},
 
+		ErratumDetails: map[string]ErratumDetail{
+			"RHSA-2024:0042": {
+				ThirdParty: false,
+				Type:       "security",
+				Severity:   "Important",
+				PkgIDs:     []int{2, 3},
+			},
+			"RHSA-2024:1111": {
+				ThirdParty: true,
+				Type:       "bugfix",
+				Severity:   "Low",
+			},
+		},
+
 		ErratumID2Name: map[ErratumID]string{
 			1: "RHSA-2024:0042",
 			2: "RHSA-2024:1111",
+		},
+
+		ErratumID2RepoIDs: map[ErratumID]map[RepoID]bool{
+			1: {
+				41: true,
+				42: true,
+			},
+			2: {
+				42: true,
+				43: true,
+				44: true,
+			},
+		},
+
+		RepoDetails: map[RepoID]RepoDetail{
+			41: {},
+			42: {Releasever: "8.2"},
+			43: {Releasever: "8.3"},
+			44: {Releasever: "8.4"},
 		},
 
 		CveDetail: map[string]CveDetail{
