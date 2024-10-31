@@ -2,6 +2,18 @@
 
 <!--next-version-placeholder-->
 
+## v1.13.0 (2024-10-31)
+
+### Feature
+
+* Implement cves pagination ([`482d3ab`](https://github.com/RedHatInsights/vmaas-lib/commit/482d3abca0d9b8c87483a52cddf9b472a96ef172))
+* Implement expanding cves by regex ([`ecb2e42`](https://github.com/RedHatInsights/vmaas-lib/commit/ecb2e42eb75ea0fc0813c50c973f5314d2149340))
+* Rewrite basic cves endpoint in go ([`ad285fb`](https://github.com/RedHatInsights/vmaas-lib/commit/ad285fb461fc5cf165f1918861872f0e3beef906))
+
+### Fix
+
+* Move cache utils and their tests ([`9ebc21e`](https://github.com/RedHatInsights/vmaas-lib/commit/9ebc21e00899ab48458fa58a97253920ff565c5d))
+
 ## v1.12.0 (2024-10-15)
 
 ### Feature
