@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.13.1 (2024-11-12)
+
+### Fix
+
+* Upgrade go version ([`89020ab`](https://github.com/RedHatInsights/vmaas-lib/commit/89020ab63c5f38b7c704dbf743f1d1f236b4cbd8))
+
 ## v1.13.0 (2024-10-31)
 
 ### Feature
