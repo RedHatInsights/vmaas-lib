@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.14.0 (2024-11-13)
+
+### Feature
+
+* Rewrite errata endpoint in go ([`89e593f`](https://github.com/RedHatInsights/vmaas-lib/commit/89e593fece2a1566b8235d855ffe7763796139fa))
+
 ## v1.13.1 (2024-11-12)
 
 ### Fix
