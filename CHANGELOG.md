@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.14.1 (2024-11-14)
+
+### Fix
+
+* Revert "fix: upgrade go version" ([`1d7b125`](https://github.com/RedHatInsights/vmaas-lib/commit/1d7b125026d7a4dd9d40d094101c1edff8876a70))
+
 ## v1.14.0 (2024-11-13)
 
 ### Feature
