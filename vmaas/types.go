@@ -159,6 +159,11 @@ type ReposRequest struct {
 	PageSize      int        `json:"page_size"`
 }
 
+type PackagesRequest struct {
+	Packages   []string `json:"package_list"`
+	ThirdParty bool     `json:"third_party"`
+}
+
 type Update struct {
 	Package     string `json:"package"`
 	PackageName string `json:"package_name"`
@@ -268,12 +273,16 @@ type Nevra struct {
 	ArchID ArchID
 }
 
+type RepoDetailCommon struct {
+	Label      string `json:"label"`
+	Name       string `json:"name"`
+	Basearch   string `json:"basearch"`
+	Releasever string `json:"releasever"`
+}
+
 type RepoDetail struct {
-	Label      string     `json:"label"`
-	Name       string     `json:"name"`
+	RepoDetailCommon
 	URL        string     `json:"url"`
-	Basearch   string     `json:"basearch"`
-	Releasever string     `json:"releasever"`
 	Product    string     `json:"product"`
 	ProductID  int        `json:"-"`
 	Revision   string     `json:"revision"`
@@ -282,6 +291,14 @@ type RepoDetail struct {
 
 	CPEs                []string `json:"cpes"`
 	UpdatedPackageNames []string `json:"updated_package_names,omitempty"`
+}
+
+type PackageDetailResponse struct {
+	Summary       string             `json:"summary"`
+	Description   string             `json:"description"`
+	SourcePackage string             `json:"source_package"`
+	Packages      []string           `json:"package_list"`
+	Repositories  []RepoDetailCommon `json:"repositories"`
 }
 
 type CveDetail struct {
