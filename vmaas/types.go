@@ -150,6 +150,15 @@ type ErrataRequest struct {
 	PageSize      int        `json:"page_size"`
 }
 
+type ReposRequest struct {
+	Repos         []string   `json:"repository_list"`
+	ModifiedSince *time.Time `json:"modified_since"`
+	ThirdParty    bool       `json:"third_party"`
+	ShowPackages  bool       `json:"show_packages"`
+	PageNumber    int        `json:"page"`
+	PageSize      int        `json:"page_size"`
+}
+
 type Update struct {
 	Package     string `json:"package"`
 	PackageName string `json:"package_name"`
@@ -260,16 +269,19 @@ type Nevra struct {
 }
 
 type RepoDetail struct {
-	Label      string
-	Name       string
-	URL        string
-	Basearch   string
-	Releasever string
-	Product    string
-	ProductID  int
-	Revision   *string
-	LastChange *string
-	ThirdParty bool
+	Label      string     `json:"label"`
+	Name       string     `json:"name"`
+	URL        string     `json:"url"`
+	Basearch   string     `json:"basearch"`
+	Releasever string     `json:"releasever"`
+	Product    string     `json:"product"`
+	ProductID  int        `json:"-"`
+	Revision   string     `json:"revision"`
+	LastChange *time.Time `json:"-"`
+	ThirdParty bool       `json:"third_party"`
+
+	CPEs                []string `json:"cpes"`
+	UpdatedPackageNames []string `json:"updated_package_names,omitempty"`
 }
 
 type CveDetail struct {
