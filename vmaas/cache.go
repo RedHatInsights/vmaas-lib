@@ -148,3 +148,54 @@ func (c *Cache) packageIDs2Nevras(pkgIDs []int) ([]string, []string) {
 	}
 	return binPackages, sourcePackages
 }
+
+func (c *Cache) buildRepoID2ErratumIDs(modifiedSince *time.Time) map[RepoID][]ErratumID {
+	if modifiedSince == nil {
+		return nil
+	}
+	repoID2ErrataIDsMap := make(map[RepoID][]ErratumID, len(c.RepoIDs))
+	for _, erratumDetail := range c.ErratumDetails {
+		if erratumDetail.Updated != nil && !erratumDetail.Updated.After(*modifiedSince) {
+			continue
+		}
+		for repoID := range c.ErratumID2RepoIDs[erratumDetail.ID] {
+			repoID2ErrataIDsMap[repoID] = append(repoID2ErrataIDsMap[repoID], erratumDetail.ID)
+		}
+	}
+	return repoID2ErrataIDsMap
+}
+
+func (c *Cache) cpeIDs2Labels(cpeIDs []CpeID) []string {
+	isDuplicate := make(map[CpeID]bool, len(cpeIDs))
+	cpes := make([]string, 0, len(cpeIDs))
+	for _, cpeID := range cpeIDs {
+		if isDuplicate[cpeID] {
+			continue
+		}
+
+		if cpe, found := c.CpeID2Label[cpeID]; found {
+			cpes = append(cpes, string(cpe))
+			isDuplicate[cpeID] = true
+		}
+	}
+	return cpes
+}
+
+func (c *Cache) erratumIDs2PackageNames(erratumIDs []ErratumID) []string {
+	isDuplicate := make(map[ErratumID]bool, len(erratumIDs))
+	pkgNames := make([]string, 0, len(erratumIDs))
+	for _, erratumID := range erratumIDs {
+		if isDuplicate[erratumID] {
+			continue
+		}
+		isDuplicate[erratumID] = true
+		erratum := c.ErratumID2Name[erratumID]
+		erratumDetail := c.ErratumDetails[erratum]
+		for _, pkgID := range erratumDetail.PkgIDs {
+			pkgDetail := c.PackageDetails[PkgID(pkgID)]
+			pkgName := c.ID2Packagename[pkgDetail.NameID]
+			pkgNames = append(pkgNames, pkgName)
+		}
+	}
+	return pkgNames
+}

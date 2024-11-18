@@ -62,6 +62,10 @@ func (api *API) Errata(request *ErrataRequest) (*Errata, error) {
 	return request.errata(api.Cache)
 }
 
+func (api *API) Repos(request *ReposRequest) (*Repos, error) {
+	return request.repos(api.Cache)
+}
+
 func (api *API) OSVulnerabilityReport() (*VulnerabilityReport, error) {
 	return vulnerabilityReport(api.Cache, api.options)
 }

@@ -363,7 +363,8 @@ func loadRepoDetails(c *Cache) { //nolint: funlen
 
 	rows := getAllRows(
 		"repo_detail",
-		"id,label,name,url,COALESCE(basearch,''),COALESCE(releasever,''),product,product_id,revision,last_change,third_party",
+		"id,label,name,url,COALESCE(basearch,''),COALESCE(releasever,''),product,product_id,COALESCE(revision,''),"+
+			"last_change,third_party",
 	)
 	cntRepo := getCount("repo_detail", "*")
 	cntLabel := getCount("repo_detail", "distinct label")
@@ -375,16 +376,16 @@ func loadRepoDetails(c *Cache) { //nolint: funlen
 	prodID2RepoIDs := make(map[int][]RepoID, cntProd)
 	repoIDs := []RepoID{}
 	var repoID RepoID
+	var lastChange string
 	for rows.Next() {
 		var det RepoDetail
 		err := rows.Scan(&repoID, &det.Label, &det.Name, &det.URL, &det.Basearch, &det.Releasever,
-			&det.Product, &det.ProductID, &det.Revision, &det.LastChange, &det.ThirdParty)
+			&det.Product, &det.ProductID, &det.Revision, &lastChange, &det.ThirdParty)
 		if err != nil {
 			panic(err)
 		}
 
 		repoIDs = append(repoIDs, repoID)
-		id2repoDetail[repoID] = det
 
 		_, ok := repoLabel2id[det.Label]
 		if !ok {
@@ -410,6 +411,12 @@ func loadRepoDetails(c *Cache) { //nolint: funlen
 			prodID2RepoIDs[det.ProductID] = []RepoID{}
 		}
 		prodID2RepoIDs[det.ProductID] = append(prodID2RepoIDs[det.ProductID], repoID)
+
+		lastChangeTime, err := time.Parse(time.RFC3339, lastChange)
+		if err == nil {
+			det.LastChange = &lastChangeTime
+		}
+		id2repoDetail[repoID] = det
 	}
 	c.RepoIDs = repoIDs
 	c.RepoDetails = id2repoDetail
