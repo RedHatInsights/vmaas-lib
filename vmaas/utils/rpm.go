@@ -144,3 +144,11 @@ func (n *Nevra) Cmp(other *Nevra) int {
 	}
 	return n.EVRACmp(other)
 }
+
+func (n *Nevra) GetEvr() Evr {
+	return Evr{
+		Epoch:   n.Epoch,
+		Version: n.Version,
+		Release: n.Release,
+	}
+}

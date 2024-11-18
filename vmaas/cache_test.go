@@ -136,9 +136,9 @@ func mockCache() *Cache {
 
 		RepoDetails: map[RepoID]RepoDetail{
 			41: {},
-			42: {Releasever: "8.2"},
-			43: {Releasever: "8.3", ThirdParty: true},
-			44: {Releasever: "8.4", LastChange: &lastChange},
+			42: {RepoDetailCommon: RepoDetailCommon{Releasever: "8.2"}},
+			43: {RepoDetailCommon: RepoDetailCommon{Releasever: "8.3"}, ThirdParty: true},
+			44: {RepoDetailCommon: RepoDetailCommon{Releasever: "8.4"}, LastChange: &lastChange},
 		},
 
 		CveDetail: map[string]CveDetail{
