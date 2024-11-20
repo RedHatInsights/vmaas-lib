@@ -16,18 +16,22 @@ func TestTryExpandRegexPattern(t *testing.T) {
 	}
 
 	// empty slice
-	outLabels := TryExpandRegexPattern([]string{}, labelDetails)
+	outLabels, _ := TryExpandRegexPattern([]string{}, labelDetails)
 	assert.Equal(t, 0, len(outLabels))
 
 	// with a single lable that is not a regex pattern
-	outLabels = TryExpandRegexPattern(inLabels[0:1], labelDetails)
+	outLabels, _ = TryExpandRegexPattern(inLabels[0:1], labelDetails)
 	assert.Equal(t, inLabels[0], outLabels[0])
 
 	// more labels in inLabels
-	outLabels = TryExpandRegexPattern(inLabels, labelDetails)
+	outLabels, _ = TryExpandRegexPattern(inLabels, labelDetails)
 	assert.Equal(t, len(inLabels), len(outLabels))
 
 	// with regex
-	outLabels = TryExpandRegexPattern(regexLabel, labelDetails)
+	outLabels, _ = TryExpandRegexPattern(regexLabel, labelDetails)
 	assert.Equal(t, 2, len(outLabels))
+
+	// invalid regex
+	_, err := TryExpandRegexPattern([]string{"*"}, labelDetails)
+	assert.Error(t, err)
 }

@@ -7,12 +7,20 @@ import (
 
 // TryExpandRegexPattern treats the item in a single-label slice like a regex pattern
 // and returns all matching labels from dataByLabels, otherwise it returns inLabels.
-func TryExpandRegexPattern[T any](inLabels []string, dataByLabels map[string]T) []string {
+func TryExpandRegexPattern[T any](inLabels []string, dataByLabels map[string]T) ([]string, error) {
 	if len(inLabels) != 1 {
-		return inLabels
+		return inLabels, nil
 	}
 
 	pattern := inLabels[0]
+
+	// Check pattern before adding ^ and $.
+	// For example, go implementation errors out on `*`, but doesn't on `^*$`.
+	_, err := regexp.Compile(pattern)
+	if err != nil {
+		return nil, err
+	}
+
 	if !strings.HasPrefix(pattern, "^") {
 		pattern = "^" + pattern
 	}
@@ -20,10 +28,7 @@ func TryExpandRegexPattern[T any](inLabels []string, dataByLabels map[string]T) 
 		pattern += "$"
 	}
 
-	re, err := regexp.Compile(pattern)
-	if err != nil {
-		return inLabels
-	}
+	re := regexp.MustCompile(pattern)
 
 	outLabels := make([]string, 0, len(dataByLabels))
 	for label := range dataByLabels {
@@ -32,5 +37,5 @@ func TryExpandRegexPattern[T any](inLabels []string, dataByLabels map[string]T) 
 			outLabels = append(outLabels, label)
 		}
 	}
-	return outLabels
+	return outLabels, nil
 }

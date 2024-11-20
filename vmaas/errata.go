@@ -21,7 +21,10 @@ func (req *ErrataRequest) getSortedErrata(c *Cache) ([]string, error) {
 	if len(req.Errata) == 0 {
 		return nil, errors.New("errata_list must contain at least one item")
 	}
-	errata := utils.TryExpandRegexPattern(req.Errata, c.ErratumDetails)
+	errata, err := utils.TryExpandRegexPattern(req.Errata, c.ErratumDetails)
+	if err != nil {
+		return nil, errors.Wrap(ErrProcessingInput, "invalid regex pattern")
+	}
 	slices.Sort(errata)
 	return errata, nil
 }
