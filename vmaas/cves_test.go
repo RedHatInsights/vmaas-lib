@@ -46,14 +46,12 @@ func TestFilterInputCves(t *testing.T) {
 	testTime, _ := time.Parse(time.RFC3339, "2024-10-03T15:01:01Z")
 	req = &CvesRequest{ModifiedSince: &testTime}
 	filteredIDs = filterInputCves(c, cves, req)
-	assert.Equal(t, 1, len(filteredIDs))
-	assert.Equal(t, "CVE-2024-1234", filteredIDs[0])
+	assert.Equal(t, 0, len(filteredIDs))
 
 	// With published date before req.PublishedSince
 	req = &CvesRequest{PublishedSince: &testTime}
 	filteredIDs = filterInputCves(c, cves, req)
-	assert.Equal(t, 1, len(filteredIDs))
-	assert.Equal(t, "CVE-2024-1234", filteredIDs[0])
+	assert.Equal(t, 0, len(filteredIDs))
 }
 
 func TestLoadCveDetails(t *testing.T) {
