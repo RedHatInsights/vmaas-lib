@@ -30,12 +30,52 @@ func TestPackageIDs2Nevras(t *testing.T) {
 	assert.Equal(t, "kernel-devel-1:1-1.src", sourcePackages[0])
 }
 
+func TestBuildRepoID2ErratumIDs(t *testing.T) {
+	c := mockCache()
+	modifiedSince, _ := time.Parse(time.RFC3339, "2020-12-15T07:00:00+01:00")
+
+	// missing modifiedSince
+	repoID2ErratumIDsMap := c.buildRepoID2ErratumIDs(nil)
+	assert.Nil(t, repoID2ErratumIDsMap)
+
+	// usual case
+	repoID2ErratumIDsMap = c.buildRepoID2ErratumIDs(&time.Time{})
+	assert.Equal(t, 4, len(repoID2ErratumIDsMap))
+	assert.Equal(t, 1, len(repoID2ErratumIDsMap[41]))
+	assert.Equal(t, 2, len(repoID2ErratumIDsMap[42]))
+	assert.Equal(t, 1, len(repoID2ErratumIDsMap[43]))
+	assert.Equal(t, 1, len(repoID2ErratumIDsMap[44]))
+
+	// filter by modifiedSince
+	repoID2ErratumIDsMap = c.buildRepoID2ErratumIDs(&modifiedSince)
+	assert.Equal(t, 3, len(repoID2ErratumIDsMap))
+	assert.Equal(t, 1, len(repoID2ErratumIDsMap[42]))
+	assert.Equal(t, 1, len(repoID2ErratumIDsMap[43]))
+	assert.Equal(t, 1, len(repoID2ErratumIDsMap[44]))
+}
+
+func TestCpeIDs2Labels(t *testing.T) {
+	c := mockCache()
+	labels := c.cpeIDs2Labels([]CpeID{1, 3, 2, 3, 4, 5, 6})
+	assert.Equal(t, 5, len(labels))
+}
+
+func TestErratumIDs2PackageNames(t *testing.T) {
+	c := mockCache()
+	erratumIDs := []ErratumID{1, 2, 2}
+	pkgNames := c.erratumIDs2PackageNames(erratumIDs)
+	assert.Equal(t, 2, len(pkgNames))
+}
+
 //nolint:funlen
 func mockCache() *Cache {
 	modifiedDate, _ := time.Parse(time.RFC3339, "2024-10-03T11:44:00+02:00")
 	publishedDate, _ := time.Parse(time.RFC3339, "2024-10-03T11:44:00+02:00")
 	important := ImportantCveImpact
 	low := LowCveImpact
+	lastChange, _ := time.Parse(time.RFC3339, "2024-11-18T17:58:00+01:00")
+	updated1, _ := time.Parse(time.RFC3339, "2020-10-10T11:00:45+02:00")
+	updated2, _ := time.Parse(time.RFC3339, "2021-10-10T11:00:45+02:00")
 	return &Cache{
 		ID2Packagename: map[NameID]string{1: "kernel", 2: "kernel-devel"},
 
@@ -61,15 +101,19 @@ func mockCache() *Cache {
 
 		ErratumDetails: map[string]ErratumDetail{
 			"RHSA-2024:0042": {
+				ID:         1,
 				ThirdParty: false,
 				Type:       "security",
 				Severity:   &important,
 				PkgIDs:     []int{2, 3},
+				Updated:    &updated1,
 			},
 			"RHSA-2024:1111": {
+				ID:         2,
 				ThirdParty: true,
 				Type:       "bugfix",
 				Severity:   &low,
+				Updated:    &updated2,
 			},
 		},
 
@@ -93,8 +137,8 @@ func mockCache() *Cache {
 		RepoDetails: map[RepoID]RepoDetail{
 			41: {},
 			42: {Releasever: "8.2"},
-			43: {Releasever: "8.3"},
-			44: {Releasever: "8.4"},
+			43: {Releasever: "8.3", ThirdParty: true},
+			44: {Releasever: "8.4", LastChange: &lastChange},
 		},
 
 		CveDetail: map[string]CveDetail{
@@ -107,6 +151,32 @@ func mockCache() *Cache {
 				ErrataIDs: []int{1, 2},
 			},
 			"CVE-2024-1111111": {},
+		},
+
+		RepoLabel2IDs: map[string][]RepoID{
+			"rhel-6-server-rpms": {41, 42},
+			"rhel-7-server-rpms": {43},
+			"rhel-8-server-rpms": {44},
+		},
+
+		CpeID2Label: map[CpeID]CpeLabel{
+			1:  "foo",
+			2:  "bar",
+			3:  "baz",
+			4:  "qux",
+			5:  "quux",
+			44: "this",
+		},
+
+		RepoID2CpeIDs: map[RepoID][]CpeID{
+			41: {1, 2},
+			42: {2, 3},
+			43: {3, 4},
+			44: {4, 5, 44},
+		},
+
+		ContentSetID2CpeIDs: map[ContentSetID][]CpeID{
+			111: {1, 2, 3},
 		},
 
 		DBChange: DBChange{LastChange: "2024-10-02T16:08:00+02:00"},
