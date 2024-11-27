@@ -1,11 +1,14 @@
 package vmaas
 
-var defaultOpts = options{20, true, map[string]bool{"kernel-alt": true}, true, true}
+var defaultOpts = options{
+	20, true, map[string]bool{"kernel-alt": true}, map[string]bool{"el7a": true}, true, true,
+}
 
 type options struct {
 	maxGoroutines        int
 	evalUnfixed          bool
 	excludedPackages     map[string]bool
+	excludedReleases     map[string]bool
 	newerReleaseverRepos bool
 	newerReleaseverCsaf  bool
 }
@@ -53,6 +56,17 @@ func (p excludedPkgsOption) apply(opts *options) {
 // Option to set excluded package names
 func WithExcludedPackages(pkgs map[string]bool) Option {
 	return excludedPkgsOption(pkgs)
+}
+
+type excludedRelsOption map[string]bool
+
+func (p excludedRelsOption) apply(opts *options) {
+	opts.excludedReleases = p
+}
+
+// Option to set excluded package releases
+func WithExcludedReleases(rel map[string]bool) Option {
+	return excludedRelsOption(rel)
 }
 
 type newerReleaseverReposOption bool
