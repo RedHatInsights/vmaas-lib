@@ -683,7 +683,11 @@ func cveMapValues(cves map[string]VulnerabilityDetail) []VulnerabilityDetail {
 	return vals
 }
 
-func isApplicable(c *Cache, update, input *utils.Nevra) bool {
+func isApplicable(c *Cache, update, input *utils.Nevra, opts *options) bool {
+	splittedRelease := strings.Split(update.Release, ".")
+	if opts.excludedReleases[splittedRelease[len(splittedRelease)-1]] {
+		return false
+	}
 	if update.Name != input.Name {
 		return false
 	}

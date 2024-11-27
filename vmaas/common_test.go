@@ -570,25 +570,25 @@ func TestIsApplicabe(t *testing.T) {
 	bash := pkgID2Nevra(&c, 7)
 
 	// newer noarch is applicable to all other archs
-	assert.True(t, isApplicable(&c, &kernelNoarchNew, &kernelNoarch))
-	assert.True(t, isApplicable(&c, &kernelNoarchNew, &kernelX86))
-	assert.True(t, isApplicable(&c, &kernelNoarchNew, &kernelAarch))
+	assert.True(t, isApplicable(&c, &kernelNoarchNew, &kernelNoarch, &defaultOpts))
+	assert.True(t, isApplicable(&c, &kernelNoarchNew, &kernelX86, &defaultOpts))
+	assert.True(t, isApplicable(&c, &kernelNoarchNew, &kernelAarch, &defaultOpts))
 	// newer x86_64 kernel can be applied only on x86_64 or noarch
-	assert.True(t, isApplicable(&c, &kernelX86New, &kernelX86))
-	assert.True(t, isApplicable(&c, &kernelX86New, &kernelNoarch))
+	assert.True(t, isApplicable(&c, &kernelX86New, &kernelX86, &defaultOpts))
+	assert.True(t, isApplicable(&c, &kernelX86New, &kernelNoarch, &defaultOpts))
 	// x86_64 cannot be applied on aarch64 and vice versa
-	assert.False(t, isApplicable(&c, &kernelX86New, &kernelAarch))
-	assert.False(t, isApplicable(&c, &kernelAarchNew, &kernelX86))
+	assert.False(t, isApplicable(&c, &kernelX86New, &kernelAarch, &defaultOpts))
+	assert.False(t, isApplicable(&c, &kernelAarchNew, &kernelX86, &defaultOpts))
 	// same or older version cannot be applied
-	assert.False(t, isApplicable(&c, &kernelNoarch, &kernelNoarch))
-	assert.False(t, isApplicable(&c, &kernelX86, &kernelX86))
-	assert.False(t, isApplicable(&c, &kernelAarch, &kernelAarch))
-	assert.False(t, isApplicable(&c, &kernelNoarch, &kernelNoarchNew))
-	assert.False(t, isApplicable(&c, &kernelX86, &kernelX86New))
-	assert.False(t, isApplicable(&c, &kernelAarch, &kernelAarchNew))
-	assert.False(t, isApplicable(&c, &kernelNoarch, &kernelX86))
-	assert.False(t, isApplicable(&c, &kernelNoarch, &kernelAarchNew))
+	assert.False(t, isApplicable(&c, &kernelNoarch, &kernelNoarch, &defaultOpts))
+	assert.False(t, isApplicable(&c, &kernelX86, &kernelX86, &defaultOpts))
+	assert.False(t, isApplicable(&c, &kernelAarch, &kernelAarch, &defaultOpts))
+	assert.False(t, isApplicable(&c, &kernelNoarch, &kernelNoarchNew, &defaultOpts))
+	assert.False(t, isApplicable(&c, &kernelX86, &kernelX86New, &defaultOpts))
+	assert.False(t, isApplicable(&c, &kernelAarch, &kernelAarchNew, &defaultOpts))
+	assert.False(t, isApplicable(&c, &kernelNoarch, &kernelX86, &defaultOpts))
+	assert.False(t, isApplicable(&c, &kernelNoarch, &kernelAarchNew, &defaultOpts))
 	// bash cannot be update for kernel or kernel for bash
-	assert.False(t, isApplicable(&c, &bash, &kernelNoarch))
-	assert.False(t, isApplicable(&c, &kernelNoarchNew, &bash))
+	assert.False(t, isApplicable(&c, &bash, &kernelNoarch, &defaultOpts))
+	assert.False(t, isApplicable(&c, &kernelNoarchNew, &bash, &defaultOpts))
 }

@@ -99,7 +99,7 @@ func TestCSAF(t *testing.T) {
 		UnpatchedCves: make(map[string]VulnerabilityDetail),
 	}
 	evaluateUnpatchedCves(&c, products, &cves)
-	evaluateManualCves(&c, products, &cves)
+	evaluateManualCves(&c, products, &cves, &defaultOpts)
 
 	unpatchedCves := maps.Keys(cves.UnpatchedCves)
 	manualCves := maps.Keys(cves.ManualCves)

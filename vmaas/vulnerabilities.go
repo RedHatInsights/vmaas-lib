@@ -123,7 +123,7 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 
 	// 3. evaluate Manually Fixable CVEs
 	// if CVE is already in Unpatched or CVE list -> skip it
-	evaluateManualCves(c, products, &cves)
+	evaluateManualCves(c, products, &cves, opts)
 	return &cves, nil
 }
 
@@ -157,7 +157,7 @@ func evaluateUnpatchedCves(c *Cache, products []ProductsPackage, cves *Vulnerabi
 	}
 }
 
-func evaluateManualCves(c *Cache, products []ProductsPackage, cves *VulnerabilitiesCvesDetails) {
+func evaluateManualCves(c *Cache, products []ProductsPackage, cves *VulnerabilitiesCvesDetails, opts *options) {
 	for _, pp := range products {
 		pp := pp // make copy because &pp is used
 		seenProducts := make(map[CSAFProduct]bool, len(pp.ProductsFixed))
@@ -169,7 +169,7 @@ func evaluateManualCves(c *Cache, products []ProductsPackage, cves *Vulnerabilit
 			}
 			seenProducts[product] = true
 			updateNevra := pkgID2Nevra(c, product.PackageID)
-			if !isApplicable(c, &updateNevra, &pp.Package.Nevra) {
+			if !isApplicable(c, &updateNevra, &pp.Package.Nevra, opts) {
 				continue
 			}
 
