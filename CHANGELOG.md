@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.14.2 (2024-11-28)
+
+### Fix
+
+* Ignore updates from rhel-alt el7a release ([`a20c900`](https://github.com/RedHatInsights/vmaas-lib/commit/a20c90020f6605186355549533f6029dabcf3ec4))
+
 ## v1.14.1 (2024-11-14)
 
 ### Fix
