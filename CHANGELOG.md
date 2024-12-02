@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.14.3 (2024-12-02)
+
+### Fix
+
+* Implement various cves endpoint fixes ([`197a925`](https://github.com/RedHatInsights/vmaas-lib/commit/197a925eac8679522916e492ee0406abb7077e5b))
+
 ## v1.14.2 (2024-11-28)
 
 ### Fix
