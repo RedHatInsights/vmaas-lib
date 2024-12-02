@@ -16,6 +16,7 @@ func TestCSAF(t *testing.T) {
 	unfixed := CSAFProduct{CpeID: 1, PackageNameID: 1}
 	fixed1 := CSAFProduct{CpeID: 1, PackageNameID: 1, PackageID: 1}
 	fixed2 := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 2}
+	var one PkgID = 1
 
 	c := Cache{
 		Arch2ID:        map[string]ArchID{"x86_64": 1},
@@ -35,13 +36,9 @@ func TestCSAF(t *testing.T) {
 			{NameID: 2, EvrID: 1, ArchID: 1}: 3,
 		},
 		PackageDetails: map[PkgID]PackageDetail{
-			1: {NameID: 1, EvrID: 1, ArchID: 1}, // kernel-0:1-1
-			2: {NameID: 1, EvrID: 2, ArchID: 1}, // kernel-0:2-2
-			3: {NameID: 2, EvrID: 1, ArchID: 1}, // kernel-devel-0:1-1
-		},
-		NameID2SrcNameIDs: map[NameID]map[NameID]struct{}{
-			1: {1: struct{}{}},
-			2: {1: struct{}{}},
+			1: {NameID: 1, EvrID: 1, ArchID: 1, SrcPkgID: nil},  // kernel-0:1-1
+			2: {NameID: 1, EvrID: 2, ArchID: 1, SrcPkgID: nil},  // kernel-0:2-2
+			3: {NameID: 2, EvrID: 1, ArchID: 1, SrcPkgID: &one}, // kernel-devel-0:1-1
 		},
 		CSAFCVEs: map[CpeIDNameID]map[CSAFProduct]CSAFCVEs{
 			{CpeID: 1, NameID: 1}: {
@@ -58,6 +55,7 @@ func TestCSAF(t *testing.T) {
 	type expected struct {
 		pkg     NevraString
 		nameID  NameID
+		pkgID   PkgID
 		fixed   []CSAFProduct
 		unfixed []CSAFProduct
 	}
@@ -68,18 +66,21 @@ func TestCSAF(t *testing.T) {
 		{
 			pkg:     NevraString{Nevra: pkg1, Pkg: pkg1.String()},
 			nameID:  1,
+			pkgID:   1,
 			unfixed: []CSAFProduct{unfixed},
 			fixed:   []CSAFProduct{fixed1, fixed2},
 		},
 		{
 			pkg:     NevraString{Nevra: pkg2, Pkg: pkg2.String()},
 			nameID:  1,
+			pkgID:   2,
 			unfixed: []CSAFProduct{unfixed},
 			fixed:   []CSAFProduct{fixed1, fixed2},
 		},
 		{
 			pkg:     NevraString{Nevra: pkg3, Pkg: pkg3.String()},
 			nameID:  2,
+			pkgID:   3,
 			unfixed: []CSAFProduct{unfixed},
 			fixed:   []CSAFProduct{},
 		}, // match source package
@@ -87,7 +88,7 @@ func TestCSAF(t *testing.T) {
 
 	products := make([]ProductsPackage, 0, len(matrix))
 	for _, m := range matrix {
-		pp := cpes2products(&c, []CpeID{1, 2}, m.nameID, []ModuleStream{ms}, m.pkg, &defaultOpts)
+		pp := cpes2products(&c, []CpeID{1, 2}, m.nameID, m.pkgID, []ModuleStream{ms}, m.pkg, &defaultOpts)
 		assert.Equal(t, m.fixed, pp.ProductsFixed)
 		assert.Equal(t, m.unfixed, pp.ProductsUnfixed)
 		products = append(products, pp)
