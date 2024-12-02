@@ -373,6 +373,7 @@ func cpes2products(c *Cache, cpes []CpeID, nameID NameID, pkgID PkgID, modules [
 	// add empty module to module list to find affected products without modules
 	modules = append(modules, ModuleStream{})
 	for _, cpe := range cpes {
+		seenNameIDs := make(map[NameID]bool)
 		// create unfixed products for every CPE, unfixed product has PackageID=0
 		pkgDetail := c.PackageDetails[pkgID]
 		srcNameID := pkgDetail.NameID
@@ -380,8 +381,14 @@ func cpes2products(c *Cache, cpes []CpeID, nameID NameID, pkgID PkgID, modules [
 			srcPkgDetail := c.PackageDetails[*pkgDetail.SrcPkgID]
 			srcNameID = srcPkgDetail.NameID
 		}
+
+		if seenNameIDs[nameID] || seenNameIDs[srcNameID] {
+			continue
+		}
+
 		srcName := c.ID2Packagename[srcNameID]
 		if opts.excludedPackages[srcName] {
+			seenNameIDs[srcNameID] = true
 			continue
 		}
 		productsUnfixed = append(productsUnfixed, productsWithUnfixedCVEs(c, cpe, srcNameID, modules)...)
@@ -395,6 +402,8 @@ func cpes2products(c *Cache, cpes []CpeID, nameID NameID, pkgID PkgID, modules [
 		if products, ok := productWithFixedCVEs(c, cpe, nameID, modules); ok {
 			productsFixed = append(productsFixed, products...)
 		}
+		seenNameIDs[srcNameID] = true
+		seenNameIDs[nameID] = true
 	}
 	pp := ProductsPackage{
 		ProductsFixed:   productsFixed,
