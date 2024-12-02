@@ -219,17 +219,20 @@ func (r *ProcessedRequest) processProducts(c *Cache, opts *options) []ProductsPa
 	productsPackages := make([]ProductsPackage, 0)
 	for _, pkg := range r.Packages {
 		nameID := c.Packagename2ID[pkg.Nevra.Name]
-		products := cpes2products(c, r.Cpes, nameID, r.Updates.ModuleList, pkg, opts)
+		evrID := c.Evr2ID[utils.Evr{Epoch: pkg.Nevra.Epoch, Release: pkg.Nevra.Release, Version: pkg.Nevra.Version}]
+		archID := c.Arch2ID[pkg.Nevra.Arch]
+		pkgID := c.Nevra2PkgID[Nevra{NameID: nameID, EvrID: evrID, ArchID: archID}]
+		products := cpes2products(c, r.Cpes, nameID, pkgID, r.Updates.ModuleList, pkg, opts)
 		if opts.newerReleaseverCsaf && len(r.Cpes) > 0 {
 			// look at newer releasever cpes only when there is a CPE hit for EUS repo
-			newerReleaseverProducts := cpes2products(c, r.NewerReleaseverCpes, nameID, r.Updates.ModuleList, pkg, opts)
+			newerReleaseverProducts := cpes2products(c, r.NewerReleaseverCpes, nameID, pkgID, r.Updates.ModuleList, pkg, opts)
 			products.ProductsFixed = append(products.ProductsFixed, newerReleaseverProducts.ProductsFixed...)
 			products.ProductsUnfixed = append(products.ProductsUnfixed, newerReleaseverProducts.ProductsUnfixed...)
 		}
 
 		if len(r.Cpes) == 0 {
 			// use CPEs from Content Sets if we haven't found any Cpes from repos
-			products = cpes2products(c, r.ContentSetsCpes, nameID, r.Updates.ModuleList, pkg, opts)
+			products = cpes2products(c, r.ContentSetsCpes, nameID, pkgID, r.Updates.ModuleList, pkg, opts)
 		}
 		productsPackages = append(productsPackages, products)
 	}
@@ -362,7 +365,7 @@ func productWithFixedCVEs(c *Cache, cpe CpeID, nameID NameID, modules []ModuleSt
 	return products, ok
 }
 
-func cpes2products(c *Cache, cpes []CpeID, nameID NameID, modules []ModuleStream, pkg NevraString,
+func cpes2products(c *Cache, cpes []CpeID, nameID NameID, pkgID PkgID, modules []ModuleStream, pkg NevraString,
 	opts *options,
 ) ProductsPackage {
 	productsUnfixed := make([]CSAFProduct, 0, len(cpes)*(len(modules)+1))
@@ -371,13 +374,23 @@ func cpes2products(c *Cache, cpes []CpeID, nameID NameID, modules []ModuleStream
 	modules = append(modules, ModuleStream{})
 	for _, cpe := range cpes {
 		// create unfixed products for every CPE, unfixed product has PackageID=0
-		for srcNameID := range c.NameID2SrcNameIDs[nameID] {
-			srcName := c.ID2Packagename[srcNameID]
-			if opts.excludedPackages[srcName] {
-				continue
-			}
-			productsUnfixed = append(productsUnfixed, productsWithUnfixedCVEs(c, cpe, srcNameID, modules)...)
+		pkgDetail := c.PackageDetails[pkgID]
+		srcNameID := pkgDetail.NameID
+		if pkgDetail.SrcPkgID != nil {
+			srcPkgDetail := c.PackageDetails[*pkgDetail.SrcPkgID]
+			srcNameID = srcPkgDetail.NameID
 		}
+		srcName := c.ID2Packagename[srcNameID]
+		if opts.excludedPackages[srcName] {
+			continue
+		}
+		productsUnfixed = append(productsUnfixed, productsWithUnfixedCVEs(c, cpe, srcNameID, modules)...)
+		if srcNameID != nameID {
+			// find unfixed products for installed package name not name of source package in case CSAF
+			// shows vulnerability for package name and not source package name
+			productsUnfixed = append(productsUnfixed, productsWithUnfixedCVEs(c, cpe, nameID, modules)...)
+		}
+
 		// create fixed products for every CPE
 		if products, ok := productWithFixedCVEs(c, cpe, nameID, modules); ok {
 			productsFixed = append(productsFixed, products...)
