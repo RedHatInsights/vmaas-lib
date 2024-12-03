@@ -90,6 +90,18 @@ func (c *Cache) loadErrataDetails(errata []string) ErrataDetails {
 		erratumDetail.PackageList = binPackages
 		erratumDetail.SourcePackageList = sourcePackages
 		erratumDetail.ReleaseVersions = c.erratumID2Releasevers(erratumDetail.ID)
+		if erratumDetail.CVEs == nil {
+			erratumDetail.CVEs = []string{}
+		}
+		if erratumDetail.Bugzillas == nil {
+			erratumDetail.Bugzillas = []string{}
+		}
+		if erratumDetail.Refs == nil {
+			erratumDetail.Refs = []string{}
+		}
+		if erratumDetail.Modules == nil {
+			erratumDetail.Modules = []Module{}
+		}
 		errataDetails[erratum] = erratumDetail
 	}
 	return errataDetails
@@ -98,7 +110,7 @@ func (c *Cache) loadErrataDetails(errata []string) ErrataDetails {
 func (req *ErrataRequest) errata(c *Cache) (*Errata, error) { // TODO: implement opts
 	errata, err := req.getSortedErrata(c)
 	if err != nil {
-		return nil, err
+		return &Errata{}, err
 	}
 
 	errata = filterInputErrata(c, errata, req)
