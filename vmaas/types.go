@@ -2,12 +2,13 @@ package vmaas
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
 )
 
@@ -24,6 +25,8 @@ type (
 	CSAFProductID int
 	CSAFCVEID     int
 	CVEID         int
+	SeverityT     []*string
+	TypeT         []string
 )
 
 type Request struct {
@@ -55,41 +58,93 @@ type CvesRequest struct {
 	PageSize            int        `json:"page_size"`
 }
 
-type StringSlice []string
+// UnmarshalJSON is ment only for TypeT.UnmarshalJSON and SeverityT.UnmarshalJSON
+func unmarshalJSON[T string | *string](dst *[]T, data []byte) error {
+	if string(data) == `""` || string(data) == `''` || len(data) == 0 {
+		return errors.Wrap(ErrProcessingInput, "invalid severity or type: ''")
+	}
 
-func (t *StringSlice) UnmarshalJSON(data []byte) error {
-	if string(data) == "null" || string(data) == `""` || len(data) == 0 {
-		return nil
-	}
 	if data[0] == '[' {
-		var val []string
+		var val []T
 		err := json.Unmarshal(data, &val)
 		if err != nil {
-			return err
+			return errors.Wrap(ErrProcessingInput, err.Error())
 		}
-		*t = val
+		*dst = val
 		return nil
 	}
+
 	if data[0] == '"' {
-		var val string
+		var val T
 		err := json.Unmarshal(data, &val)
 		if err != nil {
-			return err
+			return errors.Wrap(ErrProcessingInput, err.Error())
 		}
-		*t = []string{val}
+		*dst = []T{val}
 		return nil
 	}
-	return errors.New("failed to unmarshall StringSlice")
+
+	return errors.Wrap(ErrProcessingInput, "failed to unmarshall severity or type")
+}
+
+func (slice *SeverityT) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		*slice = []*string{nil}
+		return nil
+	}
+
+	var res []*string
+	err := unmarshalJSON(&res, data)
+	if err != nil {
+		return err
+	}
+
+	for _, item := range res {
+		if item != nil && !slices.Contains([]string{"Low", "Moderate", "Important", "Critical"}, *item) {
+			return errors.Wrapf(ErrProcessingInput, "invalid severity value: '%s'", *item)
+		}
+	}
+
+	*slice = res
+	return nil
+}
+
+// Contains returns true if item is nil and slice contains nil,
+// or if the value pointed to by item is equal to a value pointed to by x from slice.
+func (slice SeverityT) contains(item *string) bool {
+	for _, x := range slice {
+		if x == nil && item == nil {
+			return true
+		}
+		if x != nil && item != nil && *x == *item {
+			return true
+		}
+	}
+	return false
+}
+
+func (slice *TypeT) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return errors.Wrap(ErrProcessingInput, "invalid type: 'null'")
+	}
+
+	var res []string
+	err := unmarshalJSON(&res, data)
+	if err != nil {
+		return err
+	}
+	*slice = res
+	return nil
 }
 
 type ErrataRequest struct {
-	Errata        []string    `json:"errata_list"`
-	ModifiedSince *time.Time  `json:"modified_since"`
-	ThirdParty    bool        `json:"third_party"`
-	Type          StringSlice `json:"type"`
-	Severity      StringSlice `json:"severity"`
-	PageNumber    int         `json:"page"`
-	PageSize      int         `json:"page_size"`
+	Errata        []string   `json:"errata_list"`
+	ModifiedSince *time.Time `json:"modified_since"`
+	ThirdParty    bool       `json:"third_party"`
+	Type          TypeT      `json:"type"`
+	Severity      SeverityT  `json:"severity"`
+	PageNumber    int        `json:"page"`
+	PageSize      int        `json:"page_size"`
 }
 
 type Update struct {
@@ -271,15 +326,15 @@ type DBChange struct {
 }
 
 type ErratumDetail struct {
-	Synopsis       string `json:"synopsis"`
-	Summary        string `json:"summary"`
-	Type           string `json:"type"`
-	Severity       string `json:"severity"`
-	Description    string `json:"description"`
-	Solution       string `json:"solution"`
-	URL            string `json:"url"`
-	ThirdParty     bool   `json:"third_party"`
-	RequiresReboot bool   `json:"requires_reboot"`
+	Synopsis       string  `json:"synopsis"`
+	Summary        string  `json:"summary"`
+	Type           string  `json:"type"`
+	Severity       *string `json:"severity"`
+	Description    string  `json:"description"`
+	Solution       string  `json:"solution"`
+	URL            string  `json:"url"`
+	ThirdParty     bool    `json:"third_party"`
+	RequiresReboot bool    `json:"requires_reboot"`
 
 	ID        ErratumID  `json:"-"`
 	Issued    *time.Time `json:"issued"`
