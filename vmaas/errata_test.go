@@ -57,10 +57,11 @@ func TestLoadErrataDetails(t *testing.T) {
 }
 
 func mockErrataRequest() *ErrataRequest {
+	severities := []string{"Low", "Moderate", "Important", "Critical"}
 	return &ErrataRequest{
 		Errata:     []string{"RHSA-2024:0042", "RHSA-2024:1111", "RHSA-2024:1111", "RHSA-2024:9999"},
 		ThirdParty: true,
 		Type:       []string{"security", "bugfix"},
-		Severity:   []string{"Low", "Moderate", "Important", "Critical"},
+		Severity:   []*string{&severities[0], &severities[1], &severities[2], &severities[3]},
 	}
 }

@@ -11,8 +11,8 @@ type ErrataDetails map[string]ErratumDetail
 
 type Errata struct {
 	ErrataList ErrataDetails `json:"errata_list"`
-	Type       []string      `json:"type,omitempty"`
-	Severity   []string      `json:"severity,omitempty"`
+	Type       TypeT         `json:"type,omitempty"`
+	Severity   SeverityT     `json:"severity,omitempty"`
 	LastChange string        `json:"last_change"`
 	utils.PaginationDetails
 }
@@ -21,6 +21,7 @@ func (req *ErrataRequest) getSortedErrata(c *Cache) ([]string, error) {
 	if len(req.Errata) == 0 {
 		return nil, errors.Wrap(ErrProcessingInput, "errata_list must contain at least one item")
 	}
+
 	errata, err := utils.TryExpandRegexPattern(req.Errata, c.ErratumDetails)
 	if err != nil {
 		return nil, errors.Wrap(ErrProcessingInput, "invalid regex pattern")
@@ -57,7 +58,8 @@ func filterInputErrata(c *Cache, errata []string, req *ErrataRequest) []string {
 		if req.Type != nil && !slices.Contains(req.Type, erratumDetail.Type) {
 			continue
 		}
-		if req.Severity != nil && !slices.Contains(req.Severity, erratumDetail.Severity) {
+
+		if req.Severity != nil && !req.Severity.contains(erratumDetail.Severity) {
 			continue
 		}
 

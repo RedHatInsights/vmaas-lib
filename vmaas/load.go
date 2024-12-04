@@ -448,7 +448,7 @@ func loadErrata(c *Cache) {
 	erID2refs := loadInt2Strings("errata_refs", "errata_id,ref", "erID2refs")
 	erID2modules := loadErrataModules(c)
 
-	cols := "ID,name,synopsis,COALESCE(summary, ''),type,COALESCE(severity, ''),COALESCE(description, ''),COALESCE(solution, ''),issued,COALESCE(updated, ''),url,third_party,requires_reboot" //nolint:lll,nolintlint
+	cols := "ID,name,synopsis,COALESCE(summary, ''),COALESCE(type, ''),severity,COALESCE(description, ''),COALESCE(solution, ''),issued,COALESCE(updated, ''),url,third_party,requires_reboot" //nolint:lll,nolintlint
 	rows := getAllRows("errata_detail", cols)
 	erratumDetails := map[string]ErratumDetail{}
 	erratumID2Name := map[ErratumID]string{}
