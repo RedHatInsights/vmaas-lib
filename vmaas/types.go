@@ -2,12 +2,12 @@ package vmaas
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
 )
 
@@ -58,7 +58,11 @@ type CvesRequest struct {
 type StringSlice []string
 
 func (t *StringSlice) UnmarshalJSON(data []byte) error {
-	if string(data) == "null" || string(data) == `""` || len(data) == 0 {
+	if string(data) == `""` || len(data) == 0 {
+		return errors.Wrap(ErrProcessingInput, "failed to unmarshall Severity or Type")
+	}
+	if string(data) == "null" {
+		*t = []string{""}
 		return nil
 	}
 	if data[0] == '[' {
@@ -79,7 +83,33 @@ func (t *StringSlice) UnmarshalJSON(data []byte) error {
 		*t = []string{val}
 		return nil
 	}
-	return errors.New("failed to unmarshall StringSlice")
+	return errors.Wrap(ErrProcessingInput, "failed to unmarshall Severity or Type")
+}
+
+func (t *StringSlice) MarshalJSON() ([]byte, error) {
+	if *t == nil {
+		return []byte("null"), nil
+	}
+	if len(*t) == 0 {
+		return []byte("[]"), nil
+	}
+
+	res := []byte{'['}
+	for _, item := range *t {
+		if item == "" {
+			res = append(res, []byte("null,")...)
+			continue
+		}
+		val, err := json.Marshal(item)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, val...)
+		res = append(res, ',')
+	}
+
+	res[len(res)-1] = ']' // replace the trailing comma with the closing ]
+	return res, nil
 }
 
 type ErrataRequest struct {
@@ -271,15 +301,15 @@ type DBChange struct {
 }
 
 type ErratumDetail struct {
-	Synopsis       string `json:"synopsis"`
-	Summary        string `json:"summary"`
-	Type           string `json:"type"`
-	Severity       string `json:"severity"`
-	Description    string `json:"description"`
-	Solution       string `json:"solution"`
-	URL            string `json:"url"`
-	ThirdParty     bool   `json:"third_party"`
-	RequiresReboot bool   `json:"requires_reboot"`
+	Synopsis       string  `json:"synopsis"`
+	Summary        string  `json:"summary"`
+	Type           string  `json:"type"`
+	Severity       *string `json:"severity"`
+	Description    string  `json:"description"`
+	Solution       string  `json:"solution"`
+	URL            string  `json:"url"`
+	ThirdParty     bool    `json:"third_party"`
+	RequiresReboot bool    `json:"requires_reboot"`
 
 	ID        ErratumID  `json:"-"`
 	Issued    *time.Time `json:"issued"`

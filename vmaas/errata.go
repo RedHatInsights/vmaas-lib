@@ -11,8 +11,8 @@ type ErrataDetails map[string]ErratumDetail
 
 type Errata struct {
 	ErrataList ErrataDetails `json:"errata_list"`
-	Type       []string      `json:"type,omitempty"`
-	Severity   []string      `json:"severity,omitempty"`
+	Type       StringSlice   `json:"type,omitempty"`
+	Severity   StringSlice   `json:"severity,omitempty"`
 	LastChange string        `json:"last_change"`
 	utils.PaginationDetails
 }
@@ -57,7 +57,12 @@ func filterInputErrata(c *Cache, errata []string, req *ErrataRequest) []string {
 		if req.Type != nil && !slices.Contains(req.Type, erratumDetail.Type) {
 			continue
 		}
-		if req.Severity != nil && !slices.Contains(req.Severity, erratumDetail.Severity) {
+
+		var severity string
+		if erratumDetail.Severity != nil {
+			severity = *erratumDetail.Severity
+		}
+		if req.Severity != nil && !slices.Contains(req.Severity, severity) {
 			continue
 		}
 
