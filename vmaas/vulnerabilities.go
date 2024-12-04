@@ -374,6 +374,7 @@ func cpes2products(c *Cache, cpes []CpeID, nameID NameID, pkgID PkgID, modules [
 	modules = append(modules, ModuleStream{})
 	for _, cpe := range cpes {
 		seenNameIDs := make(map[NameID]bool)
+		seenSrcNameIDs := make(map[NameID]bool)
 		// create unfixed products for every CPE, unfixed product has PackageID=0
 		pkgDetail := c.PackageDetails[pkgID]
 		srcNameID := pkgDetail.NameID
@@ -382,28 +383,30 @@ func cpes2products(c *Cache, cpes []CpeID, nameID NameID, pkgID PkgID, modules [
 			srcNameID = srcPkgDetail.NameID
 		}
 
-		if seenNameIDs[nameID] || seenNameIDs[srcNameID] {
-			continue
-		}
-
 		srcName := c.ID2Packagename[srcNameID]
 		if opts.excludedPackages[srcName] {
-			seenNameIDs[srcNameID] = true
+			seenSrcNameIDs[srcNameID] = true
 			continue
 		}
-		productsUnfixed = append(productsUnfixed, productsWithUnfixedCVEs(c, cpe, srcNameID, modules)...)
-		if srcNameID != nameID {
-			// find unfixed products for installed package name not name of source package in case CSAF
-			// shows vulnerability for package name and not source package name
-			productsUnfixed = append(productsUnfixed, productsWithUnfixedCVEs(c, cpe, nameID, modules)...)
+
+		if !seenSrcNameIDs[srcNameID] {
+			productsUnfixed = append(productsUnfixed, productsWithUnfixedCVEs(c, cpe, srcNameID, modules)...)
+			seenSrcNameIDs[srcNameID] = true
 		}
 
-		// create fixed products for every CPE
-		if products, ok := productWithFixedCVEs(c, cpe, nameID, modules); ok {
-			productsFixed = append(productsFixed, products...)
+		if !seenNameIDs[nameID] {
+			if srcNameID != nameID {
+				// find unfixed products for installed package name not name of source package in case CSAF
+				// shows vulnerability for package name and not source package name
+				productsUnfixed = append(productsUnfixed, productsWithUnfixedCVEs(c, cpe, nameID, modules)...)
+			}
+
+			// create fixed products for every CPE
+			if products, ok := productWithFixedCVEs(c, cpe, nameID, modules); ok {
+				productsFixed = append(productsFixed, products...)
+			}
+			seenNameIDs[nameID] = true
 		}
-		seenNameIDs[srcNameID] = true
-		seenNameIDs[nameID] = true
 	}
 	pp := ProductsPackage{
 		ProductsFixed:   productsFixed,
