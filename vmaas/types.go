@@ -88,7 +88,7 @@ type ErrataRequest struct {
 	ThirdParty    bool        `json:"third_party"`
 	Type          StringSlice `json:"type"`
 	Severity      StringSlice `json:"severity"`
-	PageNumber    int         `json:"page_number"`
+	PageNumber    int         `json:"page"`
 	PageSize      int         `json:"page_size"`
 }
 
@@ -246,7 +246,7 @@ type PkgErratum struct {
 type Module struct {
 	Name              string   `json:"module_name"`
 	Stream            string   `json:"module_stream"`
-	Version           string   `json:"module_version"`
+	Version           int      `json:"module_version"`
 	Context           string   `json:"module_context"`
 	PackageList       []string `json:"package_list"`
 	SourcePackageList []string `json:"source_package_list"`
@@ -435,6 +435,6 @@ type ensvc struct {
 	ErratumID int
 	Name      string
 	Stream    string
-	Version   string
+	Version   int
 	Context   string
 }
