@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.14.5 (2024-12-04)
+
+### Fix
+
+* Condition for skipping seen package names ([`b5da97d`](https://github.com/RedHatInsights/vmaas-lib/commit/b5da97d7d2f14eb385498bf9b94141aae68f075e))
+
 ## v1.14.4 (2024-12-04)
 
 ### Fix
