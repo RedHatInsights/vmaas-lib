@@ -2,6 +2,14 @@
 
 <!--next-version-placeholder-->
 
+## v1.14.4 (2024-12-04)
+
+### Fix
+
+* Remove unused nameID2SrcNameIDs map ([`7404e32`](https://github.com/RedHatInsights/vmaas-lib/commit/7404e32fd4c5476b4b2485907239f22c924f0bca))
+* Don't process same name ids multiple times ([`d7f45c0`](https://github.com/RedHatInsights/vmaas-lib/commit/d7f45c006da606330648f06e60d328d44adcfb30))
+* Get source pkg from installed nevra for unfixed cves ([`4863dfa`](https://github.com/RedHatInsights/vmaas-lib/commit/4863dfa67bbab245b98402b8e43b9e9a5fa463e0))
+
 ## v1.14.3 (2024-12-02)
 
 ### Fix
