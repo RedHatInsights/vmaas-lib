@@ -14,7 +14,7 @@ func TestPaginate(t *testing.T) {
 	assert.Equal(t, 0, len(subslice))
 	assert.Equal(t, 1, paginationDetails.PageNumber)
 	assert.Equal(t, 0, paginationDetails.PageSize)
-	assert.Equal(t, 1, paginationDetails.TotalPages)
+	assert.Equal(t, 0, paginationDetails.TotalPages)
 
 	// use default values of pageNumber and pageSize
 	subslice, paginationDetails = Paginate(slice, 0, -1)

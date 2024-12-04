@@ -35,7 +35,7 @@ func Paginate[T any](slice []T, pageNumber, pageSize int) ([]T, PaginationDetail
 	}
 	subslice := slice[start:end]
 
-	totalPages := int(math.Ceil(float64(len(slice))/float64(pageSize) + 1e-6))
+	totalPages := int(math.Ceil(float64(len(slice)) / float64(pageSize)))
 
 	paginationDetails := PaginationDetails{
 		PageNumber: pageNumber,
