@@ -18,7 +18,7 @@ type Cves struct {
 func (req *CvesRequest) getSortedCves(c *Cache) ([]string, error) {
 	cves := req.Cves
 	if len(cves) == 0 {
-		return nil, errors.Wrap(ErrProcessingInput, "cve_list must contain at least one item")
+		return nil, errors.Wrap(ErrProcessingInput, "'cve_list' is a required property")
 	}
 	cves, err := utils.TryExpandRegexPattern(cves, c.CveDetail)
 	if err != nil {
