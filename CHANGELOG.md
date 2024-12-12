@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.14.6 (2024-12-12)
+
+### Fix
+
+* Improve cves req missing property err message ([`b8b3513`](https://github.com/RedHatInsights/vmaas-lib/commit/b8b3513824517be7f990bda59dc126858d5fbf12))
+
 ## v1.14.5 (2024-12-04)
 
 ### Fix
