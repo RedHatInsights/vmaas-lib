@@ -34,6 +34,8 @@ func TestPackageIDs2Nevras(t *testing.T) {
 func mockCache() *Cache {
 	modifiedDate, _ := time.Parse(time.RFC3339, "2024-10-03T11:44:00+02:00")
 	publishedDate, _ := time.Parse(time.RFC3339, "2024-10-03T11:44:00+02:00")
+	important := "Important"
+	low := "Low"
 	return &Cache{
 		ID2Packagename: map[NameID]string{1: "kernel", 2: "kernel-devel"},
 
@@ -61,13 +63,13 @@ func mockCache() *Cache {
 			"RHSA-2024:0042": {
 				ThirdParty: false,
 				Type:       "security",
-				Severity:   "Important",
+				Severity:   &important,
 				PkgIDs:     []int{2, 3},
 			},
 			"RHSA-2024:1111": {
 				ThirdParty: true,
 				Type:       "bugfix",
-				Severity:   "Low",
+				Severity:   &low,
 			},
 		},
 
