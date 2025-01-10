@@ -368,7 +368,6 @@ func (l CpeLabel) Parse() (*ParsedCpe, error) {
 
 	parsed := make([]*string, 7)
 	for i, component := range splitted {
-		component := component
 		if len(component) > 0 {
 			parsed[i] = &component
 		}

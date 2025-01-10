@@ -62,7 +62,7 @@ func (r *Request) vulnerabilitiesExtended(c *Cache, opts *options) (*Vulnerabili
 	return &vuln, nil
 }
 
-func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDetails, error) { //nolint: funlen
+func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDetails, error) {
 	cves := VulnerabilitiesCvesDetails{
 		Cves:          make(map[string]VulnerabilityDetail),
 		ManualCves:    make(map[string]VulnerabilityDetail),
@@ -159,7 +159,6 @@ func evaluateUnpatchedCves(c *Cache, products []ProductsPackage, cves *Vulnerabi
 
 func evaluateManualCves(c *Cache, products []ProductsPackage, cves *VulnerabilitiesCvesDetails, opts *options) {
 	for _, pp := range products {
-		pp := pp // make copy because &pp is used
 		seenProducts := make(map[CSAFProduct]bool, len(pp.ProductsFixed))
 		for _, product := range pp.ProductsFixed {
 			if seenProducts[product] {
