@@ -19,7 +19,7 @@ type Errata struct {
 
 func (req *ErrataRequest) getSortedErrata(c *Cache) ([]string, error) {
 	if len(req.Errata) == 0 {
-		return nil, errors.Wrap(ErrProcessingInput, "errata_list must contain at least one item")
+		return nil, errors.Wrap(ErrProcessingInput, "'errata_list' is a required property")
 	}
 
 	errata, err := utils.TryExpandRegexPattern(req.Errata, c.ErratumDetails)
