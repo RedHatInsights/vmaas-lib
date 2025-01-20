@@ -2,6 +2,17 @@
 
 <!--next-version-placeholder-->
 
+## v1.14.7 (2025-01-20)
+
+### Fix
+
+* Improve missing errata_list error message ([`531737e`](https://github.com/RedHatInsights/vmaas-lib/commit/531737ee635c1ba013a12e918bd4e616669c1ed9))
+* Fix errata endpoint severity ([`ff26c59`](https://github.com/RedHatInsights/vmaas-lib/commit/ff26c59392ed3fca74e29dbca198c582073f83a3))
+* Fix pagination pages calculation ([`37ed4e1`](https://github.com/RedHatInsights/vmaas-lib/commit/37ed4e17ed2b965535088e39899d2a653931aab9))
+* Fix errata endpoint types ([`792c2f5`](https://github.com/RedHatInsights/vmaas-lib/commit/792c2f52b6644e215d35a4901064a61953c5c9bc))
+* Fix errata endpoint non-nullable arrays ([`ce57b34`](https://github.com/RedHatInsights/vmaas-lib/commit/ce57b34006fa01d13c332ff6569251f19286ebf0))
+* Fix errata endpoint bad request error code ([`b973591`](https://github.com/RedHatInsights/vmaas-lib/commit/b973591d53533e57cdca834f6ce5876fd63a80ed))
+
 ## v1.14.6 (2024-12-12)
 
 ### Fix
