@@ -67,6 +67,62 @@ func TestErratumIDs2PackageNames(t *testing.T) {
 	assert.Equal(t, 2, len(pkgNames))
 }
 
+func TestIsPkgThirdParty(t *testing.T) {
+	c := mockCache()
+	val := c.isPkgThirdParty(5)
+	assert.True(t, val)
+	val = c.isPkgThirdParty(6)
+	assert.False(t, val)
+}
+
+func TestNevra2PkgID(t *testing.T) {
+	c := mockCache()
+	nevra := utils.Nevra{
+		Name:    "bash",
+		Epoch:   0,
+		Version: "4.2.46",
+		Release: "20.el7_2",
+		Arch:    "x86_64",
+	}
+	pkgID := c.nevra2PkgID(nevra)
+	assert.Equal(t, 4, int(pkgID))
+
+	emptyNevra := utils.Nevra{
+		Name:    "",
+		Epoch:   0,
+		Version: "",
+		Release: "",
+		Arch:    "",
+	}
+	pkgID = c.nevra2PkgID(emptyNevra)
+	assert.Equal(t, 0, int(pkgID))
+}
+
+func TestSrcPkgID2Pkg(t *testing.T) {
+	c := mockCache()
+	var srcPkgID PkgID = 1
+	pkg := c.srcPkgID2Pkg(&srcPkgID)
+	assert.Equal(t, "kernel-1:1-1.x86_64", pkg)
+
+	pkg = c.srcPkgID2Pkg(nil)
+	assert.Equal(t, "", pkg)
+}
+
+func TestPkgID2Repos(t *testing.T) {
+	c := mockCache()
+	repoDetails := c.pkgID2Repos(4)
+	assert.Equal(t, 2, len(repoDetails))
+
+	repoDetails = c.pkgID2Repos(99)
+	assert.Equal(t, 0, len(repoDetails))
+}
+
+func TestPkgID2BuiltBinaryPkgs(t *testing.T) {
+	c := mockCache()
+	bbp := c.pkgID2BuiltBinaryPkgs(42)
+	assert.Equal(t, 3, len(bbp))
+}
+
 //nolint:funlen
 func mockCache() *Cache {
 	modifiedDate, _ := time.Parse(time.RFC3339, "2024-10-03T11:44:00+02:00")
@@ -93,10 +149,37 @@ func mockCache() *Cache {
 			2: "src",
 		},
 
+		Packagename2ID: map[string]NameID{
+			"bash":        3,
+			"python-perf": 4,
+			"vim-common":  5,
+		},
+
+		Evr2ID: map[utils.Evr]EvrID{
+			{Epoch: 0, Version: "4.2.46", Release: "20.el7_2"}: 3,
+			{Epoch: 0, Version: "3.10.0", Release: "693.el7"}:  4,
+			{Epoch: 2, Version: "7.4.160", Release: "1.el7"}:   5,
+		},
+
+		Nevra2PkgID: map[Nevra]PkgID{
+			{NameID: 3, EvrID: 3, ArchID: 1}: 4,
+			{NameID: 4, EvrID: 4, ArchID: 1}: 5,
+			{NameID: 5, EvrID: 5, ArchID: 1}: 6,
+		},
+
+		PkgID2RepoIDs: map[PkgID][]RepoID{
+			4: {41, 42},
+			5: {43},
+			6: {44},
+		},
+
 		PackageDetails: map[PkgID]PackageDetail{
 			1: {NameID: 1, EvrID: 1, ArchID: 1}, // kernel-1:1-1
 			2: {NameID: 1, EvrID: 2, ArchID: 1}, // kernel-0:2-2
 			3: {NameID: 2, EvrID: 1, ArchID: 2}, // kernel-devel-1:1-1
+			4: {},
+			5: {},
+			6: {},
 		},
 
 		ErratumDetails: map[string]ErratumDetail{
@@ -177,6 +260,10 @@ func mockCache() *Cache {
 
 		ContentSetID2CpeIDs: map[ContentSetID][]CpeID{
 			111: {1, 2, 3},
+		},
+
+		SrcPkgID2PkgID: map[PkgID][]PkgID{
+			42: {1, 2, 3},
 		},
 
 		DBChange: DBChange{LastChange: "2024-10-02T16:08:00+02:00"},
