@@ -1,6 +1,9 @@
 package vmaas
 
 import (
+	"slices"
+	"time"
+
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
 )
 
@@ -12,11 +15,34 @@ type PkgList struct {
 }
 
 func (req *PkgListRequest) getFilteredPkgList(c *Cache) []PkgID {
-	return nil // TODO: implement func
+	if req.ModifiedSince == nil {
+		return c.PackageDetailsModifiedIndex
+	}
+
+	i, _ := slices.BinarySearchFunc(c.PackageDetailsModifiedIndex, req.ModifiedSince, func(a PkgID, b *time.Time) int {
+		return compareDates(c.PackageDetails[a].Modified, b)
+	})
+	if i >= len(c.PackageDetailsModifiedIndex) {
+		return []PkgID{}
+	}
+	return c.PackageDetailsModifiedIndex[i:]
 }
 
 func (c *Cache) loadPkgListItems(pkgListItemIDs []PkgID, returnModified bool) []PkgListItem {
-	return nil // TODO: implement func
+	pkgList := make([]PkgListItem, 0, len(pkgListItemIDs))
+	for _, pkgID := range pkgListItemIDs {
+		pkgDetail := c.PackageDetails[pkgID]
+		item := PkgListItem{
+			Nevra:       c.pkgDetail2Nevra(pkgDetail),
+			Summary:     c.String[pkgDetail.SummaryID],
+			Description: c.String[pkgDetail.DescriptionID],
+		}
+		if returnModified {
+			item.Modified = pkgDetail.Modified
+		}
+		pkgList = append(pkgList, item)
+	}
+	return pkgList
 }
 
 func (req *PkgListRequest) pkglist(c *Cache) (*PkgList, error) { // TODO: implement opts
