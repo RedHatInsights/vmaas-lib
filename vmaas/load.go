@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -55,6 +56,27 @@ func closeDB() {
 	sqlDB = nil
 }
 
+func buildIndexes(c *Cache) {
+	start := time.Now()
+
+	pkgIDs := make([]PkgID, 0, len(c.PackageDetails))
+	for pkgID := range c.PackageDetails {
+		pkgIDs = append(pkgIDs, pkgID)
+	}
+
+	// nil values will be at the beginning
+	slices.SortFunc(pkgIDs, func(aID, bID PkgID) int {
+		a := c.PackageDetails[aID].Modified
+		b := c.PackageDetails[bID].Modified
+		if a == nil || b == nil {
+			return utils.Bool2Int(b == nil) - utils.Bool2Int(a == nil)
+		}
+		return a.Compare(*b)
+	})
+	c.PackageDetailsModifiedIndex = pkgIDs
+	utils.LogInfo("elapsed", fmt.Sprint(time.Since(start)), "Indexes built successfully")
+}
+
 // Make sure only one load at a time is performed
 func loadCache(path string, opts *options) (*Cache, error) {
 	lock.Lock()
@@ -84,6 +106,8 @@ func loadCache(path string, opts *options) (*Cache, error) {
 
 	wg.Wait()
 	utils.LogInfo("elapsed", fmt.Sprint(time.Since(start)), "Cache loaded successfully")
+
+	buildIndexes(&c)
 	return &c, nil
 }
 
