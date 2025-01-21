@@ -57,6 +57,12 @@ type CvesRequest struct {
 	PageNumber          int        `json:"page"`
 	PageSize            int        `json:"page_size"`
 }
+type PkgListRequest struct {
+	ModifiedSince  *time.Time `json:"modified_since"`
+	ReturnModified bool       `json:"return_modified"`
+	PageNumber     int        `json:"page"`
+	PageSize       int        `json:"page_size"`
+}
 
 // UnmarshalJSON is ment only for TypeT.UnmarshalJSON and SeverityT.UnmarshalJSON
 func unmarshalJSON[T string | *string](dst *[]T, data []byte) error {
@@ -380,6 +386,13 @@ type ErratumDetail struct {
 	PackageList       []string `json:"package_list"`
 	SourcePackageList []string `json:"source_package_list"`
 	ReleaseVersions   []string `json:"release_versions"`
+}
+
+type PkgListItem struct {
+	Nevra       string     `json:"nevra"`
+	Summary     string     `json:"summary"`
+	Description string     `json:"description"`
+	Modified    *time.Time `json:"modified,omitempty"`
 }
 
 type NameArch struct {
