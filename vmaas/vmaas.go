@@ -70,6 +70,10 @@ func (api *API) Packages(request *PackagesRequest) (*Packages, error) {
 	return request.packages(api.Cache)
 }
 
+func (api *API) PkgList(request *PkgListRequest) (*PkgList, error) {
+	return request.pkglist(api.Cache)
+}
+
 func (api *API) OSVulnerabilityReport() (*VulnerabilityReport, error) {
 	return vulnerabilityReport(api.Cache, api.options)
 }
