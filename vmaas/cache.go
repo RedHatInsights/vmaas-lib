@@ -17,7 +17,8 @@ type Cache struct {
 	// name -> []pkg ordered by e-v-r ordering
 	Updates map[NameID][]PkgID
 	// name -> evr -> idx into updates[name]
-	UpdatesIndex map[NameID]map[EvrID][]int
+	UpdatesIndex                map[NameID]map[EvrID][]int
+	PackageDetailsModifiedIndex []PkgID
 
 	Evr2ID map[utils.Evr]EvrID
 	ID2Evr map[EvrID]utils.Evr
