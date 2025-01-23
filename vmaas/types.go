@@ -147,6 +147,11 @@ type ErrataRequest struct {
 	PageSize      int        `json:"page_size"`
 }
 
+type PackagesRequest struct {
+	Packages   []string `json:"package_list"`
+	ThirdParty bool     `json:"third_party"`
+}
+
 type Update struct {
 	Package     string `json:"package"`
 	PackageName string `json:"package_name"`
@@ -239,15 +244,21 @@ type NevraIDs struct {
 }
 
 type PackageDetail struct {
-	NameID        NameID
-	EvrID         EvrID
-	ArchID        ArchID
-	SummaryID     int
-	DescriptionID int
+	NameID        NameID `json:"-"`
+	EvrID         EvrID  `json:"-"`
+	ArchID        ArchID `json:"-"`
+	SummaryID     int    `json:"-"`
+	DescriptionID int    `json:"-"`
 
-	SrcPkgID   *PkgID
-	Modified   *time.Time
-	ModifiedID int
+	SrcPkgID   *PkgID     `json:"-"`
+	Modified   *time.Time `json:"-"`
+	ModifiedID int        `json:"-"`
+
+	Summary       string       `json:"summary"`
+	Description   string       `json:"description"`
+	SourcePackage string       `json:"source_package"`
+	Packages      []string     `json:"package_list"`
+	Repositories  []RepoDetail `json:"repositories"`
 }
 
 type Nevra struct {
@@ -257,16 +268,16 @@ type Nevra struct {
 }
 
 type RepoDetail struct {
-	Label      string
-	Name       string
-	URL        string
-	Basearch   string
-	Releasever string
-	Product    string
-	ProductID  int
-	Revision   *string
-	LastChange *string
-	ThirdParty bool
+	Label      string  `json:"label"`
+	Name       string  `json:"name"`
+	URL        string  `json:"-"`
+	Basearch   string  `json:"basearch"`
+	Releasever string  `json:"releasever"`
+	Product    string  `json:"-"`
+	ProductID  int     `json:"-"`
+	Revision   *string `json:"-"`
+	LastChange *string `json:"-"`
+	ThirdParty bool    `json:"-"`
 }
 
 type CveDetail struct {
