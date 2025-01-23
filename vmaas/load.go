@@ -68,6 +68,8 @@ func loadCache(path string, opts *options) (*Cache, error) {
 
 	c := Cache{}
 
+	loadDumpSchemaVersion(&c)
+
 	var wg sync.WaitGroup
 	guard := make(chan struct{}, opts.maxGoroutines)
 	for _, fn := range loadFuncs {
@@ -961,4 +963,28 @@ func loadCSAFCVE(c *Cache) {
 	c.CSAFCVEs = cveCache
 	c.CSAFCVEProduct2Errata = errataCache
 	c.CSAFProduct2ID = product2id
+}
+
+func loadDumpSchemaVersion(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "DumpSchemaVersion")
+
+	// This block might be removed in future
+	rows, err := sqlDB.Query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'dump_schema'")
+	if err != nil {
+		panic(err)
+	}
+	if !rows.Next() {
+		utils.LogWarn("dump_schema table doesn't exist yet in dump, dump schema version is 0.")
+		return
+	}
+
+	rows = getAllRows("dump_schema", "version")
+	var version int
+	for rows.Next() {
+		err := rows.Scan(&version)
+		if err != nil {
+			panic(err)
+		}
+	}
+	c.DumpSchemaVersion = version
 }
