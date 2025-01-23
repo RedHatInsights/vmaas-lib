@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.15.0 (2025-01-23)
+
+### Feature
+
+* Introduce simple dump versioning ([`b462637`](https://github.com/RedHatInsights/vmaas-lib/commit/b4626376debe1c197a4fa4bcbfccc1aeb0b95c4e))
+
 ## v1.14.7 (2025-01-20)
 
 ### Fix
