@@ -9,6 +9,8 @@ import (
 )
 
 type Cache struct {
+	DumpSchemaVersion int
+
 	Packagename2ID map[string]NameID
 	ID2Packagename map[NameID]string
 
