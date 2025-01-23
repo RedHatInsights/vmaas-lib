@@ -361,10 +361,7 @@ func loadPkgDetails(c *Cache) {
 func loadRepoDetails(c *Cache) { //nolint: funlen
 	defer utils.TimeTrack(time.Now(), "RepoIDs, RepoDetails, RepoLabel2IDs, RepoPath2IDs, ProductID2RepoIDs")
 
-	rows := getAllRows(
-		"repo_detail",
-		"id,label,name,url,COALESCE(basearch,''),COALESCE(releasever,''),product,product_id,revision,last_change,third_party",
-	)
+	rows := getAllRows("repo_detail", "id,label,name,url,COALESCE(basearch,''),COALESCE(releasever,''),product,product_id,COALESCE(revision,''),COALESCE(last_change,''),third_party") //nolint:lll
 	cntRepo := getCount("repo_detail", "*")
 	cntLabel := getCount("repo_detail", "distinct label")
 	cntURL := getCount("repo_detail", "distinct url")
@@ -375,10 +372,12 @@ func loadRepoDetails(c *Cache) { //nolint: funlen
 	prodID2RepoIDs := make(map[int][]RepoID, cntProd)
 	repoIDs := []RepoID{}
 	var repoID RepoID
+	var revision string
+	var lastChange string
 	for rows.Next() {
 		var det RepoDetail
 		err := rows.Scan(&repoID, &det.Label, &det.Name, &det.URL, &det.Basearch, &det.Releasever,
-			&det.Product, &det.ProductID, &det.Revision, &det.LastChange, &det.ThirdParty)
+			&det.Product, &det.ProductID, &revision, &lastChange, &det.ThirdParty)
 		if err != nil {
 			panic(err)
 		}
@@ -410,6 +409,16 @@ func loadRepoDetails(c *Cache) { //nolint: funlen
 			prodID2RepoIDs[det.ProductID] = []RepoID{}
 		}
 		prodID2RepoIDs[det.ProductID] = append(prodID2RepoIDs[det.ProductID], repoID)
+
+		revisionTime, err := time.Parse(time.RFC3339, revision)
+		if err == nil {
+			det.Revision = revisionTime
+		}
+
+		lastChangeTime, err := time.Parse(time.RFC3339, lastChange)
+		if err == nil {
+			det.LastChange = &lastChangeTime
+		}
 	}
 	c.RepoIDs = repoIDs
 	c.RepoDetails = id2repoDetail
