@@ -54,9 +54,9 @@ func mockCache() *Cache {
 		},
 
 		PackageDetails: map[PkgID]PackageDetail{
-			1: {NameID: 1, EvrID: 1, ArchID: 1}, // kernel-1:1-1
-			2: {NameID: 1, EvrID: 2, ArchID: 1}, // kernel-0:2-2
-			3: {NameID: 2, EvrID: 1, ArchID: 2}, // kernel-devel-1:1-1
+			1: {NameID: 1, EvrID: 1, ArchID: 1, Modified: &modifiedDate}, // kernel-1:1-1
+			2: {NameID: 1, EvrID: 2, ArchID: 1},                          // kernel-0:2-2
+			3: {NameID: 2, EvrID: 1, ArchID: 2},                          // kernel-devel-1:1-1
 		},
 
 		ErratumDetails: map[string]ErratumDetail{

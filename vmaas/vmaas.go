@@ -62,6 +62,10 @@ func (api *API) Errata(request *ErrataRequest) (*Errata, error) {
 	return request.errata(api.Cache)
 }
 
+func (api *API) PkgList(request *PkgListRequest) (*PkgList, error) {
+	return request.pkglist(api.Cache)
+}
+
 func (api *API) LoadCacheFromFile(cachePath string) error {
 	var err error
 	api.Cache, err = loadCache(cachePath, api.options)
