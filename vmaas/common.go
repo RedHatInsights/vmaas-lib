@@ -12,7 +12,13 @@ import (
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
 )
 
-const SecurityErrataType = "security"
+const (
+	SecurityErrataType = "security"
+	CriticalCveImpact  = "Critical"
+	ImportantCveImpact = "Important"
+	ModerateCveImpact  = "Moderate"
+	LowCveImpact       = "Low"
+)
 
 var (
 	ErrProcessingInput = errors.New("processing input")

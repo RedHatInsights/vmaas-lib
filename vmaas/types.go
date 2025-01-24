@@ -100,7 +100,10 @@ func (slice *SeverityT) UnmarshalJSON(data []byte) error {
 	}
 
 	for _, item := range res {
-		if item != nil && !slices.Contains([]string{"Low", "Moderate", "Important", "Critical"}, *item) {
+		if item != nil && !slices.Contains(
+			[]string{LowCveImpact, ModerateCveImpact, ImportantCveImpact, CriticalCveImpact},
+			*item,
+		) {
 			return errors.Wrapf(ErrProcessingInput, "invalid severity value: '%s'", *item)
 		}
 	}
@@ -492,4 +495,19 @@ type ensvc struct {
 	Stream    string
 	Version   int
 	Context   string
+}
+
+type OSReleaseDetail struct {
+	Name                   string `json:"name"`
+	Major                  int    `json:"major"`
+	Minor                  int    `json:"minor"`
+	SystemProfile          string `json:"-"`
+	CvesCritical           int    `json:"cves_critical"`
+	CvesImportant          int    `json:"cves_important"`
+	CvesModerate           int    `json:"cves_moderate"`
+	CvesLow                int    `json:"cves_low"`
+	CvesUnpatchedCritical  int    `json:"cves_unpatched_critical"`
+	CvesUnpatchedImportant int    `json:"cves_unpatched_important"`
+	CvesUnpatchedModerate  int    `json:"cves_unpatched_moderate"`
+	CvesUnpatchedLow       int    `json:"cves_unpatched_low"`
 }
