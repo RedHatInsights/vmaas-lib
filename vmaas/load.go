@@ -24,7 +24,7 @@ var (
 var loadFuncs = []func(c *Cache){
 	loadPkgNames, loadUpdates, loadUpdatesIndex, loadEvrMaps, loadArchs, loadArchCompat, loadRepoDetails,
 	loadLabel2ContentSetID, loadPkgRepos, loadErrata, loadPkgErratum, loadErrataRepoIDs, loadCves,
-	loadPkgErratumModule, loadModule2IDs, loadModuleRequires, loadDBChanges, loadString,
+	loadPkgErratumModule, loadModule2IDs, loadModuleRequires, loadDBChanges, loadString, loadOSReleaseDetails,
 	// CSAF
 	loadRepoCpes, loadContentSet2Cpes, loadCpeID2Label, loadCSAFCVE,
 }
@@ -987,4 +987,30 @@ func loadDumpSchemaVersion(c *Cache) {
 		}
 	}
 	c.DumpSchemaVersion = version
+}
+
+func loadOSReleaseDetails(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "OSReleaseDetails")
+	if c.DumpSchemaVersion < 2 {
+		utils.LogWarn("OSReleaseDetails requires dump schema version 2, skipping.")
+		return
+	}
+
+	rows := getAllRows(
+		"operating_system",
+		"id,name,major,minor,system_profile",
+	)
+	cntOSRelease := getCount("operating_system", "*")
+
+	id2OSReleaseDetail := make(map[int]OSReleaseDetail, cntOSRelease)
+	var OSReleaseID int
+	for rows.Next() {
+		var det OSReleaseDetail
+		err := rows.Scan(&OSReleaseID, &det.Name, &det.Major, &det.Minor, &det.SystemProfile)
+		if err != nil {
+			panic(err)
+		}
+		id2OSReleaseDetail[OSReleaseID] = det
+	}
+	c.OSReleaseDetails = id2OSReleaseDetail
 }
