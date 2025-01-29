@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.16.0 (2025-01-29)
+
+### Feature
+
+* OS Release Vulnerability Report API ([`5325249`](https://github.com/RedHatInsights/vmaas-lib/commit/532524969888ce00359bd6e9ce6f673cbab4e1f3))
+
 ## v1.15.0 (2025-01-23)
 
 ### Feature
