@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.17.0 (2025-01-30)
+
+### Feature
+
+* Rewrite repos endpoint in go ([`e2cef54`](https://github.com/RedHatInsights/vmaas-lib/commit/e2cef54bf07cfabc7b2f1760d42fe73b3f34e53c))
+
 ## v1.16.0 (2025-01-29)
 
 ### Feature
