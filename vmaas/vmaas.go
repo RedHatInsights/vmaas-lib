@@ -66,6 +66,10 @@ func (api *API) Repos(request *ReposRequest) (*Repos, error) {
 	return request.repos(api.Cache)
 }
 
+func (api *API) Packages(request *PackagesRequest) (*Packages, error) {
+	return request.packages(api.Cache)
+}
+
 func (api *API) OSVulnerabilityReport() (*VulnerabilityReport, error) {
 	return vulnerabilityReport(api.Cache, api.options)
 }

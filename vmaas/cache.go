@@ -199,3 +199,79 @@ func (c *Cache) erratumIDs2PackageNames(erratumIDs []ErratumID) []string {
 	}
 	return pkgNames
 }
+
+func (c *Cache) nevra2PkgID(nevra utils.Nevra) PkgID {
+	nameID, ok := c.Packagename2ID[nevra.Name]
+	if !ok {
+		return 0
+	}
+	evrID, ok := c.Evr2ID[nevra.GetEvr()]
+	if !ok {
+		return 0
+	}
+	archID, ok := c.Arch2ID[nevra.Arch]
+	if !ok {
+		return 0
+	}
+
+	key := Nevra{
+		NameID: nameID,
+		EvrID:  evrID,
+		ArchID: archID,
+	}
+	return c.Nevra2PkgID[key]
+}
+
+func (c *Cache) isPkgThirdParty(pkgID PkgID) bool {
+	repoIDs := c.PkgID2RepoIDs[pkgID]
+	for _, repoID := range repoIDs {
+		repoDetail := c.RepoDetails[repoID]
+		if repoDetail.ThirdParty {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Cache) srcPkgID2Pkg(srcPkgID *PkgID) string {
+	if srcPkgID == nil {
+		return ""
+	}
+
+	srcPackageDetail, ok := c.PackageDetails[*srcPkgID]
+	if !ok {
+		return ""
+	}
+
+	return c.pkgDetail2Nevra(srcPackageDetail)
+}
+
+func (c *Cache) pkgID2Repos(pkgID PkgID) []RepoDetailCommon {
+	repoIDs, ok := c.PkgID2RepoIDs[pkgID]
+	if !ok {
+		return []RepoDetailCommon{}
+	}
+
+	repoDetails := make([]RepoDetailCommon, 0, len(repoIDs))
+	for _, repoID := range repoIDs {
+		if repoDetail, ok := c.RepoDetails[repoID]; ok {
+			repoDetails = append(repoDetails, repoDetail.RepoDetailCommon)
+		}
+	}
+	return repoDetails
+}
+
+func (c *Cache) pkgID2BuiltBinaryPkgs(pkgID PkgID) []string {
+	pkgIDs, ok := c.SrcPkgID2PkgID[pkgID]
+	if !ok {
+		return []string{}
+	}
+
+	pkgs := make([]string, 0, len(pkgIDs))
+	for _, pkgID := range pkgIDs {
+		if packageDetail, ok := c.PackageDetails[pkgID]; ok {
+			pkgs = append(pkgs, c.pkgDetail2Nevra(packageDetail))
+		}
+	}
+	return pkgs
+}

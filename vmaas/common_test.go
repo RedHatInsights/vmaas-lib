@@ -66,8 +66,8 @@ func testReleaseverBasearch(t *testing.T, f func(*Cache, *string, RepoID) bool, 
 	c := Cache{
 		RepoDetails: map[RepoID]RepoDetail{
 			1: {},
-			2: {Basearch: "x86_64", Releasever: "el8"},
-			3: {Basearch: "s390", Releasever: "el9"},
+			2: {RepoDetailCommon: RepoDetailCommon{Basearch: "x86_64", Releasever: "el8"}},
+			3: {RepoDetailCommon: RepoDetailCommon{Basearch: "s390", Releasever: "el9"}},
 		},
 	}
 
@@ -119,9 +119,9 @@ func TestGetRepoIDs(t *testing.T) {
 	c := Cache{
 		RepoIDs: []RepoID{1, 2, 3},
 		RepoDetails: map[RepoID]RepoDetail{
-			1: {Releasever: x8664, Basearch: el9},
-			2: {Releasever: x8664, Basearch: el9},
-			3: {Releasever: x8664, Basearch: el9},
+			1: {RepoDetailCommon: RepoDetailCommon{Releasever: x8664, Basearch: el9}},
+			2: {RepoDetailCommon: RepoDetailCommon{Releasever: x8664, Basearch: el9}},
+			3: {RepoDetailCommon: RepoDetailCommon{Releasever: x8664, Basearch: el9}},
 		},
 	}
 
@@ -174,9 +174,11 @@ func TestGetRepoIDs(t *testing.T) {
 	// repository paths
 	c.RepoIDs = append(c.RepoIDs, 4)
 	c.RepoDetails[4] = RepoDetail{
-		Releasever: x8664,
-		Basearch:   el9,
-		URL:        "http://example.com/content/dist/rhel/rhui/server/7/7Server/x86_64/os/repodata",
+		RepoDetailCommon: RepoDetailCommon{
+			Releasever: x8664,
+			Basearch:   el9,
+		},
+		URL: "http://example.com/content/dist/rhel/rhui/server/7/7Server/x86_64/os/repodata",
 	}
 	c.RepoPath2IDs = map[string][]RepoID{
 		"/content/dist/rhel/rhui/server/7/7Server/x86_64/os": {4},
@@ -323,9 +325,9 @@ func TestNevraUpdates(t *testing.T) {
 		PkgID2RepoIDs:  map[PkgID][]RepoID{1: {1, 2, 3}, 2: {2, 3, 4}, 3: {3, 4}},
 		RepoDetails: map[RepoID]RepoDetail{
 			1: {},
-			2: {Releasever: "el7"},
-			3: {Releasever: "el8"},
-			4: {Releasever: "el9"},
+			2: {RepoDetailCommon: RepoDetailCommon{Releasever: "el7"}},
+			3: {RepoDetailCommon: RepoDetailCommon{Releasever: "el8"}},
+			4: {RepoDetailCommon: RepoDetailCommon{Releasever: "el9"}},
 		},
 	}
 
@@ -391,9 +393,9 @@ func TestFilterRepositories(t *testing.T) {
 	c := Cache{
 		RepoDetails: map[RepoID]RepoDetail{
 			1: {},
-			2: {Releasever: "el7"},
-			3: {Releasever: "el8"},
-			4: {Releasever: "el9"},
+			2: {RepoDetailCommon: RepoDetailCommon{Releasever: "el7"}},
+			3: {RepoDetailCommon: RepoDetailCommon{Releasever: "el8"}},
+			4: {RepoDetailCommon: RepoDetailCommon{Releasever: "el9"}},
 		},
 		ErratumID2RepoIDs: map[ErratumID]map[RepoID]bool{
 			1: {1: true, 2: true},
