@@ -1,15 +1,16 @@
 # Build vmaas app with local changes to vmaas-lib
-FROM registry.access.redhat.com/ubi9/ubi-minimal
+FROM registry.access.redhat.com/ubi8/ubi-minimal
 
 ARG VAR_RPMS=""
 RUN curl -o /etc/yum.repos.d/postgresql.repo \
-        https://copr.fedorainfracloud.org/coprs/mmraka/postgresql-16/repo/epel-9/mmraka-postgresql-16-epel-9.repo
+        https://copr.fedorainfracloud.org/coprs/g/insights/postgresql-16/repo/epel-8/group_insights-postgresql-16-epel-8.repo
 
+RUN microdnf module enable nginx:1.20 || :
+RUN microdnf module disable postgresql || :
 RUN microdnf install -y --setopt=install_weak_deps=0 --setopt=tsflags=nodocs \
-        python311 python3.11-pip python3-rpm which nginx rpm-devel git-core shadow-utils diffutils systemd libicu postgresql go-toolset \
+        python312 python3.12-pip python3-rpm python3-dnf which nginx rpm-devel git-core shadow-utils diffutils systemd libicu postgresql go-toolset \
         $VAR_RPMS && \
-        ln -s /usr/lib64/python3.9/site-packages/rpm /usr/lib64/python3.11/site-packages/rpm && \
-        ln -s $(basename /usr/lib64/python3.9/site-packages/rpm/_rpm.*.so) /usr/lib64/python3.9/site-packages/rpm/_rpm.so && \
+        ln -s /usr/lib64/python3.6/site-packages/rpm /usr/lib64/python3.12/site-packages/rpm && \
     microdnf clean all
 
 RUN git clone https://github.com/RedHatInsights/vmaas.git --branch master /vmaas
@@ -19,10 +20,10 @@ WORKDIR /vmaas
 ENV LC_ALL=C.utf8
 ENV LANG=C.utf8
 ARG VAR_POETRY_INSTALL_OPT="--only main"
-RUN pip3.11 install --upgrade pip && \
-    pip3.11 install --upgrade poetry~=1.5
+RUN pip3.12 install --upgrade pip && \
+    pip3.12 install --upgrade poetry~=2.0 poetry-plugin-export
 RUN poetry export $VAR_POETRY_INSTALL_OPT -f requirements.txt --output requirements.txt && \
-    pip3.11 install -r requirements.txt
+    pip3.12 install -r requirements.txt
 
 RUN install -m 1777 -d /data && \
     adduser --gid 0 -d /vmaas --no-create-home vmaas
