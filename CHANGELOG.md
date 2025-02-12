@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.18.0 (2025-02-12)
+
+### Feature
+
+* Rewrite packages endpoint in go ([`8e722b9`](https://github.com/RedHatInsights/vmaas-lib/commit/8e722b900214a1f9aae090e51a71882b09e67377))
+
 ## v1.17.0 (2025-01-30)
 
 ### Feature
