@@ -74,6 +74,10 @@ func (api *API) PkgList(request *PkgListRequest) (*PkgList, error) {
 	return request.pkglist(api.Cache)
 }
 
+func (api *API) PkgTree(request *PkgTreeRequest) (*PkgTree, error) {
+	return request.pkgtree(api.Cache)
+}
+
 func (api *API) OSVulnerabilityReport() (*VulnerabilityReport, error) {
 	return vulnerabilityReport(api.Cache, api.options)
 }

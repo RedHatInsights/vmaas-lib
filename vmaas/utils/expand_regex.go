@@ -37,5 +37,8 @@ func TryExpandRegexPattern[T any](inLabels []string, dataByLabels map[string]T) 
 			outLabels = append(outLabels, label)
 		}
 	}
+	if len(outLabels) == 0 {
+		return inLabels, nil
+	}
 	return outLabels, nil
 }
