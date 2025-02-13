@@ -17,9 +17,10 @@ type VulnerabilitiesCvesDetails struct {
 }
 
 type ProductsPackage struct {
-	ProductsFixed   []CSAFProduct
-	ProductsUnfixed []CSAFProduct
-	Package         Package
+	ProductsFixed             []CSAFProduct
+	ProductsUnfixed           []CSAFProduct
+	ProductsFixedNewerRelease []CSAFProduct
+	Package                   Package
 }
 
 type Package struct {
@@ -157,46 +158,94 @@ func evaluateUnpatchedCves(c *Cache, products []ProductsPackage, cves *Vulnerabi
 	}
 }
 
-func evaluateManualCves(c *Cache, products []ProductsPackage, cves *VulnerabilitiesCvesDetails, opts *options) {
-	for _, pp := range products {
-		seenProducts := make(map[CSAFProduct]bool, len(pp.ProductsFixed))
-		for _, product := range pp.ProductsFixed {
-			if seenProducts[product] {
-				// duplicate product in pp.ProductsFixed
-				// skip processing of already processed product
+func updateManualCvesFromProducts(c *Cache, pkg Package, product CSAFProduct, seenProducts map[CSAFProduct]bool,
+	alreadyFixed map[string]map[string]bool, cves *VulnerabilitiesCvesDetails, opts *options) {
+
+	if seenProducts[product] {
+		// duplicate product in pp.ProductsFixed
+		// skip processing of already processed product
+		return
+	}
+	seenProducts[product] = true
+	updateNevra := pkgID2Nevra(c, product.PackageID)
+	cn := CpeIDNameID{CpeID: product.CpeID, NameID: pkg.NameID}
+
+	if cmpNevraUpdate(c, &pkg.Nevra, &updateNevra, opts, func() bool {
+		return updateNevra.EVRCmp(&pkg.Nevra) <= 0
+	}) {
+		// The installed package version is newer than the update version.
+		// This means that the fix for this package is already applied in the current product release,
+		// so updates from later releases should not be shown.
+		if _, ok := alreadyFixed[pkg.String]; !ok {
+			alreadyFixed[pkg.String] = make(map[string]bool)
+		}
+		csafCves := c.CSAFCVEs[cn][product]
+		for _, cveID := range csafCves.Fixed {
+			cve, ok := c.CveNames[int(cveID)]
+			if !ok {
+				utils.LogWarn("cve_id", cveID, "Missing cve_id to name mapping, CVE might be removed by ProdSec")
 				continue
 			}
-			seenProducts[product] = true
-			updateNevra := pkgID2Nevra(c, product.PackageID)
-			if !isApplicable(c, &updateNevra, &pp.Package.Nevra, opts) {
+			alreadyFixed[pkg.String][cve] = true
+		}
+		return // current package is newer than the update
+	}
+
+	if isApplicable(c, &updateNevra, &pkg.Nevra, opts) {
+		// update is applicable to the currently installed package
+		module := product.ModuleStream
+		csafCves := c.CSAFCVEs[cn][product]
+		for _, cveID := range csafCves.Fixed {
+			cve, ok := c.CveNames[int(cveID)]
+			if !ok {
+				utils.LogWarn("cve_id", cveID, "Missing cve_id to name mapping, CVE might be removed by ProdSec")
 				continue
 			}
 
-			module := product.ModuleStream
-			cn := CpeIDNameID{CpeID: product.CpeID, NameID: pp.Package.NameID}
-			csafCves := c.CSAFCVEs[cn][product]
-			for _, cveID := range csafCves.Fixed {
-				cve, ok := c.CveNames[int(cveID)]
-				if !ok {
-					utils.LogWarn("cve_id", cveID, "Missing cve_id to name mapping, CVE might be removed by ProdSec")
-					continue
-				}
-				_, inCves := cves.Cves[cve]
-				_, inUnpatchedCves := cves.UnpatchedCves[cve]
-				if !(inCves || inUnpatchedCves) {
-					// show only CVE hit which is not in Cves and UnpatchedCves
-					cpe := c.CpeID2Label[product.CpeID]
-					erratum := c.CSAFCVEProduct2Errata[CSAFCVEProduct{
-						CVEID:         cveID,
-						CSAFProductID: c.CSAFProduct2ID[product],
-					}]
-					if module.Module != "" {
-						updateCves(cves.ManualCves, cve, pp.Package, []string{erratum}, cpe, &module)
-					} else {
-						updateCves(cves.ManualCves, cve, pp.Package, []string{erratum}, cpe, nil)
-					}
+			if alreadyFixed[pkg.String][cve] {
+				// This CVE has already been fixed for the current package.
+				// Example:
+				//   - Enabled repository: 	rhel-8-for-x86_64-appstream-eus-rpms, releasever=8.6
+				//   - Installed package: 	python3-unbound-1.7.3-17.el8_6.5.x86_64
+				//   - Fix in RHEL 8.6 EUS: python3-unbound-1.7.3-17.el8_6.4.x86_64, CVE-2024-1488, RHSA-2024:1804
+				//   - Fix in RHEL 8.8 EUS: python3-unbound-1.16.2-5.el8_8.4.x86_64, CVE-2024-1488, RHSA-2024:1802
+				// The CVE is considered already resolved, so it should not be marked as manually fixable.
+				//
+				// There is a potential issue:
+				//   - installed package:			 pkg-1.1.0
+				//   - package fixing CVE-123:		 pkg-1.0.0
+				//   - package fixing CVE-123 again: pkg-1.2.0 (previous fix is not complete)
+				// in this case we might not show CVE-123
+				return
+			}
+			_, inCves := cves.Cves[cve]
+			_, inUnpatchedCves := cves.UnpatchedCves[cve]
+			if !(inCves || inUnpatchedCves) {
+				// show only CVE hit which is not in Cves and UnpatchedCves
+				cpe := c.CpeID2Label[product.CpeID]
+				erratum := c.CSAFCVEProduct2Errata[CSAFCVEProduct{
+					CVEID:         cveID,
+					CSAFProductID: c.CSAFProduct2ID[product],
+				}]
+				if module.Module != "" {
+					updateCves(cves.ManualCves, cve, pkg, []string{erratum}, cpe, &module)
+				} else {
+					updateCves(cves.ManualCves, cve, pkg, []string{erratum}, cpe, nil)
 				}
 			}
+		}
+	}
+}
+
+func evaluateManualCves(c *Cache, products []ProductsPackage, cves *VulnerabilitiesCvesDetails, opts *options) {
+	for _, pp := range products {
+		seenProducts := make(map[CSAFProduct]bool, len(pp.ProductsFixed))
+		alreadyFixed := make(map[string]map[string]bool) // map[package]map[cve]bool
+		for _, product := range pp.ProductsFixed {
+			updateManualCvesFromProducts(c, pp.Package, product, seenProducts, alreadyFixed, cves, opts)
+		}
+		for _, product := range pp.ProductsFixedNewerRelease {
+			updateManualCvesFromProducts(c, pp.Package, product, seenProducts, alreadyFixed, cves, opts)
 		}
 	}
 }
@@ -225,7 +274,7 @@ func (r *ProcessedRequest) processProducts(c *Cache, opts *options) []ProductsPa
 		if opts.newerReleaseverCsaf && len(r.Cpes) > 0 {
 			// look at newer releasever cpes only when there is a CPE hit for EUS repo
 			newerReleaseverProducts := cpes2products(c, r.NewerReleaseverCpes, nameID, pkgID, r.Updates.ModuleList, pkg, opts)
-			products.ProductsFixed = append(products.ProductsFixed, newerReleaseverProducts.ProductsFixed...)
+			products.ProductsFixedNewerRelease = append(products.ProductsFixedNewerRelease, newerReleaseverProducts.ProductsFixedNewerRelease...)
 			products.ProductsUnfixed = append(products.ProductsUnfixed, newerReleaseverProducts.ProductsUnfixed...)
 		}
 

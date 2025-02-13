@@ -690,6 +690,12 @@ func cveMapValues(cves map[string]VulnerabilityDetail) []VulnerabilityDetail {
 }
 
 func isApplicable(c *Cache, update, input *utils.Nevra, opts *options) bool {
+	return cmpNevraUpdate(c, update, input, opts, func() bool {
+		return update.EVRCmp(input) > 0
+	})
+}
+
+func cmpNevraUpdate(c *Cache, update, input *utils.Nevra, opts *options, cond func() bool) bool {
 	splittedRelease := strings.Split(update.Release, ".")
 	if opts.excludedReleases[splittedRelease[len(splittedRelease)-1]] {
 		return false
@@ -697,7 +703,7 @@ func isApplicable(c *Cache, update, input *utils.Nevra, opts *options) bool {
 	if update.Name != input.Name {
 		return false
 	}
-	if update.EVRCmp(input) <= 0 {
+	if !cond() {
 		return false
 	}
 	if update.Arch != input.Arch {
