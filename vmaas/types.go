@@ -49,6 +49,11 @@ type Request struct {
 	EpochRequired bool `json:"epoch_required"`
 }
 
+type PaginationRequest struct {
+	PageNumber int `json:"page"`
+	PageSize   int `json:"page_size"`
+}
+
 type CvesRequest struct {
 	Cves                []string   `json:"cve_list"`
 	PublishedSince      *time.Time `json:"published_since"`
@@ -64,6 +69,17 @@ type PkgListRequest struct {
 	ReturnModified bool       `json:"return_modified"`
 	PageNumber     int        `json:"page"`
 	PageSize       int        `json:"page_size"`
+}
+
+type PkgTreeRequest struct {
+	PackageNames       []string   `json:"package_name_list"`
+	ModifiedSince      *time.Time `json:"modified_since"`
+	ThirdParty         bool       `json:"third_party"`
+	ReturnRepositories *bool      `json:"return_repositories"`
+	ReturnErrata       *bool      `json:"return_errata"`
+	ReturnSummary      bool       `json:"return_summary"`
+	ReturnDescription  bool       `json:"return_description"`
+	PaginationRequest
 }
 
 // UnmarshalJSON is ment only for TypeT.UnmarshalJSON and SeverityT.UnmarshalJSON
