@@ -135,17 +135,12 @@ func evaluateUnpatchedCves(c *Cache, products []ProductsPackage, cves *Vulnerabi
 			module := product.ModuleStream
 			cn := CpeIDNameID{CpeID: product.CpeID, NameID: product.PackageNameID}
 			csafCves := c.CSAFCVEs[cn][product]
-			for _, cveID := range csafCves.Unfixed {
-				cve, ok := c.CveNames[int(cveID)]
-				if !ok {
-					utils.LogWarn("cve_id", cveID, "Missing cve_id to name mapping, CVE might be removed by ProdSec")
-					continue
-				}
+			for _, cve := range getCveStrings(c, csafCves.Unfixed) {
 				cpe := c.CpeID2Label[product.CpeID]
 				if module.Module != "" {
-					updateCves(cves.UnpatchedCves, cve, pp.Package, nil, cpe, &module)
+					updateCves(cves.UnpatchedCves, cve.String, pp.Package, nil, cpe, &module)
 				} else {
-					updateCves(cves.UnpatchedCves, cve, pp.Package, nil, cpe, nil)
+					updateCves(cves.UnpatchedCves, cve.String, pp.Package, nil, cpe, nil)
 				}
 			}
 		}
@@ -174,13 +169,8 @@ func updateManualCvesFromProducts(c *Cache, pkg Package, product CSAFProduct, se
 			alreadyFixed[pkg.String] = make(map[string]bool)
 		}
 		csafCves := c.CSAFCVEs[cn][product]
-		for _, cveID := range csafCves.Fixed {
-			cve, ok := c.CveNames[int(cveID)]
-			if !ok {
-				utils.LogWarn("cve_id", cveID, "Missing cve_id to name mapping, CVE might be removed by ProdSec")
-				continue
-			}
-			alreadyFixed[pkg.String][cve] = true
+		for _, cve := range getCveStrings(c, csafCves.Fixed) {
+			alreadyFixed[pkg.String][cve.String] = true
 		}
 		return // current package is newer than the update
 	}
@@ -189,14 +179,8 @@ func updateManualCvesFromProducts(c *Cache, pkg Package, product CSAFProduct, se
 		// update is applicable to the currently installed package
 		module := product.ModuleStream
 		csafCves := c.CSAFCVEs[cn][product]
-		for _, cveID := range csafCves.Fixed {
-			cve, ok := c.CveNames[int(cveID)]
-			if !ok {
-				utils.LogWarn("cve_id", cveID, "Missing cve_id to name mapping, CVE might be removed by ProdSec")
-				continue
-			}
-
-			if alreadyFixed[pkg.String][cve] {
+		for _, cve := range getCveStrings(c, csafCves.Fixed) {
+			if alreadyFixed[pkg.String][cve.String] {
 				// This CVE has already been fixed for the current package.
 				// Example:
 				//   - Enabled repository: 	rhel-8-for-x86_64-appstream-eus-rpms, releasever=8.6
@@ -212,19 +196,19 @@ func updateManualCvesFromProducts(c *Cache, pkg Package, product CSAFProduct, se
 				// in this case we might not show CVE-123
 				return
 			}
-			_, inCves := cves.Cves[cve]
-			_, inUnpatchedCves := cves.UnpatchedCves[cve]
+			_, inCves := cves.Cves[cve.String]
+			_, inUnpatchedCves := cves.UnpatchedCves[cve.String]
 			if !(inCves || inUnpatchedCves) {
 				// show only CVE hit which is not in Cves and UnpatchedCves
 				cpe := c.CpeID2Label[product.CpeID]
 				erratum := c.CSAFCVEProduct2Errata[CSAFCVEProduct{
-					CVEID:         cveID,
+					CVEID:         cve.ID,
 					CSAFProductID: c.CSAFProduct2ID[product],
 				}]
 				if module.Module != "" {
-					updateCves(cves.ManualCves, cve, pkg, []string{erratum}, cpe, &module)
+					updateCves(cves.ManualCves, cve.String, pkg, []string{erratum}, cpe, &module)
 				} else {
-					updateCves(cves.ManualCves, cve, pkg, []string{erratum}, cpe, nil)
+					updateCves(cves.ManualCves, cve.String, pkg, []string{erratum}, cpe, nil)
 				}
 			}
 		}
@@ -553,4 +537,18 @@ func updateCves(cves map[string]VulnerabilityDetail, cve string, pkg Package, er
 		vulnDetail.Affected = append(vulnDetail.Affected, affectedPackage)
 	}
 	cves[cve] = vulnDetail
+}
+
+func getCveStrings(c *Cache, cveIDs []CVEID) []CveIDString {
+	// TODO: rewrite with iterators introduced in go1.23 https://pkg.go.dev/iter
+	cves := make([]CveIDString, 0, len(cveIDs))
+	for _, cveID := range cveIDs {
+		cve, ok := c.CveNames[int(cveID)]
+		if !ok {
+			utils.LogWarn("cve_id", cveID, "Missing cve_id to name mapping, CVE might be removed by ProdSec")
+			continue
+		}
+		cves = append(cves, CveIDString{ID: cveID, String: cve})
+	}
+	return cves
 }
