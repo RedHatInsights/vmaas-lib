@@ -553,3 +553,8 @@ type OSReleaseDetail struct {
 	CvesUnpatchedModerate  int    `json:"cves_unpatched_moderate"`
 	CvesUnpatchedLow       int    `json:"cves_unpatched_low"`
 }
+
+type CveIDString struct {
+	ID     CVEID
+	String string
+}
