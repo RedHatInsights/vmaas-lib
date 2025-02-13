@@ -115,16 +115,10 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 			}
 		}
 	}
-	// store to cves.ManualCves only CVEs not found in cves.Cves
-	for cve, detail := range tmpManualCves {
-		if _, ok := cves.Cves[cve]; !ok {
-			cves.ManualCves[cve] = detail
-		}
-	}
 
 	// 3. evaluate Manually Fixable CVEs
 	// if CVE is already in Unpatched or CVE list -> skip it
-	evaluateManualCves(c, products, &cves, opts)
+	evaluateManualCves(c, products, &cves, tmpManualCves, opts)
 	return &cves, nil
 }
 
@@ -159,8 +153,8 @@ func evaluateUnpatchedCves(c *Cache, products []ProductsPackage, cves *Vulnerabi
 }
 
 func updateManualCvesFromProducts(c *Cache, pkg Package, product CSAFProduct, seenProducts map[CSAFProduct]bool,
-	alreadyFixed map[string]map[string]bool, cves *VulnerabilitiesCvesDetails, opts *options) {
-
+	alreadyFixed map[string]map[string]bool, cves *VulnerabilitiesCvesDetails, opts *options,
+) {
 	if seenProducts[product] {
 		// duplicate product in pp.ProductsFixed
 		// skip processing of already processed product
@@ -237,9 +231,51 @@ func updateManualCvesFromProducts(c *Cache, pkg Package, product CSAFProduct, se
 	}
 }
 
-func evaluateManualCves(c *Cache, products []ProductsPackage, cves *VulnerabilitiesCvesDetails, opts *options) {
+func updateManualCvesFromRepositories(cves *VulnerabilitiesCvesDetails,
+	newerReleaseReposCves map[string]VulnerabilityDetail,
+	allAlreadyFixed map[string]map[string]bool,
+) {
+	for cve, detail := range newerReleaseReposCves {
+		if _, ok := cves.Cves[cve]; !ok {
+			fixedCurRelease := true
+			for pkg := range detail.Packages {
+				if !allAlreadyFixed[pkg][cve] {
+					// `cve` is not fixed by the `pkg` from current release
+					fixedCurRelease = false
+					break
+				}
+			}
+
+			if fixedCurRelease {
+				// `cve` is fixed in the current release
+				continue
+			}
+
+			if _, ok := cves.ManualCves[cve]; !ok {
+				// append to ManualCves
+				cves.ManualCves[cve] = detail
+				continue
+			}
+			// update CVE in ManualCves
+			vd := cves.ManualCves[cve]
+			for pkg := range detail.Packages {
+				vd.Packages[pkg] = true
+			}
+			for erratum := range detail.Errata {
+				vd.Errata[erratum] = true
+			}
+			vd.Affected = append(vd.Affected, detail.Affected...)
+		}
+	}
+}
+
+func evaluateManualCves(c *Cache, products []ProductsPackage, cves *VulnerabilitiesCvesDetails,
+	newerReleaseReposCves map[string]VulnerabilityDetail, opts *options,
+) {
+	allAlreadyFixed := make(map[string]map[string]bool) // map[package]map[cve]bool
 	for _, pp := range products {
 		seenProducts := make(map[CSAFProduct]bool, len(pp.ProductsFixed))
+		// already fixed pkg-cve per product to include product information into VulnerabilitiesExtended
 		alreadyFixed := make(map[string]map[string]bool) // map[package]map[cve]bool
 		for _, product := range pp.ProductsFixed {
 			updateManualCvesFromProducts(c, pp.Package, product, seenProducts, alreadyFixed, cves, opts)
@@ -247,7 +283,12 @@ func evaluateManualCves(c *Cache, products []ProductsPackage, cves *Vulnerabilit
 		for _, product := range pp.ProductsFixedNewerRelease {
 			updateManualCvesFromProducts(c, pp.Package, product, seenProducts, alreadyFixed, cves, opts)
 		}
+		for k, v := range alreadyFixed {
+			allAlreadyFixed[k] = v
+		}
 	}
+
+	updateManualCvesFromRepositories(cves, newerReleaseReposCves, allAlreadyFixed)
 }
 
 // process repos into CPEs and ContentSets needed for vulnerability evaluation
@@ -274,7 +315,10 @@ func (r *ProcessedRequest) processProducts(c *Cache, opts *options) []ProductsPa
 		if opts.newerReleaseverCsaf && len(r.Cpes) > 0 {
 			// look at newer releasever cpes only when there is a CPE hit for EUS repo
 			newerReleaseverProducts := cpes2products(c, r.NewerReleaseverCpes, nameID, pkgID, r.Updates.ModuleList, pkg, opts)
-			products.ProductsFixedNewerRelease = append(products.ProductsFixedNewerRelease, newerReleaseverProducts.ProductsFixedNewerRelease...)
+			products.ProductsFixedNewerRelease = append(
+				products.ProductsFixedNewerRelease,
+				newerReleaseverProducts.ProductsFixed..., // ProductsFixedNewerRelease is not returned from cpes2products
+			)
 			products.ProductsUnfixed = append(products.ProductsUnfixed, newerReleaseverProducts.ProductsUnfixed...)
 		}
 
