@@ -1,6 +1,7 @@
 package vmaas
 
 import (
+	"slices"
 	"sort"
 	"time"
 
@@ -358,32 +359,40 @@ func repos2IDs(c *Cache, r *Request) ([]RepoID, []RepoID, []ContentSetID) {
 	return repoIDs, newerReleaseverRepoIDs, contentSetIDs
 }
 
-func cpeMatch(l, r CpeLabel) bool {
-	lParsed, err := l.Parse()
-	if err != nil {
-		utils.LogWarn("cpe", l, "Cannot parse")
-		return false
-	}
-	rParsed, err := r.Parse()
-	if err != nil {
-		utils.LogWarn("cpe", r, "Cannot parse")
-		return false
-	}
-	return lParsed.match(rParsed)
-}
-
 func allMatchingCpes(c *Cache, repoCpes []CpeID) []CpeID {
-	res := make([]CpeID, 0)
+	type Cpe struct {
+		ID     CpeID
+		Parsed ParsedCpe
+	}
+	cpes := make([]Cpe, 0)
 	if len(repoCpes) > 0 {
 		for cpeID, cpeLabel := range c.CpeID2Label {
+			cpeLabelParsed, err := cpeLabel.Parse()
+			if err != nil {
+				utils.LogWarn("cpe", cpeLabel, "Cannot parse")
+				continue
+			}
 			for _, repoCpeID := range repoCpes {
 				repoCpe := c.CpeID2Label[repoCpeID]
-				if cpeMatch(cpeLabel, repoCpe) {
-					res = append(res, cpeID)
+				repoCpeParsed, err := repoCpe.Parse()
+				if err != nil {
+					utils.LogWarn("cpe", repoCpe, "Cannot parse")
+					continue
+				}
+				if cpeLabelParsed.Match(repoCpeParsed) {
+					cpes = append(cpes, Cpe{cpeID, *cpeLabelParsed})
 					break
 				}
 			}
 		}
+	}
+	slices.SortFunc(cpes, func(x, y Cpe) int {
+		return x.Parsed.CmpByVersion(&y.Parsed)
+	})
+
+	res := make([]CpeID, 0, len(cpes))
+	for _, cpe := range cpes {
+		res = append(res, cpe.ID)
 	}
 	return res
 }

@@ -1,6 +1,7 @@
 package vmaas
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"slices"
@@ -8,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
 )
@@ -484,8 +486,8 @@ func (l CpeLabel) Parse() (*ParsedCpe, error) {
 	return res, nil
 }
 
-func (l *ParsedCpe) match(r *ParsedCpe) bool {
-	cmp := func(l, r *string) bool {
+func (l *ParsedCpe) Match(r *ParsedCpe) bool {
+	match := func(l, r *string) bool {
 		if l != nil && r == nil {
 			return false
 		}
@@ -503,22 +505,71 @@ func (l *ParsedCpe) match(r *ParsedCpe) bool {
 		return false
 	}
 
-	if !cmp(l.Vendor, r.Vendor) {
+	if !match(l.Vendor, r.Vendor) {
 		return false
 	}
-	if !cmp(l.Product, r.Product) {
+	if !match(l.Product, r.Product) {
 		return false
 	}
-	if !cmp(l.Version, r.Version) {
+	if !match(l.Version, r.Version) {
 		return false
 	}
-	if !cmp(l.Update, r.Update) {
+	if !match(l.Update, r.Update) {
 		return false
 	}
-	if !cmp(l.Edition, r.Edition) {
+	if !match(l.Edition, r.Edition) {
 		return false
 	}
-	return cmp(l.Language, r.Language)
+	return match(l.Language, r.Language)
+}
+
+func (l *ParsedCpe) CmpByVersion(r *ParsedCpe) int {
+	getStr := func(v *string) string {
+		if v == nil {
+			return ""
+		}
+		return *v
+	}
+
+	// Compare CPEs by Version first since we need this mainly for sorting CPEs by version
+	lVersionStr := getStr(l.Version)
+	rVersionStr := getStr(r.Version)
+	// hack to treat 8 > 8.8 because releasever=8 should contain all fixes released in all minor versions
+	if !strings.Contains(lVersionStr, ".") {
+		lVersionStr += ".999"
+	}
+	if !strings.Contains(rVersionStr, ".") {
+		rVersionStr += ".999"
+	}
+	lVersion, err := version.NewVersion(lVersionStr)
+	if err != nil {
+		lVersion = new(version.Version)
+	}
+	rVersion, err := version.NewVersion(rVersionStr)
+	if err != nil {
+		rVersion = new(version.Version)
+	}
+	if x := lVersion.Compare(rVersion); x != 0 {
+		return x
+	}
+
+	if x := cmp.Compare(getStr(l.Part), getStr(r.Part)); x != 0 {
+		return x
+	}
+	if x := cmp.Compare(getStr(l.Vendor), getStr(r.Vendor)); x != 0 {
+		return x
+	}
+	if x := cmp.Compare(getStr(l.Product), getStr(r.Product)); x != 0 {
+		return x
+	}
+
+	if x := cmp.Compare(getStr(l.Update), getStr(r.Update)); x != 0 {
+		return x
+	}
+	if x := cmp.Compare(getStr(l.Edition), getStr(r.Edition)); x != 0 {
+		return x
+	}
+	return cmp.Compare(getStr(l.Language), getStr(r.Language))
 }
 
 type CpeIDNameID struct {

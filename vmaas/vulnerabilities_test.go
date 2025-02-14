@@ -158,3 +158,17 @@ func TestCPEMatch(t *testing.T) {
 		})
 	}
 }
+
+func cpeMatch(l, r CpeLabel) bool {
+	lParsed, err := l.Parse()
+	if err != nil {
+		utils.LogWarn("cpe", l, "Cannot parse")
+		return false
+	}
+	rParsed, err := r.Parse()
+	if err != nil {
+		utils.LogWarn("cpe", r, "Cannot parse")
+		return false
+	}
+	return lParsed.Match(rParsed)
+}
