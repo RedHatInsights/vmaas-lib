@@ -190,6 +190,7 @@ func mockCache() *Cache {
 				Severity:   &important,
 				PkgIDs:     []int{2, 3},
 				Updated:    &updated1,
+				Issued:     &updated1,
 			},
 			"RHSA-2024:1111": {
 				ID:         2,
@@ -264,6 +265,10 @@ func mockCache() *Cache {
 
 		SrcPkgID2PkgID: map[PkgID][]PkgID{
 			42: {1, 2, 3},
+		},
+
+		PkgID2ErrataIDs: map[PkgID][]ErratumID{
+			4: {1, 2},
 		},
 
 		DBChange: DBChange{LastChange: "2024-10-02T16:08:00+02:00"},
