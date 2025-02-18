@@ -2,6 +2,14 @@
 
 <!--next-version-placeholder-->
 
+## v1.19.0 (2025-02-18)
+
+### Feature
+
+* Implement pkglist endpoint in go ([`04eb606`](https://github.com/RedHatInsights/vmaas-lib/commit/04eb606611f3af9fb82d3de07e5fdb9080073cdf))
+* Add package details modified index ([`5c2a02a`](https://github.com/RedHatInsights/vmaas-lib/commit/5c2a02a5c0964b23f0b67bee91b94469ec41d074))
+* Add go pkglist endpoint shell ([`395648c`](https://github.com/RedHatInsights/vmaas-lib/commit/395648c13bc069df01451219f5008f7354b3efd6))
+
 ## v1.18.0 (2025-02-12)
 
 ### Feature
