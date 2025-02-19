@@ -30,6 +30,40 @@ func TestEvalUnfixedOption(t *testing.T) {
 	}(api, WithUnfixed(false))
 }
 
+func TestExcludedPackagesOption(t *testing.T) {
+	api := new(API)
+	pkg := map[string]bool{"kernel-alt": true}
+	func(api *API, opts ...Option) {
+		applyOptions(api, opts)
+		assert.Equal(t, pkg, api.options.excludedPackages)
+	}(api, WithExcludedPackages(pkg))
+}
+
+func TestExcludedReleasesOption(t *testing.T) {
+	api := new(API)
+	rel := map[string]bool{"el7a": true}
+	func(api *API, opts ...Option) {
+		applyOptions(api, opts)
+		assert.Equal(t, rel, api.options.excludedReleases)
+	}(api, WithExcludedReleases(rel))
+}
+
+func TestNewerReleaseverReposOption(t *testing.T) {
+	api := new(API)
+	func(api *API, opts ...Option) {
+		applyOptions(api, opts)
+		assert.Equal(t, false, api.options.newerReleaseverRepos)
+	}(api, WithNewerReleaseverRepos(false))
+}
+
+func TestNewerReleaseverCsafOption(t *testing.T) {
+	api := new(API)
+	func(api *API, opts ...Option) {
+		applyOptions(api, opts)
+		assert.Equal(t, false, api.options.newerReleaseverCsaf)
+	}(api, WithNewerReleaseverCsaf(false))
+}
+
 func TestAllOptions(t *testing.T) {
 	api := new(API)
 	func(api *API, opts ...Option) {
