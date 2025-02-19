@@ -13,9 +13,10 @@ import (
 //nolint:funlen
 func TestCSAF(t *testing.T) {
 	ms := ModuleStream{Module: "name", Stream: "stream"}
-	unfixed := CSAFProduct{CpeID: 1, PackageNameID: 1}
+	unfixed1 := CSAFProduct{CpeID: 1, PackageNameID: 1}
+	unfixed2 := CSAFProduct{CpeID: 2, PackageNameID: 1, ModuleStream: ms}
 	fixed1 := CSAFProduct{CpeID: 1, PackageNameID: 1, PackageID: 1}
-	fixed2 := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 2}
+	fixed2 := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 2, ModuleStream: ms}
 	var one PkgID = 1
 
 	c := Cache{
@@ -42,10 +43,13 @@ func TestCSAF(t *testing.T) {
 		},
 		CSAFCVEs: map[CpeIDNameID]map[CSAFProduct]CSAFCVEs{
 			{CpeID: 1, NameID: 1}: {
-				unfixed: {Unfixed: []CVEID{1, 2}},
-				fixed1:  {Fixed: []CVEID{3, 4}},
+				unfixed1: {Unfixed: []CVEID{1, 2}},
+				fixed1:   {Fixed: []CVEID{3, 4}},
 			},
-			{CpeID: 2, NameID: 1}: {fixed2: {Fixed: []CVEID{5}}},
+			{CpeID: 2, NameID: 1}: {
+				unfixed2: {Unfixed: []CVEID{1, 2}},
+				fixed2:   {Fixed: []CVEID{5}},
+			},
 		},
 		CveNames: map[int]string{
 			1: "CVE-1", 2: "CVE-2", 3: "CVE-3", 4: "CVE-4", 5: "CVE-5",
@@ -67,21 +71,21 @@ func TestCSAF(t *testing.T) {
 			pkg:     NevraString{Nevra: pkg1, Pkg: pkg1.String()},
 			nameID:  1,
 			pkgID:   1,
-			unfixed: []CSAFProduct{unfixed},
+			unfixed: []CSAFProduct{unfixed1, unfixed2},
 			fixed:   []CSAFProduct{fixed1, fixed2},
 		},
 		{
 			pkg:     NevraString{Nevra: pkg2, Pkg: pkg2.String()},
 			nameID:  1,
 			pkgID:   2,
-			unfixed: []CSAFProduct{unfixed},
+			unfixed: []CSAFProduct{unfixed1, unfixed2},
 			fixed:   []CSAFProduct{fixed1, fixed2},
 		},
 		{
 			pkg:     NevraString{Nevra: pkg3, Pkg: pkg3.String()},
 			nameID:  2,
 			pkgID:   3,
-			unfixed: []CSAFProduct{unfixed},
+			unfixed: []CSAFProduct{unfixed1, unfixed2},
 			fixed:   []CSAFProduct{},
 		}, // match source package
 	}
@@ -91,6 +95,9 @@ func TestCSAF(t *testing.T) {
 		pp := cpes2products(&c, []CpeID{1, 2}, m.nameID, m.pkgID, []ModuleStream{ms}, m.pkg, &defaultOpts)
 		assert.Equal(t, m.fixed, pp.ProductsFixed)
 		assert.Equal(t, m.unfixed, pp.ProductsUnfixed)
+		// duplicate products to cover code handling duplicates
+		pp.ProductsFixed = append(pp.ProductsFixed, pp.ProductsFixed...)
+		pp.ProductsUnfixed = append(pp.ProductsUnfixed, pp.ProductsUnfixed...)
 		products = append(products, pp)
 	}
 
@@ -161,12 +168,13 @@ func TestCPEMatch(t *testing.T) {
 
 //nolint:funlen
 func TestManualCvesNewerRelease(t *testing.T) {
+	ms := ModuleStream{Module: "name", Stream: "stream"}
 	productCveFixed := CSAFProduct{CpeID: 1, PackageNameID: 1, PackageID: 1}
 	productCve1 := CSAFProduct{CpeID: 1, PackageNameID: 1, PackageID: 2}
 	productCve3 := CSAFProduct{CpeID: 1, PackageNameID: 1, PackageID: 5}
-	productCveFixedNewer := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 3}
-	productCve1Newer := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 4}
-	productCve2Newer := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 5}
+	productCveFixedNewer := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 3, ModuleStream: ms}
+	productCve1Newer := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 4, ModuleStream: ms}
+	productCve2Newer := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 5, ModuleStream: ms}
 	currentReleaseCPE := CpeLabel("cpe:/o:redhat:rhel_eus:8.6")
 	newerReleaseCPE := CpeLabel("cpe:/o:redhat:rhel_eus:8.8")
 	c := Cache{
@@ -278,18 +286,22 @@ func TestManualCvesNewerRelease(t *testing.T) {
 	assert.Contains(t, cves.ManualCves["CVE-1"].Errata, "RHSA-3")
 	assert.Contains(t, cves.ManualCves["CVE-1"].Errata, "RHSA-6")
 	assert.Len(t, cves.ManualCves["CVE-1"].Affected, 2)
-	assert.Contains(t, cves.ManualCves["CVE-1"].Affected[0].Cpe, currentReleaseCPE)
-	assert.Contains(t, cves.ManualCves["CVE-1"].Affected[1].Cpe, newerReleaseCPE)
+	assert.Equal(t, cves.ManualCves["CVE-1"].Affected[0].Cpe, currentReleaseCPE)
+	assert.Equal(t, cves.ManualCves["CVE-1"].Affected[1].Cpe, newerReleaseCPE)
+	assert.Equal(t, *cves.ManualCves["CVE-1"].Affected[1].Module, ms.Module)
+	assert.Equal(t, *cves.ManualCves["CVE-1"].Affected[1].Stream, ms.Stream)
 	// CVE-2 is reported from newer release CPE (CSAF) and is fixed by RHSA-4
 	assert.Len(t, cves.ManualCves["CVE-2"].Errata, 1)
 	assert.Contains(t, cves.ManualCves["CVE-2"].Errata, "RHSA-4")
 	assert.Len(t, cves.ManualCves["CVE-2"].Affected, 1)
-	assert.Contains(t, cves.ManualCves["CVE-2"].Affected[0].Cpe, newerReleaseCPE)
+	assert.Equal(t, cves.ManualCves["CVE-2"].Affected[0].Cpe, newerReleaseCPE)
+	assert.Equal(t, *cves.ManualCves["CVE-2"].Affected[0].Module, ms.Module)
+	assert.Equal(t, *cves.ManualCves["CVE-2"].Affected[0].Stream, ms.Stream)
 	// CVE-3 is reported from current release CPE (CSAF) and is fixed by RHSA-2
 	assert.Len(t, cves.ManualCves["CVE-3"].Errata, 1)
 	assert.Contains(t, cves.ManualCves["CVE-3"].Errata, "RHSA-2")
 	assert.Len(t, cves.ManualCves["CVE-3"].Affected, 1)
-	assert.Contains(t, cves.ManualCves["CVE-3"].Affected[0].Cpe, currentReleaseCPE)
+	assert.Equal(t, cves.ManualCves["CVE-3"].Affected[0].Cpe, currentReleaseCPE)
 	// CVE-4 is reported from newer release CPE (Repos) and is fixed by RHSA-8
 	assert.Len(t, cves.ManualCves["CVE-4"].Errata, 1)
 	assert.Contains(t, cves.ManualCves["CVE-4"].Errata, "RHSA-8")
