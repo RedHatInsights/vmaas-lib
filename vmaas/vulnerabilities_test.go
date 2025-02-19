@@ -133,6 +133,12 @@ func TestCPEMatch(t *testing.T) {
 	eus := CpeLabel("cpe:/o:redhat:rhel_eus")
 	sat6 := CpeLabel("cpe:/a:redhat:satellite:6")
 	sat610el7 := CpeLabel("cpe:/a:redhat:satellite:6.10::el7")
+	cpeO := CpeLabel("cpe:/o")
+	cpeMissingPart := CpeLabel("cpe:/")
+	cpeRh := CpeLabel("cpe:/o:redhat")
+	cpeNotRh := CpeLabel("cpe:/o:not_redhat")
+	cpeUpdate1 := CpeLabel("cpe:/o::::update1")
+	cpeUpdate2 := CpeLabel("cpe:/o::::update2")
 
 	cpeTests := []cpeTest{
 		{el, el8, true},
@@ -157,6 +163,9 @@ func TestCPEMatch(t *testing.T) {
 		{el9BaseosA, el9Baseos, false},
 		{sat6, sat610el7, true},
 		{sat610el7, sat6, false},
+		{cpeO, cpeMissingPart, false},
+		{cpeRh, cpeNotRh, false},
+		{cpeUpdate1, cpeUpdate2, false},
 	}
 	for _, test := range cpeTests {
 		t.Run(fmt.Sprint(test), func(t *testing.T) {
