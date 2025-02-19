@@ -159,6 +159,145 @@ func TestCPEMatch(t *testing.T) {
 	}
 }
 
+//nolint:funlen
+func TestManualCvesNewerRelease(t *testing.T) {
+	productCveFixed := CSAFProduct{CpeID: 1, PackageNameID: 1, PackageID: 1}
+	productCve1 := CSAFProduct{CpeID: 1, PackageNameID: 1, PackageID: 2}
+	productCve3 := CSAFProduct{CpeID: 1, PackageNameID: 1, PackageID: 5}
+	productCveFixedNewer := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 3}
+	productCve1Newer := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 4}
+	productCve2Newer := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 5}
+	currentReleaseCPE := CpeLabel("cpe:/o:redhat:rhel_eus:8.6")
+	newerReleaseCPE := CpeLabel("cpe:/o:redhat:rhel_eus:8.8")
+	c := Cache{
+		Arch2ID:        map[string]ArchID{"x86_64": 1},
+		ID2Arch:        map[ArchID]string{1: "x86_64"},
+		ArchCompat:     map[ArchID]map[ArchID]bool{1: {1: true}},
+		ID2Packagename: map[NameID]string{1: "pkg"},
+		ID2Evr: map[EvrID]utils.Evr{
+			1: {Epoch: 0, Version: "1", Release: "0"},
+			2: {Epoch: 0, Version: "1", Release: "1"},
+			3: {Epoch: 0, Version: "1", Release: "2"},
+			4: {Epoch: 0, Version: "1", Release: "3"},
+			5: {Epoch: 0, Version: "1", Release: "4"},
+		},
+		PackageDetails: map[PkgID]PackageDetail{
+			1: {NameID: 1, EvrID: 1, ArchID: 1, SummaryID: 1, DescriptionID: 1},
+			2: {NameID: 1, EvrID: 2, ArchID: 1, SummaryID: 1, DescriptionID: 1},
+			3: {NameID: 1, EvrID: 3, ArchID: 1, SummaryID: 1, DescriptionID: 1},
+			4: {NameID: 1, EvrID: 4, ArchID: 1, SummaryID: 1, DescriptionID: 1},
+			5: {NameID: 1, EvrID: 5, ArchID: 1, SummaryID: 1, DescriptionID: 1},
+		},
+
+		CpeID2Label: map[CpeID]CpeLabel{1: currentReleaseCPE, 2: newerReleaseCPE},
+		CveNames:    map[int]string{1: "CVE-1", 2: "CVE-2", 3: "CVE-3", 4: "CVE-4", 5: "CVE-FIXED"},
+		CSAFProduct2ID: map[CSAFProduct]CSAFProductID{
+			productCve1:          1,
+			productCve3:          2,
+			productCve1Newer:     3,
+			productCve2Newer:     4,
+			productCveFixed:      5,
+			productCveFixedNewer: 6,
+		},
+		CSAFCVEProduct2Errata: map[CSAFCVEProduct]string{
+			{1, 1}: "RHSA-1",
+			{3, 2}: "RHSA-2",
+			{1, 3}: "RHSA-3",
+			{2, 4}: "RHSA-4",
+		},
+		CSAFCVEs: map[CpeIDNameID]map[CSAFProduct]CSAFCVEs{
+			{1, 1}: {
+				productCve1:     {Fixed: []CVEID{1}},
+				productCve3:     {Fixed: []CVEID{3}},
+				productCveFixed: {Fixed: []CVEID{5}},
+			},
+			{2, 1}: {
+				productCve1Newer:     {Fixed: []CVEID{1}},
+				productCve2Newer:     {Fixed: []CVEID{2}},
+				productCveFixedNewer: {Fixed: []CVEID{5}},
+			},
+		},
+	}
+	products := []ProductsPackage{
+		{
+			ProductsFixed: []CSAFProduct{
+				productCveFixed, // fixing CVE-FIXED, should not show up as it is already fixed in current release
+				productCve1,     // fixing CVE-1, RHSA-1
+				productCve3,     // fixing CVE-3, RHSA-2
+			},
+			ProductsFixedNewerRelease: []CSAFProduct{
+				productCveFixedNewer, // CVE-FIXED, fixed pkg has higher NEVRA but it is already fixed
+				productCve1Newer,     // fixing CVE-1, RHSA-3
+				productCve2Newer,     // fixing CVE-2, RHSA-4
+			},
+			Package: Package{
+				Nevra:  utils.Nevra{Name: "pkg", Epoch: 0, Version: "1", Release: "0", Arch: "x86_64"},
+				String: "pkg-0:1.0.x86_64", NameID: 1,
+			},
+		},
+	}
+	newerReleaseReposCves := map[string]VulnerabilityDetail{
+		// ingored, CVE-FIXED is already fixed in the current release
+		"CVE-FIXED": {
+			CVE: "CVE-FIXED", Packages: map[string]bool{"pkg-0:1.0.x86_64": true},
+			Errata: map[string]bool{"RHSA-5": true},
+		},
+		// updated, CVE-1 is found as fixed from CSAF in current release, it is updated with erratum from repos
+		"CVE-1": {
+			CVE: "CVE-1", Packages: map[string]bool{"pkg-0:1.0.x86_64": true},
+			Errata: map[string]bool{"RHSA-6": true},
+		},
+		// appended, CVE-4 is not found by CSAF
+		"CVE-4": {
+			CVE: "CVE-4", Packages: map[string]bool{"pkg-0:1.0.x86_64": true},
+			Errata: map[string]bool{"RHSA-8": true},
+		},
+	}
+
+	cves := VulnerabilitiesCvesDetails{
+		Cves:          make(map[string]VulnerabilityDetail),
+		ManualCves:    make(map[string]VulnerabilityDetail),
+		UnpatchedCves: make(map[string]VulnerabilityDetail),
+	}
+	evaluateManualCves(&c, products, &cves, newerReleaseReposCves, &defaultOpts)
+
+	expectedCves := []string{"CVE-1", "CVE-2", "CVE-3", "CVE-4"}
+	assert.Empty(t, cves.Cves)
+	assert.Empty(t, cves.UnpatchedCves)
+	assert.Len(t, cves.ManualCves, len(expectedCves))
+	// CVE-FIXED is not affecting the system, it is fixed by already installed package
+	assert.NotContains(t, cves.ManualCves, "CVE-FIXED")
+	// CVE-1, CVE-2, CVE-3, CVE-4 should be reported
+	for _, cve := range expectedCves {
+		assert.Contains(t, cves.ManualCves, cve)
+	}
+	// CVE-1 is reported from both (current, newer) CPEs and is fixed by
+	// RHSA-1 (current release CSAF), RHSA-3 (newer release CSAF), RHSA-5 (newer release Repos)
+	assert.Len(t, cves.ManualCves["CVE-1"].Errata, 3)
+	assert.Contains(t, cves.ManualCves["CVE-1"].Errata, "RHSA-1")
+	assert.Contains(t, cves.ManualCves["CVE-1"].Errata, "RHSA-3")
+	assert.Contains(t, cves.ManualCves["CVE-1"].Errata, "RHSA-6")
+	assert.Len(t, cves.ManualCves["CVE-1"].Affected, 2)
+	assert.Contains(t, cves.ManualCves["CVE-1"].Affected[0].Cpe, currentReleaseCPE)
+	assert.Contains(t, cves.ManualCves["CVE-1"].Affected[1].Cpe, newerReleaseCPE)
+	// CVE-2 is reported from newer release CPE (CSAF) and is fixed by RHSA-4
+	assert.Len(t, cves.ManualCves["CVE-2"].Errata, 1)
+	assert.Contains(t, cves.ManualCves["CVE-2"].Errata, "RHSA-4")
+	assert.Len(t, cves.ManualCves["CVE-2"].Affected, 1)
+	assert.Contains(t, cves.ManualCves["CVE-2"].Affected[0].Cpe, newerReleaseCPE)
+	// CVE-3 is reported from current release CPE (CSAF) and is fixed by RHSA-2
+	assert.Len(t, cves.ManualCves["CVE-3"].Errata, 1)
+	assert.Contains(t, cves.ManualCves["CVE-3"].Errata, "RHSA-2")
+	assert.Len(t, cves.ManualCves["CVE-3"].Affected, 1)
+	assert.Contains(t, cves.ManualCves["CVE-3"].Affected[0].Cpe, currentReleaseCPE)
+	// CVE-4 is reported from newer release CPE (Repos) and is fixed by RHSA-8
+	assert.Len(t, cves.ManualCves["CVE-4"].Errata, 1)
+	assert.Contains(t, cves.ManualCves["CVE-4"].Errata, "RHSA-8")
+	// CVE-4 comes completely from `newerReleaseReposCves` and nothing is added
+	assert.Equal(t, cves.ManualCves["CVE-4"], newerReleaseReposCves["CVE-4"])
+	utils.LogInfo("DEBUG")
+}
+
 func cpeMatch(l, r CpeLabel) bool {
 	lParsed, err := l.Parse()
 	if err != nil {
