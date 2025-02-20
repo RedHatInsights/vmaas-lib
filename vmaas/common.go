@@ -689,21 +689,24 @@ func cveMapValues(cves map[string]VulnerabilityDetail) []VulnerabilityDetail {
 	return vals
 }
 
+// `update` is applicable to `input`
 func isApplicable(c *Cache, update, input *utils.Nevra, opts *options) bool {
-	return cmpNevraUpdate(c, update, input, opts, func() bool {
-		return update.EVRCmp(input) > 0
-	})
+	if anyReleaseExcluded(opts, update.Release, input.Release) {
+		return false
+	}
+	return compatNameArch(c, update, input) && update.EVRCmp(input) > 0
 }
 
-func cmpNevraUpdate(c *Cache, update, input *utils.Nevra, opts *options, cond func() bool) bool {
-	splittedRelease := strings.Split(update.Release, ".")
-	if opts.excludedReleases[splittedRelease[len(splittedRelease)-1]] {
+// `x` is applicable to `y` or they are equal
+func isApplicableOrEqual(c *Cache, x, y *utils.Nevra, opts *options) bool {
+	if anyReleaseExcluded(opts, x.Release, y.Release) {
 		return false
 	}
+	return compatNameArch(c, x, y) && x.EVRCmp(y) >= 0
+}
+
+func compatNameArch(c *Cache, update, input *utils.Nevra) bool {
 	if update.Name != input.Name {
-		return false
-	}
-	if !cond() {
 		return false
 	}
 	if update.Arch != input.Arch {
@@ -716,6 +719,17 @@ func cmpNevraUpdate(c *Cache, update, input *utils.Nevra, opts *options, cond fu
 		}
 	}
 	return true
+}
+
+// returns true if at least one of `releases` is excluded
+func anyReleaseExcluded(opts *options, releases ...string) bool {
+	for _, r := range releases {
+		splittedRelease := strings.Split(r, ".")
+		if opts.excludedReleases[splittedRelease[len(splittedRelease)-1]] {
+			return true
+		}
+	}
+	return false
 }
 
 func pkgID2Nevra(c *Cache, pkgID PkgID) utils.Nevra {

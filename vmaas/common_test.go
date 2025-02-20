@@ -538,7 +538,8 @@ func TestPkgID2Nevra(t *testing.T) {
 	assert.Equal(t, expected, nevra)
 }
 
-func TestIsApplicabe(t *testing.T) {
+//nolint:funlen
+func TestApplicability(t *testing.T) {
 	c := Cache{
 		Arch2ID: map[string]ArchID{"noarch": 1, "x86_64": 2, "aarch64": 3},
 		ID2Arch: map[ArchID]string{1: "noarch", 2: "x86_64", 3: "aarch64"},
@@ -551,6 +552,7 @@ func TestIsApplicabe(t *testing.T) {
 		ID2Evr: map[EvrID]utils.Evr{
 			1: {Epoch: 0, Version: "1", Release: "1"},
 			2: {Epoch: 0, Version: "2", Release: "2"},
+			3: {Epoch: 0, Version: "3", Release: "el7a"}, // excluded release in defaultOpts
 		},
 		PackageDetails: map[PkgID]PackageDetail{
 			1: {NameID: 1, EvrID: 1, ArchID: 1}, // kernel, noarch
@@ -560,6 +562,7 @@ func TestIsApplicabe(t *testing.T) {
 			5: {NameID: 1, EvrID: 2, ArchID: 2}, // kernel, x86_64, newer
 			6: {NameID: 1, EvrID: 2, ArchID: 3}, // kernel, aarch64, newer
 			7: {NameID: 2, EvrID: 2, ArchID: 1}, // bash
+			8: {NameID: 2, EvrID: 3, ArchID: 1}, // bash el7a
 		},
 	}
 
@@ -570,27 +573,78 @@ func TestIsApplicabe(t *testing.T) {
 	kernelX86New := pkgID2Nevra(&c, 5)
 	kernelAarchNew := pkgID2Nevra(&c, 6)
 	bash := pkgID2Nevra(&c, 7)
+	bashEl7a := pkgID2Nevra(&c, 8)
 
-	// newer noarch is applicable to all other archs
-	assert.True(t, isApplicable(&c, &kernelNoarchNew, &kernelNoarch, &defaultOpts))
-	assert.True(t, isApplicable(&c, &kernelNoarchNew, &kernelX86, &defaultOpts))
-	assert.True(t, isApplicable(&c, &kernelNoarchNew, &kernelAarch, &defaultOpts))
-	// newer x86_64 kernel can be applied only on x86_64 or noarch
-	assert.True(t, isApplicable(&c, &kernelX86New, &kernelX86, &defaultOpts))
-	assert.True(t, isApplicable(&c, &kernelX86New, &kernelNoarch, &defaultOpts))
-	// x86_64 cannot be applied on aarch64 and vice versa
-	assert.False(t, isApplicable(&c, &kernelX86New, &kernelAarch, &defaultOpts))
-	assert.False(t, isApplicable(&c, &kernelAarchNew, &kernelX86, &defaultOpts))
-	// same or older version cannot be applied
-	assert.False(t, isApplicable(&c, &kernelNoarch, &kernelNoarch, &defaultOpts))
-	assert.False(t, isApplicable(&c, &kernelX86, &kernelX86, &defaultOpts))
-	assert.False(t, isApplicable(&c, &kernelAarch, &kernelAarch, &defaultOpts))
-	assert.False(t, isApplicable(&c, &kernelNoarch, &kernelNoarchNew, &defaultOpts))
-	assert.False(t, isApplicable(&c, &kernelX86, &kernelX86New, &defaultOpts))
-	assert.False(t, isApplicable(&c, &kernelAarch, &kernelAarchNew, &defaultOpts))
-	assert.False(t, isApplicable(&c, &kernelNoarch, &kernelX86, &defaultOpts))
-	assert.False(t, isApplicable(&c, &kernelNoarch, &kernelAarchNew, &defaultOpts))
-	// bash cannot be update for kernel or kernel for bash
-	assert.False(t, isApplicable(&c, &bash, &kernelNoarch, &defaultOpts))
-	assert.False(t, isApplicable(&c, &kernelNoarchNew, &bash, &defaultOpts))
+	tests := []struct {
+		name       string
+		x, y       *utils.Nevra
+		applicable bool
+		equal      bool
+	}{
+		// newer noarch is applicable to all other archs
+		{"newer noarch 1", &kernelNoarchNew, &kernelNoarch, true, false},
+		{"newer noarch 2", &kernelNoarchNew, &kernelX86, true, false},
+		{"newer noarch 3", &kernelNoarchNew, &kernelAarch, true, false},
+		// newer x86_64 kernel can be applied only on x86_64 or noarch
+		{"newer x86_64 on x86_64", &kernelX86New, &kernelX86, true, false},
+		{"newer x86_64 on noarch", &kernelX86New, &kernelNoarch, true, false},
+		// x86_64 cannot be applied on aarch64 and vice versa
+		{"newer x86_64 on aarch64", &kernelX86New, &kernelAarch, false, false},
+		{"newer x86_64 on aarch64", &kernelAarch, &kernelX86New, false, false},
+		// same or older version cannot be applied
+		{"same noarch", &kernelNoarch, &kernelNoarch, false, true},
+		{"same x86_64", &kernelX86, &kernelX86, false, true},
+		{"same aarch64", &kernelAarch, &kernelAarch, false, true},
+		{"older on newer noarch", &kernelNoarch, &kernelNoarchNew, false, false},
+		{"older on newer x86_64", &kernelX86, &kernelX86New, false, false},
+		{"older on newer aarch64", &kernelAarch, &kernelAarchNew, false, false},
+		{"same noarch on x86_64", &kernelNoarch, &kernelX86, false, true},
+		{"older noarch on newer aarch64", &kernelNoarch, &kernelAarchNew, false, false},
+		// bash cannot be update for kernel or kernel for bash
+		{"bash on kernel", &bash, &kernelNoarch, false, false},
+		{"kernel on bash", &kernelNoarchNew, &bash, false, false},
+		{"exluded release 1", &bashEl7a, &bash, false, false},
+		{"exluded release 2", &bash, &bashEl7a, false, false},
+	}
+
+	evalFuncs := []struct {
+		fnName string
+		fn     func(c *Cache, x, y *utils.Nevra, opts *options) bool
+		evalTc func(applicable, equal bool) bool
+	}{
+		{"isApplicable", isApplicable, func(applicable, _ bool) bool { return applicable }},
+		{"isApplicableOrEqual", isApplicableOrEqual, func(applicable, equal bool) bool { return applicable || equal }},
+	}
+
+	for _, eval := range evalFuncs {
+		for _, tc := range tests {
+			t.Run(fmt.Sprintf("%s %s", eval.fnName, tc.name), func(t *testing.T) {
+				res := eval.fn(&c, tc.x, tc.y, &defaultOpts)
+				assert.Equal(t, eval.evalTc(tc.applicable, tc.equal), res)
+			})
+		}
+	}
+}
+
+func TestAnyReleaseExcluded(t *testing.T) {
+	tests := []struct {
+		name     string
+		releases []string
+		expected bool
+	}{
+		{"empty release", []string{}, false},
+		{"single excluded", []string{"el7a"}, true},
+		{"single excluded with dot", []string{"1.el7a"}, true},
+		{"multiple first excluded", []string{"el7a", "el8"}, true},
+		{"multiple second excluded", []string{"el8", "1.el7a"}, true},
+		{"single not excluded", []string{"el8"}, false},
+		{"single not excluded with dot", []string{"1.el8"}, false},
+		{"multiple not excluded", []string{"1.el8", "el9"}, false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			res := anyReleaseExcluded(&defaultOpts, tc.releases...)
+			assert.Equal(t, tc.expected, res)
+		})
+	}
 }
