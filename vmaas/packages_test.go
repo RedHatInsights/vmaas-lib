@@ -24,17 +24,17 @@ func TestFilterInputPkgs(t *testing.T) {
 	assert.Equal(t, 2, len(pkgs2pkgIDs))
 }
 
-func TestLoadPackageDetails(t *testing.T) {
+func TestGetPackageDetails(t *testing.T) {
 	c := mockCache()
 	packages := map[string]PkgID{"bash-4.2.46-20.el7_2.x86_64.rpm": 4}
-	packageDetails := c.loadPackageDetails([]string{}, packages)
+	packageDetails := c.getPackageDetails([]string{}, packages)
 	assert.Equal(t, 1, len(packageDetails))
 	pd, ok := packageDetails["bash-4.2.46-20.el7_2.x86_64.rpm"].(PackageDetailResponse)
 	assert.True(t, ok)
 	assert.NotEqual(t, 0, len(pd.Repositories))
 
 	packages = map[string]PkgID{"bash-4.2.46-20.el7_2.src.rpm": 0}
-	packageDetails = c.loadPackageDetails([]string{}, packages)
+	packageDetails = c.getPackageDetails([]string{}, packages)
 	assert.Equal(t, 1, len(packageDetails))
 	pd, ok = packageDetails["bash-4.2.46-20.el7_2.src.rpm"].(PackageDetailResponse)
 	assert.False(t, ok)

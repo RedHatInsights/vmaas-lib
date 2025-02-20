@@ -23,9 +23,9 @@ func TestGetFilteredPkgList(t *testing.T) {
 	assert.Equal(t, 2, len(pkgList))
 }
 
-func TestLoadPkgListItems(t *testing.T) {
+func TestGetPkgListItems(t *testing.T) {
 	c := mockCache()
-	pkgList := c.loadPkgListItems([]PkgID{1, 2, 3}, true)
+	pkgList := c.getPkgListItems([]PkgID{1, 2, 3}, true)
 	assert.Equal(t, 3, len(pkgList))
 	assert.NotNil(t, pkgList[0].Modified)
 }

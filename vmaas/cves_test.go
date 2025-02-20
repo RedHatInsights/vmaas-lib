@@ -39,10 +39,10 @@ func TestFilterInputCves(t *testing.T) {
 	assert.Equal(t, 0, len(filteredIDs))
 }
 
-func TestLoadCveDetails(t *testing.T) {
+func TestGetCveDetails(t *testing.T) {
 	c := mockCache()
 	cve := "CVE-2024-1111111"
-	cvePropertiesMap := c.loadCveDetails([]string{cve})
+	cvePropertiesMap := c.getCveDetails([]string{cve})
 	assert.Equal(t, 1, len(cvePropertiesMap))
 	assert.Equal(t, cve, cvePropertiesMap[cve].Name)
 }
