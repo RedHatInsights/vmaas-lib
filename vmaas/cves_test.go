@@ -49,9 +49,7 @@ func TestGetCveDetails(t *testing.T) {
 
 func TestCves(t *testing.T) {
 	req := &CvesRequest{}
-	c := mockCache()
-
 	// empty cve list
-	_, err := req.cves(c)
+	_, err := req.cves(nil)
 	assert.Error(t, err)
 }

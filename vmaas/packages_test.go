@@ -41,10 +41,8 @@ func TestGetPackageDetails(t *testing.T) {
 }
 
 func TestPackages(t *testing.T) {
-	c := mockCache()
 	req := &PackagesRequest{}
-
 	// empty package list
-	_, err := req.packages(c)
+	_, err := req.packages(nil)
 	assert.Error(t, err)
 }
