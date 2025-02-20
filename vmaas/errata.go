@@ -72,7 +72,7 @@ func (c *Cache) erratumID2Releasevers(erratumID ErratumID) []string {
 	return releaseVers
 }
 
-func (c *Cache) loadErrataDetails(errata []string) ErrataDetails {
+func (c *Cache) getErrataDetails(errata []string) ErrataDetails {
 	errataDetails := make(ErrataDetails, len(errata))
 	for _, erratum := range errata {
 		erratumDetail := c.ErratumDetails[erratum]
@@ -113,7 +113,7 @@ func (req *ErrataRequest) errata(c *Cache) (*Errata, error) { // TODO: implement
 	errata, pagination := utils.Paginate(errata, req.PaginationRequest)
 
 	res := Errata{
-		ErrataList: c.loadErrataDetails(errata),
+		ErrataList: c.getErrataDetails(errata),
 		Type:       req.Type,
 		Severity:   req.Severity,
 		LastChange: c.DBChange.LastChange,

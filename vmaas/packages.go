@@ -46,7 +46,7 @@ func filterInputPkgs(c *Cache, pkgs []string, req *PackagesRequest) ([]string, m
 	return filteredOut, filtered
 }
 
-func (c *Cache) loadPackageDetails(filteredOut []string, pkgs2pkgIDs map[string]PkgID) PackageDetails {
+func (c *Cache) getPackageDetails(filteredOut []string, pkgs2pkgIDs map[string]PkgID) PackageDetails {
 	pkgDetails := make(PackageDetails, len(pkgs2pkgIDs))
 	for pkg, pkgID := range pkgs2pkgIDs {
 		pd, ok := c.PackageDetails[pkgID]
@@ -82,7 +82,7 @@ func (req *PackagesRequest) packages(c *Cache) (*Packages, error) { // TODO: imp
 	filteredOut, pkgs2pkgIDs := filterInputPkgs(c, pkgs, req)
 
 	res := Packages{
-		Packages:   c.loadPackageDetails(filteredOut, pkgs2pkgIDs),
+		Packages:   c.getPackageDetails(filteredOut, pkgs2pkgIDs),
 		LastChange: c.DBChange.LastChange,
 	}
 	return &res, nil

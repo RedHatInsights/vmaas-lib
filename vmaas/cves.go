@@ -52,7 +52,7 @@ func filterInputCves(c *Cache, cves []string, req *CvesRequest) []string {
 	return filteredIDs
 }
 
-func (c *Cache) loadCveDetails(cves []string) CveDetails {
+func (c *Cache) getCveDetails(cves []string) CveDetails {
 	cveDetails := make(CveDetails, len(cves))
 	for _, cve := range cves {
 		cveDetail := c.CveDetail[cve]
@@ -85,7 +85,7 @@ func (req *CvesRequest) cves(c *Cache) (*Cves, error) { // TODO: implement opts
 	cves, pagination := utils.Paginate(cves, req.PaginationRequest)
 
 	res := Cves{
-		Cves:       c.loadCveDetails(cves),
+		Cves:       c.getCveDetails(cves),
 		LastChange: c.DBChange.LastChange,
 		Pagination: pagination,
 	}

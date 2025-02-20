@@ -32,7 +32,7 @@ func (req *PkgListRequest) getFilteredPkgList(c *Cache) []PkgID {
 	return c.PackageDetailsModifiedIndex[i:]
 }
 
-func (c *Cache) loadPkgListItems(pkgListItemIDs []PkgID, returnModified bool) []PkgListItem {
+func (c *Cache) getPkgListItems(pkgListItemIDs []PkgID, returnModified bool) []PkgListItem {
 	pkgList := make([]PkgListItem, 0, len(pkgListItemIDs))
 	for _, pkgID := range pkgListItemIDs {
 		pkgDetail := c.PackageDetails[pkgID]
@@ -54,7 +54,7 @@ func (req *PkgListRequest) pkglist(c *Cache) (*PkgList, error) { // TODO: implem
 	pkgListItemIDs, pagination := utils.Paginate(pkgIDs, req.PaginationRequest)
 
 	res := PkgList{
-		PkgList:    c.loadPkgListItems(pkgListItemIDs, req.ReturnModified),
+		PkgList:    c.getPkgListItems(pkgListItemIDs, req.ReturnModified),
 		Total:      len(pkgIDs),
 		LastChange: c.DBChange.LastChange,
 		Pagination: pagination,

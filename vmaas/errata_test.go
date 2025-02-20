@@ -22,7 +22,7 @@ func TestFilterInputErrata(t *testing.T) {
 	assert.Equal(t, 2, len(errata))
 }
 
-func TestLoadErrataReleaseVersions(t *testing.T) {
+func TestErratumID2Releasevers(t *testing.T) {
 	c := mockCache()
 	relVers := c.erratumID2Releasevers(1)
 	assert.Equal(t, "8.2", relVers[0])
@@ -31,10 +31,10 @@ func TestLoadErrataReleaseVersions(t *testing.T) {
 	assert.Equal(t, 3, len(relVers))
 }
 
-func TestLoadErrataDetails(t *testing.T) {
+func TestGetErrataDetails(t *testing.T) {
 	c := mockCache()
 	errata := []string{"RHSA-2024:0042", "RHSA-2024:1111"}
-	errataDetails := c.loadErrataDetails(errata)
+	errataDetails := c.getErrataDetails(errata)
 	assert.Equal(t, 2, len(errataDetails))
 	ed := errataDetails["RHSA-2024:0042"]
 	assert.Equal(t, 1, len(ed.PackageList))
