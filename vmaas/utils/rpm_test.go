@@ -102,3 +102,21 @@ func TestNevraString(t *testing.T) {
 	assert.Equal(t, "0:1.3.7-1.fc27", nevra.EVRStringE(true))
 	assert.Equal(t, "1.3.7-1.fc27", nevra.EVRString())
 }
+
+func TestNevraString_EmptyNevra(t *testing.T) {
+	nevra := Nevra{}
+	assert.Equal(t, "", nevra.String())
+	assert.Equal(t, "", nevra.StringE(true))
+	assert.Equal(t, "", nevra.EVRAStringE(true))
+	assert.Equal(t, "", nevra.EVRAString())
+	assert.Equal(t, "", nevra.EVRStringE(true))
+	assert.Equal(t, "", nevra.EVRString())
+}
+
+func TestGetEvr(t *testing.T) {
+	nevra := Nevra{Epoch: 1, Version: "1", Release: "1"}
+	evr := nevra.GetEvr()
+	assert.Equal(t, evr.Epoch, 1)
+	assert.Equal(t, evr.Version, "1")
+	assert.Equal(t, evr.Release, "1")
+}
