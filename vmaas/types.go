@@ -313,8 +313,8 @@ type RepoDetail struct {
 	LastChange *time.Time `json:"-"`
 	ThirdParty bool       `json:"third_party"`
 
-	CPEs                []string `json:"cpes"`
-	UpdatedPackageNames []string `json:"updated_package_names,omitempty"`
+	CPEs                []string  `json:"cpes"`
+	UpdatedPackageNames *[]string `json:"updated_package_names,omitempty"`
 }
 
 type PackageDetailResponse struct {

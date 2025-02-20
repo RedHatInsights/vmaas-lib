@@ -72,7 +72,8 @@ func (c *Cache) getRepoDetailSlice(repo string, repoID2ErratumIDs map[RepoID][]E
 		repoDetail.CPEs = c.repoID2CPEs(repoID, contentSetID)
 		if showPackages {
 			erratumIDs := repoID2ErratumIDs[repoID]
-			repoDetail.UpdatedPackageNames = c.erratumIDs2PackageNames(erratumIDs)
+			pkgNames := c.erratumIDs2PackageNames(erratumIDs)
+			repoDetail.UpdatedPackageNames = &pkgNames
 		}
 		repoDetailSlice = append(repoDetailSlice, repoDetail)
 
