@@ -160,10 +160,8 @@ func updateManualCvesFromProducts(c *Cache, pkg Package, product CSAFProduct, se
 	updateNevra := pkgID2Nevra(c, product.PackageID)
 	cn := CpeIDNameID{CpeID: product.CpeID, NameID: pkg.NameID}
 
-	if cmpNevraUpdate(c, &pkg.Nevra, &updateNevra, opts, func() bool {
-		return updateNevra.EVRCmp(&pkg.Nevra) <= 0
-	}) {
-		// The installed package version is newer than the update version.
+	if isApplicableOrEqual(c, &pkg.Nevra, &updateNevra, opts) {
+		// The installed package version is newer or equal to update version.
 		// This means that the fix for this package is already applied in the current product release,
 		// so updates from later releases should not be shown.
 		if _, ok := alreadyFixed[pkg.String]; !ok {
