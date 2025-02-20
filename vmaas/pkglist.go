@@ -14,7 +14,7 @@ type PkgList struct {
 	utils.Pagination
 }
 
-func (req *PkgListRequest) getFilteredPkgList(c *Cache) []PkgID {
+func (c *Cache) getFilteredPkgList(req *PkgListRequest) []PkgID {
 	if req.ModifiedSince == nil {
 		return c.PackageDetailsModifiedIndex
 	}
@@ -50,7 +50,7 @@ func (c *Cache) getPkgListItems(pkgListItemIDs []PkgID, returnModified bool) []P
 }
 
 func (req *PkgListRequest) pkglist(c *Cache) (*PkgList, error) { // TODO: implement opts
-	pkgIDs := req.getFilteredPkgList(c)
+	pkgIDs := c.getFilteredPkgList(req)
 	pkgListItemIDs, pagination := utils.Paginate(pkgIDs, req.PaginationRequest)
 
 	res := PkgList{

@@ -19,7 +19,7 @@ func TestGetFilteredPkgList(t *testing.T) {
 		PackageDetailsModifiedIndex: []PkgID{2, 3, 1},
 	}
 	req := PkgListRequest{ModifiedSince: &t1}
-	pkgList := req.getFilteredPkgList(&c)
+	pkgList := c.getFilteredPkgList(&req)
 	assert.Equal(t, 2, len(pkgList))
 }
 
