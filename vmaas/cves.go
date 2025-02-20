@@ -17,9 +17,10 @@ type Cves struct {
 }
 
 func filterInputCves(c *Cache, cves []string, req *CvesRequest) []string {
+	isDuplicate := make(map[string]bool, len(cves))
 	filteredIDs := make([]string, 0, len(cves))
 	for _, cve := range cves {
-		if cve == "" {
+		if cve == "" || isDuplicate[cve] {
 			continue
 		}
 		cveDetail, found := c.CveDetail[cve]
@@ -46,6 +47,7 @@ func filterInputCves(c *Cache, cves []string, req *CvesRequest) []string {
 		}
 
 		filteredIDs = append(filteredIDs, cve)
+		isDuplicate[cve] = true
 	}
 	return filteredIDs
 }
