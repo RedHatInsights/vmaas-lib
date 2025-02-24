@@ -2,6 +2,17 @@
 
 <!--next-version-placeholder-->
 
+## v1.20.0 (2025-02-24)
+
+### Feature
+
+* **csaf:** Newer release cves not fixed in current release ([`37afae4`](https://github.com/RedHatInsights/vmaas-lib/commit/37afae492f361126bf1a64b7d24656dcf0cce980))
+
+### Fix
+
+* **cpe:** Sort matched cpes to give consistent cve results ([`e49ec4d`](https://github.com/RedHatInsights/vmaas-lib/commit/e49ec4dabcfdd763dc8025e991c602b592982f28))
+* **repositories:** Newer release cves not fixed in current release ([`f8a011a`](https://github.com/RedHatInsights/vmaas-lib/commit/f8a011a3071d5a7cb8194722d066e8d579e3979e))
+
 ## v1.19.0 (2025-02-18)
 
 ### Feature
