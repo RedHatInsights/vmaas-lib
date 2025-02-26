@@ -18,19 +18,6 @@ type Errata struct {
 	utils.PaginationDetails
 }
 
-func (req *ErrataRequest) getSortedErrata(c *Cache) ([]string, error) {
-	if len(req.Errata) == 0 {
-		return nil, errors.Wrap(ErrProcessingInput, "'errata_list' is a required property")
-	}
-
-	errata, err := utils.TryExpandRegexPattern(req.Errata, c.ErratumDetails)
-	if err != nil {
-		return nil, errors.Wrap(ErrProcessingInput, "invalid regex pattern")
-	}
-	slices.Sort(errata)
-	return errata, nil
-}
-
 func filterInputErrata(c *Cache, errata []string, req *ErrataRequest) []string {
 	isDuplicate := make(map[string]bool, len(errata))
 	filteredErrata := make([]string, 0, len(errata))
@@ -111,12 +98,18 @@ func (c *Cache) loadErrataDetails(errata []string) ErrataDetails {
 }
 
 func (req *ErrataRequest) errata(c *Cache) (*Errata, error) { // TODO: implement opts
-	errata, err := req.getSortedErrata(c)
+	errata := req.Errata
+	if len(errata) == 0 {
+		return &Errata{}, errors.Wrap(ErrProcessingInput, "'errata_list' is a required property")
+	}
+
+	errata, err := utils.TryExpandRegexPattern(errata, c.ErratumDetails)
 	if err != nil {
-		return &Errata{}, err
+		return &Errata{}, errors.Wrap(ErrProcessingInput, "invalid regex pattern")
 	}
 
 	errata = filterInputErrata(c, errata, req)
+	slices.Sort(errata)
 	errata, paginationDetails := utils.Paginate(errata, req.PageNumber, req.PageSize)
 
 	res := Errata{

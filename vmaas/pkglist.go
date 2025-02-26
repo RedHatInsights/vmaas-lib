@@ -52,6 +52,7 @@ func (c *Cache) loadPkgListItems(pkgListItemIDs []PkgID, returnModified bool) []
 func (req *PkgListRequest) pkglist(c *Cache) (*PkgList, error) { // TODO: implement opts
 	pkgIDs := req.getFilteredPkgList(c)
 	pkgListItemIDs, paginationDetails := utils.Paginate(pkgIDs, req.PageNumber, req.PageSize)
+
 	res := PkgList{
 		PkgList:           c.loadPkgListItems(pkgListItemIDs, req.ReturnModified),
 		Total:             len(pkgIDs),

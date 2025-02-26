@@ -200,6 +200,7 @@ func (req *PkgTreeRequest) pkgtree(c *Cache) (*PkgTree, error) { // TODO: implem
 
 	slices.Sort(names)
 	names, paginationDetails := utils.Paginate(names, req.PageNumber, req.PageSize)
+
 	res := PkgTree{
 		PackageNames:      c.getPkgTreeItems(req, names),
 		LastChange:        c.DBChange.LastChange,
