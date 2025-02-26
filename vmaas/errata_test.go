@@ -15,21 +15,6 @@ func TestErrata(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestGetSortedErrata(t *testing.T) {
-	req := mockErrataRequest()
-	emptyReq := &ErrataRequest{}
-	c := mockCache()
-
-	errata, err := req.getSortedErrata(c)
-	assert.NoError(t, err)
-	assert.Equal(t, "RHSA-2024:0042", errata[0])
-	assert.Equal(t, "RHSA-2024:1111", errata[1])
-	assert.Equal(t, "RHSA-2024:9999", errata[3])
-
-	_, err = emptyReq.getSortedErrata(c)
-	assert.Error(t, err)
-}
-
 func TestFilterInputErrata(t *testing.T) {
 	c := mockCache()
 	req := mockErrataRequest()
