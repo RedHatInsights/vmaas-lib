@@ -2,6 +2,7 @@ package vmaas
 
 import (
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -64,7 +65,9 @@ func (c *Cache) getPackageRepos(pkgID PkgID) ([]PkgTreeRepoDetail, bool) {
 			Revision: repoDetail.Revision,
 		}) // TODO: add support for ModuleStream
 	}
-	repos = utils.NaturalSortByField(repos, func(x PkgTreeRepoDetail) string { return x.Label })
+	slices.SortFunc(repos, func(a, b PkgTreeRepoDetail) int {
+		return strings.Compare(a.Label, b.Label)
+	})
 	return repos, len(repos) > 0 && thirdPartyOnly
 }
 
@@ -95,11 +98,16 @@ func (c *Cache) getPackageErrata(req *PkgTreeRequest, pkgID PkgID) ([]PkgTreeErr
 			}
 			modifiedFound = true
 		}
+		cves := erratumDetail.CVEs
+		if cves == nil {
+			cves = []string{}
+		}
+		slices.Sort(cves)
 		errata = append(errata, PkgTreeErratumDetail{
 			Name:    erratum,
 			Issued:  erratumDetail.Issued,
 			Updated: erratumDetail.Updated,
-			CVEs:    utils.NaturalSort(erratumDetail.CVEs),
+			CVEs:    cves,
 		})
 
 		if erratumDetail.Issued != nil {
@@ -108,7 +116,9 @@ func (c *Cache) getPackageErrata(req *PkgTreeRequest, pkgID PkgID) ([]PkgTreeErr
 			}
 		}
 	}
-	errata = utils.NaturalSortByField(errata, func(x PkgTreeErratumDetail) string { return x.Name })
+	slices.SortFunc(errata, func(a, b PkgTreeErratumDetail) int {
+		return strings.Compare(a.Name, b.Name)
+	})
 	return errata, firstPublished, !modifiedFound && req.ModifiedSince != nil
 }
 
@@ -168,7 +178,7 @@ func (c *Cache) getPkgTreeItems(req *PkgTreeRequest, names []string) PkgTreeItem
 			an, aErr := utils.ParseNevra(a.Nevra, false)
 			bn, bErr := utils.ParseNevra(b.Nevra, false)
 			if aErr != nil || bErr != nil {
-				return utils.Strnatcmp(a.Nevra, b.Nevra)
+				return strings.Compare(a.Nevra, b.Nevra)
 			}
 			return an.Cmp(&bn)
 		})
@@ -188,7 +198,7 @@ func (req *PkgTreeRequest) pkgtree(c *Cache) (*PkgTree, error) { // TODO: implem
 		return &PkgTree{}, errors.Wrap(ErrProcessingInput, "invalid regex pattern")
 	}
 
-	names = utils.NaturalSort(names)
+	slices.Sort(names)
 	names, paginationDetails := utils.Paginate(names, req.PageNumber, req.PageSize)
 	res := PkgTree{
 		PackageNames:      c.getPkgTreeItems(req, names),
