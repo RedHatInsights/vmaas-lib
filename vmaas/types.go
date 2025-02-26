@@ -49,11 +49,6 @@ type Request struct {
 	EpochRequired bool `json:"epoch_required"`
 }
 
-type PaginationRequest struct {
-	PageNumber int `json:"page"`
-	PageSize   int `json:"page_size"`
-}
-
 type CvesRequest struct {
 	Cves                []string   `json:"cve_list"`
 	PublishedSince      *time.Time `json:"published_since"`
@@ -61,14 +56,12 @@ type CvesRequest struct {
 	RHOnly              bool       `json:"rh_only"`
 	AreErrataAssociated bool       `json:"errata_associated"`
 	ThirdParty          bool       `json:"third_party"`
-	PageNumber          int        `json:"page"`
-	PageSize            int        `json:"page_size"`
+	utils.PaginationRequest
 }
 type PkgListRequest struct {
 	ModifiedSince  *time.Time `json:"modified_since"`
 	ReturnModified bool       `json:"return_modified"`
-	PageNumber     int        `json:"page"`
-	PageSize       int        `json:"page_size"`
+	utils.PaginationRequest
 }
 
 type PkgTreeRequest struct {
@@ -79,7 +72,7 @@ type PkgTreeRequest struct {
 	ReturnErrata       *bool      `json:"return_errata"`
 	ReturnSummary      bool       `json:"return_summary"`
 	ReturnDescription  bool       `json:"return_description"`
-	PaginationRequest
+	utils.PaginationRequest
 }
 
 // UnmarshalJSON is ment only for TypeT.UnmarshalJSON and SeverityT.UnmarshalJSON
@@ -170,8 +163,7 @@ type ErrataRequest struct {
 	ThirdParty    bool       `json:"third_party"`
 	Type          TypeT      `json:"type"`
 	Severity      SeverityT  `json:"severity"`
-	PageNumber    int        `json:"page"`
-	PageSize      int        `json:"page_size"`
+	utils.PaginationRequest
 }
 
 type ReposRequest struct {
@@ -180,8 +172,7 @@ type ReposRequest struct {
 	ThirdParty    bool       `json:"third_party"`
 	ShowPackages  bool       `json:"show_packages"`
 	HasPackages   bool       `json:"has_packages"`
-	PageNumber    int        `json:"page"`
-	PageSize      int        `json:"page_size"`
+	utils.PaginationRequest
 }
 
 type PackagesRequest struct {

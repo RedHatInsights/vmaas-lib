@@ -11,7 +11,7 @@ type PkgList struct {
 	PkgList    []PkgListItem `json:"package_list"`
 	Total      int           `json:"total"`
 	LastChange time.Time     `json:"last_change"`
-	utils.PaginationDetails
+	utils.Pagination
 }
 
 func (req *PkgListRequest) getFilteredPkgList(c *Cache) []PkgID {
@@ -51,13 +51,13 @@ func (c *Cache) loadPkgListItems(pkgListItemIDs []PkgID, returnModified bool) []
 
 func (req *PkgListRequest) pkglist(c *Cache) (*PkgList, error) { // TODO: implement opts
 	pkgIDs := req.getFilteredPkgList(c)
-	pkgListItemIDs, paginationDetails := utils.Paginate(pkgIDs, req.PageNumber, req.PageSize)
+	pkgListItemIDs, pagination := utils.Paginate(pkgIDs, req.PaginationRequest)
 
 	res := PkgList{
-		PkgList:           c.loadPkgListItems(pkgListItemIDs, req.ReturnModified),
-		Total:             len(pkgIDs),
-		LastChange:        c.DBChange.LastChange,
-		PaginationDetails: paginationDetails,
+		PkgList:    c.loadPkgListItems(pkgListItemIDs, req.ReturnModified),
+		Total:      len(pkgIDs),
+		LastChange: c.DBChange.LastChange,
+		Pagination: pagination,
 	}
 	return &res, nil
 }

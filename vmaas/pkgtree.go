@@ -36,7 +36,7 @@ type PkgTreeItems map[string][]PkgTreeItem
 type PkgTree struct {
 	PackageNames PkgTreeItems `json:"package_name_list"`
 	LastChange   time.Time    `json:"last_change"`
-	utils.PaginationDetails
+	utils.Pagination
 }
 
 func (c *Cache) getPackageRepos(pkgID PkgID) ([]PkgTreeRepoDetail, bool) {
@@ -199,12 +199,12 @@ func (req *PkgTreeRequest) pkgtree(c *Cache) (*PkgTree, error) { // TODO: implem
 	}
 
 	slices.Sort(names)
-	names, paginationDetails := utils.Paginate(names, req.PageNumber, req.PageSize)
+	names, pagination := utils.Paginate(names, req.PaginationRequest)
 
 	res := PkgTree{
-		PackageNames:      c.getPkgTreeItems(req, names),
-		LastChange:        c.DBChange.LastChange,
-		PaginationDetails: paginationDetails,
+		PackageNames: c.getPkgTreeItems(req, names),
+		LastChange:   c.DBChange.LastChange,
+		Pagination:   pagination,
 	}
 	return &res, nil
 }
