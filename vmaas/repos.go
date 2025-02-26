@@ -14,7 +14,7 @@ type Repos struct {
 	Repos            RepoDetails `json:"repository_list"`
 	LatestRepoChange *time.Time  `json:"latest_repo_change,omitempty"`
 	LastChange       time.Time   `json:"last_change"`
-	utils.PaginationDetails
+	utils.Pagination
 }
 
 func filterInputRepos(c *Cache, repos []string, req *ReposRequest) []string {
@@ -120,17 +120,17 @@ func (req *ReposRequest) repos(c *Cache) (*Repos, error) { // TODO: implement op
 
 	repos = filterInputRepos(c, repos, req)
 	slices.Sort(repos)
-	repos, paginationDetails := utils.Paginate(repos, req.PageNumber, req.PageSize)
+	repos, pagination := utils.Paginate(repos, req.PaginationRequest)
 
 	repoID2ErratumIDs := c.buildRepoID2ErratumIDs(req.ModifiedSince)
 	repoDetails, latestRepoChange, actualPageSize := c.getRepoDetails(req, repos, repoID2ErratumIDs)
-	paginationDetails.PageSize = actualPageSize
+	pagination.PageSize = actualPageSize
 
 	res := Repos{
-		Repos:             repoDetails,
-		LatestRepoChange:  latestRepoChange,
-		LastChange:        c.DBChange.LastChange,
-		PaginationDetails: paginationDetails,
+		Repos:            repoDetails,
+		LatestRepoChange: latestRepoChange,
+		LastChange:       c.DBChange.LastChange,
+		Pagination:       pagination,
 	}
 	return &res, nil
 }

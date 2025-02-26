@@ -13,7 +13,7 @@ type CveDetails map[string]CveDetail
 type Cves struct {
 	Cves       CveDetails `json:"cve_list"`
 	LastChange time.Time  `json:"last_change"`
-	utils.PaginationDetails
+	utils.Pagination
 }
 
 func filterInputCves(c *Cache, cves []string, req *CvesRequest) []string {
@@ -80,12 +80,12 @@ func (req *CvesRequest) cves(c *Cache) (*Cves, error) { // TODO: implement opts
 
 	cves = filterInputCves(c, cves, req)
 	slices.Sort(cves)
-	cves, paginationDetails := utils.Paginate(cves, req.PageNumber, req.PageSize)
+	cves, pagination := utils.Paginate(cves, req.PaginationRequest)
 
 	res := Cves{
-		Cves:              c.loadCveDetails(cves),
-		LastChange:        c.DBChange.LastChange,
-		PaginationDetails: paginationDetails,
+		Cves:       c.loadCveDetails(cves),
+		LastChange: c.DBChange.LastChange,
+		Pagination: pagination,
 	}
 	return &res, nil
 }

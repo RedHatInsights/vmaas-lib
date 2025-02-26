@@ -15,7 +15,7 @@ type Errata struct {
 	Type       TypeT         `json:"type,omitempty"`
 	Severity   SeverityT     `json:"severity,omitempty"`
 	LastChange time.Time     `json:"last_change"`
-	utils.PaginationDetails
+	utils.Pagination
 }
 
 func filterInputErrata(c *Cache, errata []string, req *ErrataRequest) []string {
@@ -110,14 +110,14 @@ func (req *ErrataRequest) errata(c *Cache) (*Errata, error) { // TODO: implement
 
 	errata = filterInputErrata(c, errata, req)
 	slices.Sort(errata)
-	errata, paginationDetails := utils.Paginate(errata, req.PageNumber, req.PageSize)
+	errata, pagination := utils.Paginate(errata, req.PaginationRequest)
 
 	res := Errata{
-		ErrataList:        c.loadErrataDetails(errata),
-		Type:              req.Type,
-		Severity:          req.Severity,
-		LastChange:        c.DBChange.LastChange,
-		PaginationDetails: paginationDetails,
+		ErrataList: c.loadErrataDetails(errata),
+		Type:       req.Type,
+		Severity:   req.Severity,
+		LastChange: c.DBChange.LastChange,
+		Pagination: pagination,
 	}
 	return &res, nil
 }
