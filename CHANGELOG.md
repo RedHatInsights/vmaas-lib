@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.21.0 (2025-02-26)
+
+### Feature
+
+* Rewrite vmaas pkgtree endpoint in go ([`9da4367`](https://github.com/RedHatInsights/vmaas-lib/commit/9da4367fae0b923815d647ec8e54b7f971dc43ce))
+* Add natural sort ([`c20c1fb`](https://github.com/RedHatInsights/vmaas-lib/commit/c20c1fb84fd0fae159df7582c0042ecc07aefe86))
+
 ## v1.20.0 (2025-02-24)
 
 ### Feature
