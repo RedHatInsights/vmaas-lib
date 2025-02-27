@@ -310,7 +310,7 @@ type RepoDetail struct {
 	Product    string     `json:"product"`
 	ProductID  int        `json:"-"`
 	Revision   string     `json:"revision"`
-	LastChange *time.Time `json:"-"`
+	LastChange *time.Time `json:"last_change"`
 	ThirdParty bool       `json:"third_party"`
 
 	CPEs                []string  `json:"cpes"`
