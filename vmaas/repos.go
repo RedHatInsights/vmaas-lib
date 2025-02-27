@@ -1,6 +1,7 @@
 package vmaas
 
 import (
+	"slices"
 	"time"
 
 	"github.com/pkg/errors"
@@ -111,6 +112,7 @@ func (req *ReposRequest) repos(c *Cache) (*Repos, error) { // TODO: implement op
 		return &Repos{}, errors.Wrap(ErrProcessingInput, "invalid regex pattern")
 	}
 	repos = filterInputRepos(c, repos, req)
+	slices.Sort(repos)
 	repos, paginationDetails := utils.Paginate(repos, req.PageNumber, req.PageSize)
 
 	repoID2ErratumIDs := c.buildRepoID2ErratumIDs(req.ModifiedSince)
