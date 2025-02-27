@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.21.1 (2025-02-27)
+
+### Fix
+
+* Remove natural sort ([`88ca886`](https://github.com/RedHatInsights/vmaas-lib/commit/88ca886a76b7acd7c8deed13bf91034d868372f1))
+
 ## v1.21.0 (2025-02-26)
 
 ### Feature
