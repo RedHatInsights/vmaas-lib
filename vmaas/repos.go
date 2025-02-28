@@ -60,7 +60,7 @@ func (c *Cache) repoID2CPEs(repoID RepoID, contentSetID ContentSetID) []string {
 	return c.cpeIDs2Labels(cpeIDs)
 }
 
-func (c *Cache) getRepoDetailSlice(repo string, repoID2ErratumIDs map[RepoID][]ErratumID, showPackages bool) (
+func (c *Cache) getRepoDetailSlice(req *ReposRequest, repo string, repoID2ErratumIDs map[RepoID][]ErratumID) (
 	[]RepoDetail, *time.Time,
 ) {
 	repoIDs := c.RepoLabel2IDs[repo]
@@ -71,12 +71,16 @@ func (c *Cache) getRepoDetailSlice(repo string, repoID2ErratumIDs map[RepoID][]E
 		repoDetail := c.RepoDetails[repoID]
 		repoDetail.Label = repo
 		repoDetail.CPEs = c.repoID2CPEs(repoID, contentSetID)
-		if showPackages {
-			erratumIDs := repoID2ErratumIDs[repoID]
-			pkgNames := c.erratumIDs2PackageNames(erratumIDs)
+
+		erratumIDs := repoID2ErratumIDs[repoID]
+		pkgNames := c.erratumIDs2PackageNames(erratumIDs)
+		if req.ShowPackages {
 			repoDetail.UpdatedPackageNames = &pkgNames
 		}
-		repoDetailSlice = append(repoDetailSlice, repoDetail)
+
+		if len(pkgNames) != 0 || req.ModifiedSince != nil || !req.HasPackages {
+			repoDetailSlice = append(repoDetailSlice, repoDetail)
+		}
 
 		lastChange := repoDetail.LastChange
 		if latestChange == nil || (lastChange != nil && lastChange.After(*latestChange)) {
@@ -86,14 +90,14 @@ func (c *Cache) getRepoDetailSlice(repo string, repoID2ErratumIDs map[RepoID][]E
 	return repoDetailSlice, latestChange
 }
 
-func (c *Cache) getRepoDetails(repos []string, repoID2ErratumIDs map[RepoID][]ErratumID, showPackages bool) (
+func (c *Cache) getRepoDetails(req *ReposRequest, repos []string, repoID2ErratumIDs map[RepoID][]ErratumID) (
 	RepoDetails, *time.Time, int,
 ) {
 	repoDetails := make(RepoDetails, len(repos))
 	var latestRepoChange *time.Time
 	actualPageSize := 0
 	for _, repo := range repos {
-		repoDetailSlice, latestChange := c.getRepoDetailSlice(repo, repoID2ErratumIDs, showPackages)
+		repoDetailSlice, latestChange := c.getRepoDetailSlice(req, repo, repoID2ErratumIDs)
 		if latestRepoChange == nil || (latestChange != nil && latestChange.After(*latestRepoChange)) {
 			latestRepoChange = latestChange
 		}
@@ -116,7 +120,7 @@ func (req *ReposRequest) repos(c *Cache) (*Repos, error) { // TODO: implement op
 	repos, paginationDetails := utils.Paginate(repos, req.PageNumber, req.PageSize)
 
 	repoID2ErratumIDs := c.buildRepoID2ErratumIDs(req.ModifiedSince)
-	repoDetails, latestRepoChange, actualPageSize := c.getRepoDetails(repos, repoID2ErratumIDs, req.ShowPackages)
+	repoDetails, latestRepoChange, actualPageSize := c.getRepoDetails(req, repos, repoID2ErratumIDs)
 	paginationDetails.PageSize = actualPageSize
 	res := Repos{
 		Repos:             repoDetails,
