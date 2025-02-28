@@ -179,6 +179,7 @@ type ReposRequest struct {
 	ModifiedSince *time.Time `json:"modified_since"`
 	ThirdParty    bool       `json:"third_party"`
 	ShowPackages  bool       `json:"show_packages"`
+	HasPackages   bool       `json:"has_packages"`
 	PageNumber    int        `json:"page"`
 	PageSize      int        `json:"page_size"`
 }

@@ -39,20 +39,21 @@ func TestRepoID2CPEs(t *testing.T) {
 
 func TestGetRepoDetailSlice(t *testing.T) {
 	c := mockCache()
-	repoDetailSlice, _ := c.getRepoDetailSlice("rhel-6-server-rpms", map[RepoID][]ErratumID{}, true)
+	req := ReposRequest{ShowPackages: true}
+	repoDetailSlice, _ := c.getRepoDetailSlice(&req, "rhel-6-server-rpms", map[RepoID][]ErratumID{})
 	assert.Equal(t, 2, len(repoDetailSlice))
 }
 
 func TestGetRepoDetails(t *testing.T) {
 	c := mockCache()
-
+	req := ReposRequest{ShowPackages: true}
 	repos := []string{"rhel-6-server-rpms", "rhel-7-server-rpms", "rhel-8-server-rpms"}
 	expectedChange, _ := time.Parse(time.RFC3339, "2024-11-18T17:58:00+01:00")
-	_, latestRepoChange, actualPageSize := c.getRepoDetails(repos, map[RepoID][]ErratumID{}, true)
+	_, latestRepoChange, actualPageSize := c.getRepoDetails(&req, repos, map[RepoID][]ErratumID{})
 	assert.Equal(t, expectedChange, *latestRepoChange)
 	assert.Equal(t, 4, actualPageSize)
 
-	_, latestRepoChange, _ = c.getRepoDetails([]string{"rhel-7-server-rpms"}, map[RepoID][]ErratumID{}, true)
+	_, latestRepoChange, _ = c.getRepoDetails(&req, []string{"rhel-7-server-rpms"}, map[RepoID][]ErratumID{})
 	assert.Nil(t, latestRepoChange)
 }
 
