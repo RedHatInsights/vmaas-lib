@@ -2,6 +2,15 @@
 
 <!--next-version-placeholder-->
 
+## v1.21.2 (2025-03-05)
+
+### Fix
+
+* Add missing ReposRequest has_packages ([`c886e24`](https://github.com/RedHatInsights/vmaas-lib/commit/c886e243ef5843033803cf9496bc38c258c454f0))
+* Add missing sort before repo pagination ([`298b54e`](https://github.com/RedHatInsights/vmaas-lib/commit/298b54ed5d82dba7bfdb6763195b78aa79348fa6))
+* Show last_change for a single repo ([`9907f6c`](https://github.com/RedHatInsights/vmaas-lib/commit/9907f6c730d3c66019341f3c9136771e9b2ff24c))
+* Ensure updated_package_names shows as expected ([`4f25b07`](https://github.com/RedHatInsights/vmaas-lib/commit/4f25b07ab0cc4fd4d239a314ecd1f1ae062bbf20))
+
 ## v1.21.1 (2025-02-27)
 
 ### Fix
