@@ -78,6 +78,10 @@ func (api *API) PkgTree(request *PkgTreeRequest) (*PkgTree, error) {
 	return request.pkgtree(api.Cache)
 }
 
+func (api *API) Patches(request *Request) (*Patches, error) {
+	return request.patches(api.Cache, api.options)
+}
+
 func (api *API) OSVulnerabilityReport() (*VulnerabilityReport, error) {
 	return vulnerabilityReport(api.Cache, api.options)
 }
