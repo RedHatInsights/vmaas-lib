@@ -1022,14 +1022,14 @@ func loadDumpSchemaVersion(c *Cache) {
 
 func loadOSReleaseDetails(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "OSReleaseDetails")
-	if c.DumpSchemaVersion < 2 {
-		utils.LogWarn("OSReleaseDetails requires dump schema version 2, skipping.")
+	if c.DumpSchemaVersion < 3 {
+		utils.LogWarn("OSReleaseDetails requires dump schema version 3, skipping.")
 		return
 	}
 
 	rows := getAllRows(
 		"operating_system",
-		"id,name,major,minor,system_profile",
+		"id,name,major,minor,lifecycle_phase,system_profile",
 	)
 	cntOSRelease := getCount("operating_system", "*")
 
@@ -1037,7 +1037,7 @@ func loadOSReleaseDetails(c *Cache) {
 	var OSReleaseID int
 	for rows.Next() {
 		var det OSReleaseDetail
-		err := rows.Scan(&OSReleaseID, &det.Name, &det.Major, &det.Minor, &det.SystemProfile)
+		err := rows.Scan(&OSReleaseID, &det.Name, &det.Major, &det.Minor, &det.LifecyclePhase, &det.SystemProfile)
 		if err != nil {
 			panic(err)
 		}
