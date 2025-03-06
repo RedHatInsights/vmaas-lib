@@ -611,6 +611,7 @@ type OSReleaseDetail struct {
 	Name                   string `json:"name"`
 	Major                  int    `json:"major"`
 	Minor                  int    `json:"minor"`
+	LifecyclePhase         string `json:"lifecycle_phase"`
 	SystemProfile          string `json:"-"`
 	CvesCritical           int    `json:"cves_critical"`
 	CvesImportant          int    `json:"cves_important"`
