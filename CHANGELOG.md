@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.22.0 (2025-03-06)
+
+### Feature
+
+* Add lifecycle_phase ([`8fbb5b6`](https://github.com/RedHatInsights/vmaas-lib/commit/8fbb5b6ef245e6bb20068604fb8810ac68873bfa))
+
 ## v1.21.2 (2025-03-05)
 
 ### Fix
