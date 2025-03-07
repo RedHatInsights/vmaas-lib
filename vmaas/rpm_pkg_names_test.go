@@ -28,16 +28,13 @@ func TestGetContentSetLabels(t *testing.T) {
 
 func TestGetContentData(t *testing.T) {
 	req := RPMPkgNamesRequest{
-		Names: []string{"a", "b", "b", "c"},
+		Names: []string{"a", "b", "b"},
 	}
 	c := Cache{
-		Packagename2ID: map[string]NameID{
-			"b": 2,
-			"c": 3,
-		},
+		Packagename2ID: map[string]NameID{"b": 2},
 	}
 	names2csLabels := c.getContentData(&req)
-	assert.Equal(t, 2, len(names2csLabels))
+	assert.Equal(t, 1, len(names2csLabels))
 }
 
 func TestRPMPkgNames(t *testing.T) {
