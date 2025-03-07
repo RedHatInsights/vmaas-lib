@@ -24,8 +24,8 @@ var (
 
 var loadFuncs = []func(c *Cache){
 	loadPkgNames, loadUpdates, loadUpdatesIndex, loadEvrMaps, loadArchs, loadArchCompat, loadRepoDetails,
-	loadLabel2ContentSetID, loadPkgRepos, loadErrata, loadPkgErratum, loadErrataRepoIDs, loadCves,
-	loadPkgErratumModule, loadModule2IDs, loadModuleRequires, loadDBChanges, loadString, loadOSReleaseDetails,
+	loadLabel2ContentSetID, loadPkgNameID2ContentSetLabels, loadPkgRepos, loadErrata, loadPkgErratum, loadErrataRepoIDs,
+	loadCves, loadPkgErratumModule, loadModule2IDs, loadModuleRequires, loadDBChanges, loadString, loadOSReleaseDetails,
 	// CSAF
 	loadRepoCpes, loadContentSet2Cpes, loadCpeID2Label, loadCSAFCVE,
 }
@@ -469,6 +469,28 @@ func loadLabel2ContentSetID(c *Cache) {
 		label2contentSetID[r.Label] = r.ID
 	}
 	c.Label2ContentSetID = label2contentSetID
+}
+
+func loadPkgNameID2ContentSetLabels(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "PkgNameID2ContentSetLabels")
+
+	cnt := getCount("content_set_pkg_name", "*")
+	nameID2labels := make(map[NameID][]string, cnt)
+	q := `
+		SELECT cs.label, cspn.pkg_name_id
+	        FROM content_set cs
+			INNER JOIN content_set_pkg_name cspn
+			ON cs.id = cspn.content_set_id
+	`
+	var label string
+	var nameID NameID
+	doForRows(q, func(row *sql.Rows) {
+		if err := row.Scan(&label, &nameID); err != nil {
+			panic(err)
+		}
+		nameID2labels[nameID] = append(nameID2labels[nameID], label)
+	})
+	c.PkgNameID2ContentSetLabels = nameID2labels
 }
 
 func loadErrata(c *Cache) {

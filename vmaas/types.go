@@ -189,6 +189,12 @@ type PackagesRequest struct {
 	ThirdParty bool     `json:"third_party"`
 }
 
+type RPMPkgNamesRequest struct {
+	Names       []string `json:"rpm_name_list"`
+	ContentSets []string `json:"content_set_list"`
+	ThirdParty  bool     `json:"third_party"` // TODO: drop this field? it's not used anywhere
+}
+
 type Update struct {
 	Package     string `json:"package"`
 	PackageName string `json:"package_name"`
