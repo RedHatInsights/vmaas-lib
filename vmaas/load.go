@@ -140,7 +140,7 @@ func loadErrataRepoIDs(c *Cache) {
 func loadPkgErratum(c *Cache) {
 	cnt := getCount("pkg_errata", "distinct pkg_id")
 	pkgToErrata := make(map[PkgID][]ErratumID, cnt)
-	for k, v := range loadInt2Ints("pkg_errata", "pkg_id,errata_id", "PkgID2ErrataIDs") {
+	for k, v := range loadK2Vs[int, int]("pkg_errata", "pkg_id,errata_id", "PkgID2ErrataIDs", false) {
 		id := PkgID(k)
 		for _, i := range v {
 			pkgToErrata[id] = append(pkgToErrata[id], ErratumID(i))
@@ -475,10 +475,10 @@ func loadErrata(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "ErratumDetails, ErratumID2Name")
 
 	loadPkgDetails(c)
-	erID2cves := loadInt2Strings("errata_cve", "errata_id,cve", "erID2cves")
-	erID2pkgIDs := loadInt2Ints("pkg_errata", "errata_id,pkg_id", "erID2pkgID")
-	erID2bzs := loadInt2Strings("errata_bugzilla", "errata_id,bugzilla", "erID2bzs")
-	erID2refs := loadInt2Strings("errata_refs", "errata_id,ref", "erID2refs")
+	erID2cves := loadK2Vs[int, string]("errata_cve", "errata_id,cve", "erID2cves", false)
+	erID2pkgIDs := loadK2Vs[int, int]("pkg_errata", "errata_id,pkg_id", "erID2pkgID", false)
+	erID2bzs := loadK2Vs[int, string]("errata_bugzilla", "errata_id,bugzilla", "erID2bzs", false)
+	erID2refs := loadK2Vs[int, string]("errata_refs", "errata_id,ref", "erID2refs", false)
 	erID2modules := loadErrataModules(c)
 
 	cols := "ID,name,synopsis,COALESCE(summary, ''),COALESCE(type, ''),severity,COALESCE(description, ''),COALESCE(solution, ''),issued,COALESCE(updated, ''),url,third_party,requires_reboot" //nolint:lll,nolintlint
@@ -534,9 +534,9 @@ func loadErrata(c *Cache) {
 func loadCves(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "CveDetail")
 
-	cveID2cwes := loadInt2Strings("cve_cwe", "cve_id,cwe", "cveID2cwes")
-	cveID2pkg := loadInt2Ints("cve_pkg", "cve_id,pkg_id", "cveID2pkg")
-	cve2eid := loadString2Ints("errata_cve", "cve,errata_id", "cve2eid")
+	cveID2cwes := loadK2Vs[int, string]("cve_cwe", "cve_id,cwe", "cveID2cwes", false)
+	cveID2pkg := loadK2Vs[int, int]("cve_pkg", "cve_id,pkg_id", "cveID2pkg", false)
+	cve2eid := loadK2Vs[string, int]("errata_cve", "cve,errata_id", "cve2eid", false)
 
 	rows := getAllRows("cve_detail", "id, name, COALESCE(redhat_url, ''), COALESCE(secondary_url, ''), COALESCE(cvss3_score, ''), COALESCE(cvss3_metrics, ''), impact, COALESCE(published_date, ''), COALESCE(modified_date, ''), COALESCE(iava, ''), description, COALESCE(cvss2_score, ''), COALESCE(cvss2_metrics, ''), source")
 	cnt := getCount("cve_detail", "*")
@@ -646,11 +646,7 @@ func loadModule2IDs(c *Cache) {
 }
 
 func loadModuleRequires(c *Cache) {
-	defer utils.TimeTrack(time.Now(), "ModuleRequire")
-
-	table := "module_stream_require"
-	moduleRequires := loadInt2Ints(table, "stream_id,require_id", "module2requires")
-	c.ModuleRequires = moduleRequires
+	c.ModuleRequires = loadK2Vs[int, int]("module_stream_require", "stream_id,require_id", "ModuleRequire", false)
 }
 
 func loadString(c *Cache) {
@@ -690,78 +686,45 @@ func loadDBChanges(c *Cache) {
 	c.DBChange = arr[0]
 }
 
-func loadInt2Ints(table, cols, info string) map[int][]int {
+func loadK2V[K comparable, V any](table, cols, info string) map[K]V {
 	defer utils.TimeTrack(time.Now(), info)
 
-	splitted := strings.Split(cols, ",")
-	cnt := getCount(table, fmt.Sprintf("distinct %s", splitted[0]))
+	split := strings.Split(cols, ",")
+	cnt := getCount(table, fmt.Sprintf("distinct %s", split[0]))
 	rows := getAllRows(table, cols)
-	int2ints := make(map[int][]int, cnt)
-	var key int
-	var val int
+	k2v := make(map[K]V, cnt)
+	var key K
+	var val V
 	for rows.Next() {
-		err := rows.Scan(&key, &val)
-		if err != nil {
+		if err := rows.Scan(&key, &val); err != nil {
 			panic(err)
 		}
-
-		_, ok := int2ints[key]
-		if !ok {
-			int2ints[key] = []int{}
-		}
-		int2ints[key] = append(int2ints[key], val)
+		k2v[key] = val
 	}
-	return int2ints
+	return k2v
 }
 
-func loadInt2Strings(table, cols, info string) map[int][]string {
+func loadK2Vs[K comparable, V any](table, cols, info string, order bool) map[K][]V {
 	defer utils.TimeTrack(time.Now(), info)
 
-	splitted := strings.Split(cols, ",")
-	cnt := getCount(table, fmt.Sprintf("distinct %s", splitted[0]))
-	rows := getAllRows(table, cols)
-	int2strs := make(map[int][]string, cnt)
-	var key int
-	var val string
+	split := strings.Split(cols, ",")
+	cnt := getCount(table, fmt.Sprintf("distinct %s", split[0]))
+	var rows *sql.Rows
+	if order {
+		rows = getAllRowsWithOrder(table, cols, cols)
+	} else {
+		rows = getAllRows(table, cols)
+	}
+	k2v := make(map[K][]V, cnt)
+	var key K
+	var val V
 	for rows.Next() {
-		err := rows.Scan(&key, &val)
-		if err != nil {
+		if err := rows.Scan(&key, &val); err != nil {
 			panic(err)
 		}
-
-		_, ok := int2strs[key]
-		if !ok {
-			int2strs[key] = []string{}
-		}
-
-		int2strs[key] = append(int2strs[key], val)
+		k2v[key] = append(k2v[key], val)
 	}
-	return int2strs
-}
-
-func loadString2Ints(table, cols, info string) map[string][]int {
-	defer utils.TimeTrack(time.Now(), info)
-
-	splitted := strings.Split(cols, ",")
-	cnt := getCount(table, fmt.Sprintf("distinct %s", splitted[0]))
-	rows := getAllRows(table, cols)
-	int2strs := make(map[string][]int, cnt)
-	var key string
-	var val int
-	for rows.Next() {
-		err := rows.Scan(&key, &val)
-		if err != nil {
-			panic(err)
-		}
-
-		_, ok := int2strs[key]
-		if !ok {
-			int2strs[key] = []int{}
-		}
-
-		int2strs[key] = append(int2strs[key], val)
-	}
-	return int2strs
+	return k2v
 }
 
 func loadEms2PkgIDs() map[ems][]int {
@@ -829,68 +792,17 @@ func loadErrataModules(c *Cache) map[int][]Module {
 }
 
 func loadRepoCpes(c *Cache) {
-	defer utils.TimeTrack(time.Now(), "RepoID2CpeIDs")
-
-	type CpeRepo struct {
-		RepoID RepoID
-		CpeID  CpeID
-	}
-	r := CpeRepo{}
-	cnt := getCount("cpe_repo", "distinct repo_id")
-	ret := make(map[RepoID][]CpeID, cnt)
-	cols := "repo_id,cpe_id"
-	rows := getAllRowsWithOrder("cpe_repo", cols, cols)
-
-	for rows.Next() {
-		if err := rows.Scan(&r.RepoID, &r.CpeID); err != nil {
-			panic(err)
-		}
-		ret[r.RepoID] = append(ret[r.RepoID], r.CpeID)
-	}
-	c.RepoID2CpeIDs = ret
+	c.RepoID2CpeIDs = loadK2Vs[RepoID, CpeID]("cpe_repo", "repo_id,cpe_id", "RepoID2CpeIDs", true)
 }
 
 func loadContentSet2Cpes(c *Cache) {
-	defer utils.TimeTrack(time.Now(), "ContentSetID2CpeIDs")
-
-	type CpeCS struct {
-		ContentSetID ContentSetID
-		CpeID        CpeID
-	}
-	r := CpeCS{}
-	cnt := getCount("cpe_content_set", "distinct content_set_id")
-	ret := make(map[ContentSetID][]CpeID, cnt)
-	cols := "content_set_id,cpe_id"
-	rows := getAllRowsWithOrder("cpe_content_set", cols, cols)
-
-	for rows.Next() {
-		if err := rows.Scan(&r.ContentSetID, &r.CpeID); err != nil {
-			panic(err)
-		}
-		ret[r.ContentSetID] = append(ret[r.ContentSetID], r.CpeID)
-	}
-	c.ContentSetID2CpeIDs = ret
+	c.ContentSetID2CpeIDs = loadK2Vs[ContentSetID, CpeID](
+		"cpe_content_set", "content_set_id,cpe_id", "ContentSetID2CpeIDs", true,
+	)
 }
 
 func loadCpeID2Label(c *Cache) {
-	defer utils.TimeTrack(time.Now(), "CpeID2Label")
-
-	type CpeID2Label struct {
-		CpeID CpeID
-		Label string
-	}
-	r := CpeID2Label{}
-	cnt := getCount("cpe", "*")
-	rows := getAllRows("cpe", "id,label")
-	ret := make(map[CpeID]CpeLabel, cnt)
-
-	for rows.Next() {
-		if err := rows.Scan(&r.CpeID, &r.Label); err != nil {
-			panic(err)
-		}
-		ret[r.CpeID] = CpeLabel(r.Label)
-	}
-	c.CpeID2Label = ret
+	c.CpeID2Label = loadK2V[CpeID, CpeLabel]("cpe", "id,label", "CpeID2Label")
 }
 
 func loadCSAFProductStatus(c *Cache) {
