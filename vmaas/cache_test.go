@@ -111,6 +111,12 @@ func TestPkgID2BuiltBinaryPkgs(t *testing.T) {
 	assert.Equal(t, 3, len(bbp))
 }
 
+func TestNameID2ContentSetIDs(t *testing.T) {
+	c := mockCache()
+	csIDs := c.nameID2ContentSetIDs(2)
+	assert.Equal(t, 3, len(csIDs))
+}
+
 //nolint:funlen
 func mockCache() *Cache {
 	modifiedDate, _ := time.Parse(time.RFC3339, "2024-10-03T11:44:00+02:00")
@@ -141,6 +147,13 @@ func mockCache() *Cache {
 			"bash":        3,
 			"python-perf": 4,
 			"vim-common":  5,
+		},
+
+		ContentSetID2PkgNameIDs: map[ContentSetID][]NameID{
+			101: {1, 2},
+			102: {1, 2, 3},
+			103: {2},
+			104: {},
 		},
 
 		Evr2ID: map[utils.Evr]EvrID{
