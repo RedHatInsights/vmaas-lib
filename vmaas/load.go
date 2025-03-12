@@ -24,8 +24,8 @@ var (
 
 var loadFuncs = []func(c *Cache){
 	loadPkgNames, loadUpdates, loadUpdatesIndex, loadEvrMaps, loadArchs, loadArchCompat, loadRepoDetails,
-	loadLabel2ContentSetID, loadPkgRepos, loadErrata, loadPkgErratum, loadErrataRepoIDs, loadCves,
-	loadPkgErratumModule, loadModule2IDs, loadModuleRequires, loadDBChanges, loadString, loadOSReleaseDetails,
+	loadLabel2ContentSetID, loadContentSetID2PkgNameIDs, loadPkgRepos, loadErrata, loadPkgErratum, loadErrataRepoIDs,
+	loadCves, loadPkgErratumModule, loadModule2IDs, loadModuleRequires, loadDBChanges, loadString, loadOSReleaseDetails,
 	// CSAF
 	loadRepoCpes, loadContentSet2Cpes, loadCpeID2Label, loadCSAFCVE,
 }
@@ -450,25 +450,30 @@ func loadRepoDetails(c *Cache) { //nolint: funlen
 }
 
 func loadLabel2ContentSetID(c *Cache) {
-	defer utils.TimeTrack(time.Now(), "Label2ContentSetID")
+	defer utils.TimeTrack(time.Now(), "Label2ContentSetID, ContentSetID2Label")
 
-	type LabelContent struct {
-		ID    ContentSetID
-		Label string
-	}
-
-	r := LabelContent{}
 	cnt := getCount("content_set", "*")
 	label2contentSetID := make(map[string]ContentSetID, cnt)
+	contentSetID2Label := make(map[ContentSetID]string, cnt)
 	rows := getAllRows("content_set", "id,label")
 
+	var csID ContentSetID
+	var label string
 	for rows.Next() {
-		if err := rows.Scan(&r.ID, &r.Label); err != nil {
+		if err := rows.Scan(&csID, &label); err != nil {
 			panic(err)
 		}
-		label2contentSetID[r.Label] = r.ID
+		label2contentSetID[label] = csID
+		contentSetID2Label[csID] = label
 	}
 	c.Label2ContentSetID = label2contentSetID
+	c.ContentSetID2Label = contentSetID2Label
+}
+
+func loadContentSetID2PkgNameIDs(c *Cache) {
+	c.ContentSetID2PkgNameIDs = loadK2Vs[ContentSetID, NameID](
+		"content_set_pkg_name", "content_set_id,pkg_name_id", "ContentSetID2PkgNameIDs", false,
+	)
 }
 
 func loadErrata(c *Cache) {
