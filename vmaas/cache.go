@@ -3,6 +3,7 @@ package vmaas
 import (
 	"io"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
@@ -262,4 +263,18 @@ func (c *Cache) pkgID2BuiltBinaryPkgs(pkgID PkgID) []string {
 		}
 	}
 	return pkgs
+}
+
+func (c *Cache) nameID2ContentSetIDs(nameID NameID) []ContentSetID {
+	csIDs := []ContentSetID{}
+	for csID, nameIDs := range c.ContentSetID2PkgNameIDs {
+		if slices.Contains(nameIDs, nameID) {
+			csIDs = append(csIDs, csID)
+		}
+	}
+	return csIDs
+}
+
+func (c *Cache) contentSetIDs2Labels(csIDs []ContentSetID) []string {
+	return utils.ApplyMap(csIDs, c.ContentSetID2Label)
 }

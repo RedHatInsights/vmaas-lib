@@ -189,6 +189,11 @@ type PackagesRequest struct {
 	ThirdParty bool     `json:"third_party"`
 }
 
+type RPMPkgNamesRequest struct {
+	RPMNames    []string `json:"rpm_name_list"`
+	ContentSets []string `json:"content_set_list"`
+}
+
 type Update struct {
 	Package     string `json:"package"`
 	PackageName string `json:"package_name"`
