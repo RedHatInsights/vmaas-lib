@@ -111,12 +111,8 @@ func ShouldReload(c *Cache, latestDumpEndpoint string) bool {
 	return false
 }
 
-func (c *Cache) errataIDs2Names(eids []int) []string {
-	names := make([]string, 0, len(eids))
-	for _, eid := range eids {
-		names = append(names, c.ErratumID2Name[ErratumID(eid)])
-	}
-	return names
+func (c *Cache) errataIDs2Names(eids []ErratumID) []string {
+	return utils.ApplyMap(eids, c.ErratumID2Name)
 }
 
 func (c *Cache) pkgDetail2Nevra(pkgDetail PackageDetail) string {
@@ -166,20 +162,8 @@ func (c *Cache) buildRepoID2ErratumIDs(modifiedSince *time.Time) map[RepoID][]Er
 	return repoID2ErrataIDsMap
 }
 
-func (c *Cache) cpeIDs2Labels(cpeIDs []CpeID) []string {
-	isDuplicate := make(map[CpeID]bool, len(cpeIDs))
-	cpes := make([]string, 0, len(cpeIDs))
-	for _, cpeID := range cpeIDs {
-		if isDuplicate[cpeID] {
-			continue
-		}
-
-		if cpe, found := c.CpeID2Label[cpeID]; found {
-			cpes = append(cpes, string(cpe))
-			isDuplicate[cpeID] = true
-		}
-	}
-	return cpes
+func (c *Cache) cpeIDs2Labels(cpeIDs []CpeID) []CpeLabel {
+	return utils.ApplyMap(cpeIDs, c.CpeID2Label)
 }
 
 func (c *Cache) erratumIDs2PackageNames(erratumIDs []ErratumID) []string {

@@ -314,8 +314,8 @@ type RepoDetail struct {
 	LastChange *time.Time `json:"last_change"`
 	ThirdParty bool       `json:"third_party"`
 
-	CPEs                []string  `json:"cpes"`
-	UpdatedPackageNames *[]string `json:"updated_package_names,omitempty"`
+	CPEs                []CpeLabel `json:"cpes"`
+	UpdatedPackageNames *[]string  `json:"updated_package_names,omitempty"`
 }
 
 type PackageDetailResponse struct {
@@ -341,9 +341,9 @@ type CveDetail struct {
 	Cvss2Metrics  string     `json:"cvss2_metrics"`
 	Source        string     `json:"-"`
 
-	CWEs      []string `json:"cwe_list"`
-	PkgIDs    []int    `json:"-"`
-	ErrataIDs []int    `json:"-"`
+	CWEs      []string    `json:"cwe_list"`
+	PkgIDs    []int       `json:"-"`
+	ErrataIDs []ErratumID `json:"-"`
 
 	Errata         []string `json:"errata_list"`
 	Packages       []string `json:"package_list"`

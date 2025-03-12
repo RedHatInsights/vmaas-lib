@@ -536,7 +536,7 @@ func loadCves(c *Cache) {
 
 	cveID2cwes := loadK2Vs[int, string]("cve_cwe", "cve_id,cwe", "cveID2cwes", false)
 	cveID2pkg := loadK2Vs[int, int]("cve_pkg", "cve_id,pkg_id", "cveID2pkg", false)
-	cve2eid := loadK2Vs[string, int]("errata_cve", "cve,errata_id", "cve2eid", false)
+	cve2eid := loadK2Vs[string, ErratumID]("errata_cve", "cve,errata_id", "cve2eid", false)
 
 	rows := getAllRows("cve_detail", "id, name, COALESCE(redhat_url, ''), COALESCE(secondary_url, ''), COALESCE(cvss3_score, ''), COALESCE(cvss3_metrics, ''), impact, COALESCE(published_date, ''), COALESCE(modified_date, ''), COALESCE(iava, ''), description, COALESCE(cvss2_score, ''), COALESCE(cvss2_metrics, ''), source")
 	cnt := getCount("cve_detail", "*")

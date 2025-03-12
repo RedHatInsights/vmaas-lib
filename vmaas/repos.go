@@ -52,7 +52,7 @@ func filterInputRepos(c *Cache, repos []string, req *ReposRequest) []string {
 	return filteredRepos
 }
 
-func (c *Cache) repoID2CPEs(repoID RepoID, contentSetID ContentSetID) []string {
+func (c *Cache) repoID2CPEs(repoID RepoID, contentSetID ContentSetID) []CpeLabel {
 	cpeIDs, found := c.RepoID2CpeIDs[repoID]
 	if !found {
 		cpeIDs = c.ContentSetID2CpeIDs[contentSetID]

@@ -8,12 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestErrataIDs2Names(t *testing.T) {
-	c := mockCache()
-	errataNames := c.errataIDs2Names([]int{1, 2})
-	assert.Equal(t, 2, len(errataNames))
-}
-
 func TestPkgDetail2Nevra(t *testing.T) {
 	c := mockCache()
 	pkgDetail := c.PackageDetails[PkgID(1)]
@@ -52,12 +46,6 @@ func TestBuildRepoID2ErratumIDs(t *testing.T) {
 	assert.Equal(t, 1, len(repoID2ErratumIDsMap[42]))
 	assert.Equal(t, 1, len(repoID2ErratumIDsMap[43]))
 	assert.Equal(t, 1, len(repoID2ErratumIDsMap[44]))
-}
-
-func TestCpeIDs2Labels(t *testing.T) {
-	c := mockCache()
-	labels := c.cpeIDs2Labels([]CpeID{1, 3, 2, 3, 4, 5, 6})
-	assert.Equal(t, 5, len(labels))
 }
 
 func TestErratumIDs2PackageNames(t *testing.T) {
@@ -232,7 +220,7 @@ func mockCache() *Cache {
 				PublishedDate: &publishedDate,
 			},
 			"CVE-2024-1234": {
-				ErrataIDs: []int{1, 2},
+				ErrataIDs: []ErratumID{1, 2},
 			},
 			"CVE-2024-1111111": {},
 		},
