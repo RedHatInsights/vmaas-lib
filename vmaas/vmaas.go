@@ -86,6 +86,10 @@ func (api *API) RPMPkgNames(request *RPMPkgNamesRequest) (*RPMPkgNames, error) {
 	return request.rpmPkgNames(api.Cache)
 }
 
+func (api *API) SRPMPkgNames(request *SRPMPkgNamesRequest) (*SRPMPkgNames, error) {
+	return request.srpmPkgNames(api.Cache)
+}
+
 func (api *API) OSVulnerabilityReport() (*VulnerabilityReport, error) {
 	return vulnerabilityReport(api.Cache, api.options)
 }

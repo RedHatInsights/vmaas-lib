@@ -279,3 +279,17 @@ func (c *Cache) nameID2ContentSetIDs(nameID NameID) []ContentSetID {
 func (c *Cache) contentSetIDs2Labels(csIDs []ContentSetID) []string {
 	return utils.ApplyMap(csIDs, c.ContentSetID2Label)
 }
+
+func (c *Cache) nameIDs2PackageNames(nameIDs []NameID) []string {
+	return utils.ApplyMap(nameIDs, c.ID2Packagename)
+}
+
+func (c *Cache) labels2ContentSetIDs(labels []string) map[ContentSetID]bool {
+	csIDs := make(map[ContentSetID]bool, len(labels))
+	for _, label := range labels {
+		if csID, found := c.Label2ContentSetID[label]; found {
+			csIDs[csID] = true
+		}
+	}
+	return csIDs
+}
