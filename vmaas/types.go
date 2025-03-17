@@ -194,6 +194,11 @@ type RPMPkgNamesRequest struct {
 	ContentSets []string `json:"content_set_list"`
 }
 
+type SRPMPkgNamesRequest struct {
+	SRPMNames   []string `json:"srpm_name_list"`
+	ContentSets []string `json:"content_set_list"`
+}
+
 type Update struct {
 	Package     string `json:"package"`
 	PackageName string `json:"package_name"`
