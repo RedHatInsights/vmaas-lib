@@ -117,6 +117,22 @@ func TestNameID2ContentSetIDs(t *testing.T) {
 	assert.Equal(t, 3, len(csIDs))
 }
 
+func TestLabels2ContentSetIDs(t *testing.T) {
+	c := Cache{
+		Label2ContentSetID: map[string]ContentSetID{
+			"foo": 1,
+			"bar": 2,
+			"baz": 3,
+		},
+	}
+	labels := []string{"bar", "foo", "invalid"}
+	csIDs := c.labels2ContentSetIDs(labels)
+	assert.Equal(t, 2, len(csIDs))
+	assert.True(t, csIDs[1])
+	assert.True(t, csIDs[2])
+	assert.False(t, csIDs[3])
+}
+
 //nolint:funlen
 func mockCache() *Cache {
 	modifiedDate, _ := time.Parse(time.RFC3339, "2024-10-03T11:44:00+02:00")
@@ -147,11 +163,30 @@ func mockCache() *Cache {
 			"bash":        3,
 			"python-perf": 4,
 			"vim-common":  5,
+			"foo":         6,
+		},
+
+		SrcPkgNameID2ContentSetIDs: map[NameID][]ContentSetID{
+			6: {101, 103, 104},
+		},
+
+		ContentSetID2Label: map[ContentSetID]string{
+			101: "test_cs_01",
+			102: "test_cs_02",
+			103: "test_cs_03",
+			104: "test_cs_04",
+		},
+
+		Label2ContentSetID: map[string]ContentSetID{
+			"test_cs_01": 101,
+			"test_cs_02": 102,
+			"test_cs_03": 103,
+			"test_cs_04": 104,
 		},
 
 		ContentSetID2PkgNameIDs: map[ContentSetID][]NameID{
 			101: {1, 2},
-			102: {1, 2, 3},
+			102: {1, 2, 3, 6},
 			103: {2},
 			104: {},
 		},
@@ -166,6 +201,7 @@ func mockCache() *Cache {
 			{NameID: 3, EvrID: 3, ArchID: 1}: 4,
 			{NameID: 4, EvrID: 4, ArchID: 1}: 5,
 			{NameID: 5, EvrID: 5, ArchID: 1}: 6,
+			{NameID: 6}:                      42,
 		},
 
 		PkgID2RepoIDs: map[PkgID][]RepoID{
