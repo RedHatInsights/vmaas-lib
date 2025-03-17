@@ -39,7 +39,8 @@ type Cache struct {
 	Label2ContentSetID map[string]ContentSetID
 	ContentSetID2Label map[ContentSetID]string
 
-	ContentSetID2PkgNameIDs map[ContentSetID][]NameID
+	ContentSetID2PkgNameIDs    map[ContentSetID][]NameID
+	SrcPkgNameID2ContentSetIDs map[NameID][]ContentSetID
 
 	ProductID2RepoIDs map[int][]RepoID
 	PkgID2RepoIDs     map[PkgID][]RepoID

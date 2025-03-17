@@ -24,8 +24,9 @@ var (
 
 var loadFuncs = []func(c *Cache){
 	loadPkgNames, loadUpdates, loadUpdatesIndex, loadEvrMaps, loadArchs, loadArchCompat, loadRepoDetails,
-	loadLabel2ContentSetID, loadContentSetID2PkgNameIDs, loadPkgRepos, loadErrata, loadPkgErratum, loadErrataRepoIDs,
-	loadCves, loadPkgErratumModule, loadModule2IDs, loadModuleRequires, loadDBChanges, loadString, loadOSReleaseDetails,
+	loadLabel2ContentSetID, loadContentSetID2PkgNameIDs, loadSrcPkgNameID2ContentSetIDs, loadPkgRepos, loadErrata,
+	loadPkgErratum, loadErrataRepoIDs, loadCves, loadPkgErratumModule, loadModule2IDs, loadModuleRequires,
+	loadDBChanges, loadString, loadOSReleaseDetails,
 	// CSAF
 	loadRepoCpes, loadContentSet2Cpes, loadCpeID2Label, loadCSAFCVE,
 }
@@ -473,6 +474,12 @@ func loadLabel2ContentSetID(c *Cache) {
 func loadContentSetID2PkgNameIDs(c *Cache) {
 	c.ContentSetID2PkgNameIDs = loadK2Vs[ContentSetID, NameID](
 		"content_set_pkg_name", "content_set_id,pkg_name_id", "ContentSetID2PkgNameIDs", false,
+	)
+}
+
+func loadSrcPkgNameID2ContentSetIDs(c *Cache) {
+	c.SrcPkgNameID2ContentSetIDs = loadK2Vs[NameID, ContentSetID](
+		"content_set_src_pkg_name", "src_pkg_name_id,content_set_id", "SrcPkgNameID2ContentSetIDs", false,
 	)
 }
 
