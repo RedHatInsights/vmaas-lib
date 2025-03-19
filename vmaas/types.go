@@ -385,11 +385,11 @@ type ModuleStreamPtrs struct {
 }
 
 type DBChange struct {
-	ErrataChanges string `json:"errata_changes"`
-	CveChanges    string `json:"cve_changes"`
-	RepoChanges   string `json:"repository_changes"`
-	LastChange    string `json:"last_change"`
-	Exported      string `json:"exported"`
+	ErrataChanges time.Time `json:"errata_changes"`
+	CveChanges    time.Time `json:"cve_changes"`
+	RepoChanges   time.Time `json:"repository_changes"`
+	LastChange    time.Time `json:"last_change"`
+	Exported      time.Time `json:"exported"`
 }
 
 type ErratumDetail struct {

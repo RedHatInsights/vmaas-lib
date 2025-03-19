@@ -90,6 +90,10 @@ func (api *API) SRPMPkgNames(request *SRPMPkgNamesRequest) (*SRPMPkgNames, error
 	return request.srpmPkgNames(api.Cache)
 }
 
+func (api *API) DBChange() *DBChange {
+	return &api.Cache.DBChange
+}
+
 func (api *API) OSVulnerabilityReport() (*VulnerabilityReport, error) {
 	return vulnerabilityReport(api.Cache, api.options)
 }

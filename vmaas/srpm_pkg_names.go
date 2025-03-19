@@ -2,6 +2,7 @@ package vmaas
 
 import (
 	"slices"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
@@ -10,8 +11,8 @@ import (
 type RPMData map[string]map[string][]string
 
 type SRPMPkgNames struct {
-	Names      RPMData `json:"srpm_name_list"` // TODO: use `omitzero` from go1.24
-	LastChange string  `json:"last_change"`
+	Names      RPMData   `json:"srpm_name_list"` // TODO: use `omitzero` from go1.24
+	LastChange time.Time `json:"last_change"`
 }
 
 // GetSrcPkgPkgNameIDs returns package names of the packages under the source package with srcNameID.

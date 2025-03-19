@@ -307,7 +307,5 @@ func mockCache() *Cache {
 		PkgID2ErrataIDs: map[PkgID][]ErratumID{
 			4: {1, 2},
 		},
-
-		DBChange: DBChange{LastChange: "2024-10-02T16:08:00+02:00"},
 	}
 }

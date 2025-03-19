@@ -5,7 +5,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
@@ -69,11 +68,6 @@ func (r *ProcessedRequest) evaluateRepositories(c *Cache, opts *options) *Update
 // This method is looking for updates of a package, including name of package to update to,
 // associated erratum and repository this erratum is from.
 func (r *Request) processRequest(c *Cache) (*ProcessedRequest, error) {
-	lastChanged, err := time.Parse(time.RFC3339, c.DBChange.LastChange)
-	if err != nil {
-		return nil, errors.Wrap(err, "parsing lastChanged")
-	}
-
 	pkgsToProcess, updateList, err := processInputPackages(c, r)
 	if err != nil {
 		return nil, errors.Wrap(err, "processing input packages")
@@ -84,7 +78,7 @@ func (r *Request) processRequest(c *Cache) (*ProcessedRequest, error) {
 	}
 	updates := Updates{
 		UpdateList: updateList,
-		LastChange: lastChanged,
+		LastChange: c.DBChange.LastChange,
 		Basearch:   r.Basearch,
 		Releasever: r.Releasever,
 		RepoList:   r.Repos,

@@ -1,6 +1,8 @@
 package vmaas
 
 import (
+	"time"
+
 	"github.com/pkg/errors"
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
 )
@@ -9,7 +11,7 @@ type PackageDetails map[string]interface{}
 
 type Packages struct {
 	Packages   PackageDetails `json:"package_list"`
-	LastChange string         `json:"last_change"`
+	LastChange time.Time      `json:"last_change"`
 }
 
 func filterInputPkgs(c *Cache, pkgs []string, req *PackagesRequest) ([]string, map[string]PkgID) {
