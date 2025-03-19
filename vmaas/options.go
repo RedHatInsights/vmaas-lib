@@ -1,7 +1,7 @@
 package vmaas
 
 var defaultOpts = options{
-	20, true, map[string]bool{"kernel-alt": true}, map[string]bool{"el7a": true}, true, true,
+	20, true, map[string]bool{"kernel-alt": true}, map[string]bool{"el7a": true}, true, true, "",
 }
 
 type options struct {
@@ -11,6 +11,7 @@ type options struct {
 	excludedReleases     map[string]bool
 	newerReleaseverRepos bool
 	newerReleaseverCsaf  bool
+	vmaasVersionFilePath string
 }
 
 type Option interface {
@@ -91,4 +92,15 @@ func (n newerReleaseverCsafOption) apply(opts *options) {
 // when evaluating from CSAF
 func WithNewerReleaseverCsaf(n bool) Option {
 	return newerReleaseverCsafOption(n)
+}
+
+type vmaasVersionFilePath string
+
+func (path vmaasVersionFilePath) apply(opts *options) {
+	opts.vmaasVersionFilePath = string(path)
+}
+
+// Option that specifies VMaaS version file path
+func WithVmaasVersionFilePath(path string) Option {
+	return vmaasVersionFilePath(path)
 }
