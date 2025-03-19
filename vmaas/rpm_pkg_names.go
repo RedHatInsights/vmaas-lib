@@ -2,6 +2,7 @@ package vmaas
 
 import (
 	"slices"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
@@ -11,7 +12,7 @@ type ContentData map[string][]string
 
 type RPMPkgNames struct {
 	Names      ContentData `json:"rpm_name_list,omitempty"` // TODO: use `omitzero` from go1.24
-	LastChange string      `json:"last_change,omitempty"`
+	LastChange time.Time   `json:"last_change,omitempty"`
 }
 
 func (c *Cache) getContentData(rpmNames []string, contentSets []string) ContentData {

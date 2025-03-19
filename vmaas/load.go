@@ -684,18 +684,30 @@ func loadString(c *Cache) {
 func loadDBChanges(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "DBChange")
 
-	rows := getAllRows("dbchange", "*")
-	arr := []DBChange{}
-	var item DBChange
-	for rows.Next() {
-		err := rows.Scan(&item.ErrataChanges, &item.CveChanges, &item.RepoChanges,
-			&item.LastChange, &item.Exported)
+	var timestamps [5]string
+	row := sqlDB.QueryRow(
+		"SELECT errata_changes,cve_changes,repository_changes,last_change,exported FROM dbchange LIMIT 1",
+	)
+	err := row.Scan(&timestamps[0], &timestamps[1], &timestamps[2], &timestamps[3], &timestamps[4])
+	if err != nil {
+		panic(err)
+	}
+
+	var parsed [5]time.Time
+	for i, ts := range timestamps {
+		parsed[i], err = time.Parse(time.RFC3339, ts)
 		if err != nil {
 			panic(err)
 		}
-		arr = append(arr, item)
 	}
-	c.DBChange = arr[0]
+
+	c.DBChange = DBChange{
+		ErrataChanges: parsed[0],
+		CveChanges:    parsed[1],
+		RepoChanges:   parsed[2],
+		LastChange:    parsed[3],
+		Exported:      parsed[4],
+	}
 }
 
 func loadK2V[K comparable, V any](table, cols, info string) map[K]V {

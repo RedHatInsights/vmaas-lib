@@ -2,6 +2,7 @@ package vmaas
 
 import (
 	"slices"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
@@ -13,7 +14,7 @@ type Errata struct {
 	ErrataList ErrataDetails `json:"errata_list"`
 	Type       TypeT         `json:"type,omitempty"`
 	Severity   SeverityT     `json:"severity,omitempty"`
-	LastChange string        `json:"last_change"`
+	LastChange time.Time     `json:"last_change"`
 	utils.PaginationDetails
 }
 

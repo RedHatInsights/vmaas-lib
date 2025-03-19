@@ -35,7 +35,7 @@ type PkgTreeItems map[string][]PkgTreeItem
 
 type PkgTree struct {
 	PackageNames PkgTreeItems `json:"package_name_list"`
-	LastChange   string       `json:"last_change"`
+	LastChange   time.Time    `json:"last_change"`
 	utils.PaginationDetails
 }
 

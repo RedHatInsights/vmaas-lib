@@ -2,6 +2,7 @@ package vmaas
 
 import (
 	"slices"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
@@ -11,7 +12,7 @@ type CveDetails map[string]CveDetail
 
 type Cves struct {
 	Cves       CveDetails `json:"cve_list"`
-	LastChange string     `json:"last_change"`
+	LastChange time.Time  `json:"last_change"`
 	utils.PaginationDetails
 }
 

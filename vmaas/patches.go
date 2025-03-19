@@ -1,12 +1,14 @@
 package vmaas
 
 import (
+	"time"
+
 	"github.com/pkg/errors"
 )
 
 type Patches struct {
-	Errata     []string `json:"errata_list"`
-	LastChange string   `json:"last_change"`
+	Errata     []string  `json:"errata_list"`
+	LastChange time.Time `json:"last_change"`
 }
 
 func extractUpdatesErrata(updates *Updates) []string {

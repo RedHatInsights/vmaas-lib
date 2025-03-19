@@ -10,7 +10,7 @@ import (
 type PkgList struct {
 	PkgList    []PkgListItem `json:"package_list"`
 	Total      int           `json:"total"`
-	LastChange string        `json:"last_change"`
+	LastChange time.Time     `json:"last_change"`
 	utils.PaginationDetails
 }
 

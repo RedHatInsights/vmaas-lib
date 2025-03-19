@@ -102,12 +102,7 @@ func ShouldReload(c *Cache, latestDumpEndpoint string) bool {
 		return false
 	}
 
-	exported, err := time.Parse(time.RFC3339, c.DBChange.Exported)
-	if err != nil {
-		utils.LogWarn("err", err.Error(), "Couldn't parse exported timestamp in cache")
-		return true
-	}
-
+	exported := c.DBChange.Exported
 	if latest.After(exported) {
 		utils.LogDebug("latest", latest, "exported", exported, "Cache reload needed")
 		return true

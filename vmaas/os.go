@@ -2,11 +2,12 @@ package vmaas
 
 import (
 	"encoding/json"
+	"time"
 )
 
 type VulnerabilityReport struct {
 	OSReleases []OSReleaseDetail `json:"os_releases"`
-	LastChange string            `json:"last_change"`
+	LastChange time.Time         `json:"last_change"`
 }
 
 func evaluateCveCounts(c *Cache, opts *options, release *OSReleaseDetail) error {
