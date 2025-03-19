@@ -94,6 +94,10 @@ func (api *API) DBChange() *DBChange {
 	return &api.Cache.DBChange
 }
 
+func (api *API) Version() *string {
+	return vmaasVersion(api.options)
+}
+
 func (api *API) OSVulnerabilityReport() (*VulnerabilityReport, error) {
 	return vulnerabilityReport(api.Cache, api.options)
 }
