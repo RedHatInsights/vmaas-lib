@@ -11,7 +11,7 @@ import (
 type ErrataDetails map[string]ErratumDetail
 
 type Errata struct {
-	ErrataList ErrataDetails `json:"errata_list"`
+	Errata     ErrataDetails `json:"errata_list"`
 	Type       TypeT         `json:"type,omitempty"`
 	Severity   SeverityT     `json:"severity,omitempty"`
 	LastChange time.Time     `json:"last_change"`
@@ -113,7 +113,7 @@ func (req *ErrataRequest) errata(c *Cache) (*Errata, error) { // TODO: implement
 	errata, pagination := utils.Paginate(errata, req.PaginationRequest)
 
 	res := Errata{
-		ErrataList: c.getErrataDetails(errata),
+		Errata:     c.getErrataDetails(errata),
 		Type:       req.Type,
 		Severity:   req.Severity,
 		LastChange: c.DBChange.LastChange,
