@@ -82,6 +82,10 @@ func (api *API) Patches(request *Request) (*Patches, error) {
 	return request.patches(api.Cache, api.options)
 }
 
+func (api *API) DBChange() *DBChange {
+	return &api.Cache.DBChange
+}
+
 func (api *API) OSVulnerabilityReport() (*VulnerabilityReport, error) {
 	return vulnerabilityReport(api.Cache, api.options)
 }
