@@ -2,6 +2,16 @@
 
 <!--next-version-placeholder-->
 
+## v1.24.0 (2025-03-27)
+
+### Feature
+
+* Rewrite vmaas package_name/rpms endpoint in go ([`7bc9cd2`](https://github.com/RedHatInsights/vmaas-lib/commit/7bc9cd22d5692db33fc2ce61c04d023a367bf384))
+* Add ContentSetID2Label and ContentSetID2PkgNameIDs to cache ([`f6887e2`](https://github.com/RedHatInsights/vmaas-lib/commit/f6887e27e76824c38d7b04a4788fa6bdbe0ea414))
+* Add Intersection utility ([`20e4851`](https://github.com/RedHatInsights/vmaas-lib/commit/20e485101684fa60c291842c643f774236704cb8))
+* Add ApplyMap utility ([`15d53cb`](https://github.com/RedHatInsights/vmaas-lib/commit/15d53cb8d57921c6da5041afb15386a4f342f932))
+* Add generalized K2V and K2Vs loaders ([`6ce7e71`](https://github.com/RedHatInsights/vmaas-lib/commit/6ce7e71422410acb6036be530d3bb3378696f7b1))
+
 ## v1.23.0 (2025-03-06)
 
 ### Feature
