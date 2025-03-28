@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.25.0 (2025-03-28)
+
+### Feature
+
+* Rewrite vmaas package_names/srpms endpoint in go ([`1ed6018`](https://github.com/RedHatInsights/vmaas-lib/commit/1ed6018746fd86a0eb5d5d3cad12f91108959736))
+* Add SrcPkgNameID2ContentSetIDs to cache ([`c9cf7cc`](https://github.com/RedHatInsights/vmaas-lib/commit/c9cf7ccdd550868df63ea64d16b712b7422b533b))
+
 ## v1.24.0 (2025-03-27)
 
 ### Feature
