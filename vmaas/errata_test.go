@@ -28,12 +28,12 @@ func TestErratumID2Releasevers(t *testing.T) {
 	assert.Equal(t, 3, len(relVers))
 }
 
-func TestGetErrataDetails(t *testing.T) {
+func TestGetErratumDetails(t *testing.T) {
 	c := mockCache()
 	errata := []string{"RHSA-2024:0042", "RHSA-2024:1111"}
-	errataDetails := c.getErrataDetails(errata)
-	assert.Equal(t, 2, len(errataDetails))
-	ed := errataDetails["RHSA-2024:0042"]
+	erratumDetails := c.getErratumDetails(errata)
+	assert.Equal(t, 2, len(erratumDetails))
+	ed := erratumDetails["RHSA-2024:0042"]
 	assert.Equal(t, 1, len(ed.PackageList))
 	assert.Equal(t, 1, len(ed.SourcePackageList))
 }

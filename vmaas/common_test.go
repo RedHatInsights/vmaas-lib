@@ -409,16 +409,16 @@ func TestFilterRepositories(t *testing.T) {
 
 	repos := repoIDMaps{map[RepoID]bool{1: true, 2: true, 3: true, 4: true}, map[RepoID]bool{}}
 	repoIDs := repositoriesByPkgs(&c, &defaultOpts, []PkgID{0}, repoIDMaps{})
-	res := filterErrataRepos(&c, 0, repoIDs)
+	res := filterErratumRepos(&c, 0, repoIDs)
 	assert.Equal(t, 0, len(res.currentReleasever))
 
 	repoIDs = repositoriesByPkgs(&c, &defaultOpts, []PkgID{1}, repos)
-	res = filterErrataRepos(&c, 1, repoIDs)
+	res = filterErratumRepos(&c, 1, repoIDs)
 	// el7 repo and repo without releasever for pkg=1, erratum=1
 	assert.Equal(t, []RepoID{1, 2}, res.currentReleasever)
 
 	repoIDs = repositoriesByPkgs(&c, &defaultOpts, []PkgID{2}, repos)
-	res = filterErrataRepos(&c, 2, repoIDs)
+	res = filterErratumRepos(&c, 2, repoIDs)
 	// el8, el9 repo for pkg=2, erratum=2
 	assert.Equal(t, []RepoID{3, 4}, res.currentReleasever)
 }

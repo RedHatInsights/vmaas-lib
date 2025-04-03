@@ -72,15 +72,15 @@ func (c *Cache) getPackageRepos(pkgID PkgID) ([]PkgTreeRepoDetail, bool) {
 }
 
 func (c *Cache) getPackageErrata(req *PkgTreeRequest, pkgID PkgID) ([]PkgTreeErratumDetail, *time.Time, bool) {
-	errataIDs, ok := c.PkgID2ErrataIDs[pkgID]
+	erratumIDs, ok := c.PkgID2ErratumIDs[pkgID]
 	if !ok {
 		return []PkgTreeErratumDetail{}, nil, false
 	}
 
 	var modifiedFound bool
 	var firstPublished *time.Time
-	errata := make([]PkgTreeErratumDetail, 0, len(errataIDs))
-	for _, erratumID := range errataIDs {
+	errata := make([]PkgTreeErratumDetail, 0, len(erratumIDs))
+	for _, erratumID := range erratumIDs {
 		erratum, found := c.ErratumID2Name[erratumID]
 		if !found {
 			continue

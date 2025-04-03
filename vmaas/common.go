@@ -12,11 +12,11 @@ import (
 )
 
 const (
-	SecurityErrataType = "security"
-	CriticalCveImpact  = "Critical"
-	ImportantCveImpact = "Important"
-	ModerateCveImpact  = "Moderate"
-	LowCveImpact       = "Low"
+	SecurityErratumType = "security"
+	CriticalCveImpact   = "Critical"
+	ImportantCveImpact  = "Important"
+	ModerateCveImpact   = "Moderate"
+	LowCveImpact        = "Low"
 )
 
 var (
@@ -220,7 +220,7 @@ func pkgUpdates(c *Cache, pkgID PkgID, archID ArchID, securityOnly bool, modules
 	}
 
 	// Filter out packages without errata
-	errataIDs, ok := c.PkgID2ErrataIDs[pkgID]
+	erratumIDs, ok := c.PkgID2ErratumIDs[pkgID]
 	if !ok {
 		return
 	}
@@ -235,13 +235,13 @@ func pkgUpdates(c *Cache, pkgID PkgID, archID ArchID, securityOnly bool, modules
 	}
 
 	nevra := buildNevra(c, pkgID)
-	for _, eid := range errataIDs {
-		pkgErrataUpdates(c, pkgID, eid, modules, repoIDs,
+	for _, eid := range erratumIDs {
+		pkgErratumUpdates(c, pkgID, eid, modules, repoIDs,
 			nevra, securityOnly, thirdparty, currentPkgFromModule, updateDetail)
 	}
 }
 
-func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErratumID, modules map[int]bool,
+func pkgErratumUpdates(c *Cache, pkgID PkgID, erratumID ErratumID, modules map[int]bool,
 	repoIDs repoIDSlices, nevra utils.Nevra, securityOnly, thirdparty bool, currentPkgFromModule bool,
 	updateDetail *UpdateDetail,
 ) {
@@ -258,22 +258,22 @@ func pkgErrataUpdates(c *Cache, pkgID PkgID, erratumID ErratumID, modules map[in
 		return
 	}
 
-	pkgErrata := PkgErratum{pkgID, erratumID}
-	errataModules := c.PkgErratum2Module[pkgErrata]
-	// return nil if errataModules and modules intersection is empty
+	pkgErratum := PkgErratum{pkgID, erratumID}
+	erratumModules := c.PkgErratum2Module[pkgErratum]
+	// return nil if erratumModules and modules intersection is empty
 	intersects := false
-	for _, em := range errataModules {
+	for _, em := range erratumModules {
 		if _, ok := modules[em]; ok {
 			// at least 1 item in intersection
 			intersects = true
 			break
 		}
 	}
-	if (len(errataModules) > 0 || currentPkgFromModule) && !intersects {
+	if (len(erratumModules) > 0 || currentPkgFromModule) && !intersects {
 		return
 	}
 
-	repos := filterErrataRepos(c, erratumID, repoIDs)
+	repos := filterErratumRepos(c, erratumID, repoIDs)
 	for _, r := range repos.currentReleasever {
 		buildUpdateDetail(c, r, pkgID, nevra, erratumName, false, updateDetail)
 	}
@@ -312,11 +312,11 @@ func buildUpdateDetail(c *Cache, repoID RepoID, pkgID PkgID, nevra utils.Nevra,
 }
 
 // Decide whether the errata should be filtered base on 'security only' rule
-func filterNonSecurity(errataDetail ErratumDetail, securityOnly bool) bool {
+func filterNonSecurity(erratumDetail ErratumDetail, securityOnly bool) bool {
 	if !securityOnly {
 		return false
 	}
-	isSecurity := errataDetail.Type == SecurityErrataType || len(errataDetail.CVEs) > 0
+	isSecurity := erratumDetail.Type == SecurityErratumType || len(erratumDetail.CVEs) > 0
 	return !isSecurity
 }
 
@@ -369,7 +369,7 @@ func filterPkgRepos(c *Cache, pkgID PkgID, repoIDs repoIDMaps, repos chan repoID
 	}
 }
 
-func filterErrataRepos(c *Cache, erratumID ErratumID, pkgRepos repoIDSlices) repoIDSlices {
+func filterErratumRepos(c *Cache, erratumID ErratumID, pkgRepos repoIDSlices) repoIDSlices {
 	erratumRepos := c.ErratumID2RepoIDs[erratumID]
 	result := repoIDSlices{make([]RepoID, 0), make([]RepoID, 0)}
 	for _, rid := range pkgRepos.currentReleasever {
@@ -462,7 +462,7 @@ func nevraPkgID(c *Cache, n *NevraIDs) PkgID {
 }
 
 func isPkgFromEnabledModule(c *Cache, pkgID PkgID, modules map[int]bool, repoIDs repoIDMaps) bool {
-	errata := c.PkgID2ErrataIDs[pkgID]
+	errata := c.PkgID2ErratumIDs[pkgID]
 	for _, eid := range errata {
 		erratumRepos := c.ErratumID2RepoIDs[eid]
 		validRepo := false
@@ -483,8 +483,8 @@ func isPkgFromEnabledModule(c *Cache, pkgID PkgID, modules map[int]bool, repoIDs
 		if !validRepo {
 			continue
 		}
-		pkgErrata := PkgErratum{pkgID, eid}
-		errataModules := c.PkgErratum2Module[pkgErrata]
+		pkgErratum := PkgErratum{pkgID, eid}
+		errataModules := c.PkgErratum2Module[pkgErratum]
 		for _, em := range errataModules {
 			if modules[em] {
 				return true
