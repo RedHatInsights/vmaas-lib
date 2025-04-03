@@ -342,9 +342,9 @@ type CveDetail struct {
 	Cvss2Metrics  string     `json:"cvss2_metrics"`
 	Source        string     `json:"-"`
 
-	CWEs      []string    `json:"cwe_list"`
-	PkgIDs    []int       `json:"-"`
-	ErrataIDs []ErratumID `json:"-"`
+	CWEs       []string    `json:"cwe_list"`
+	PkgIDs     []int       `json:"-"`
+	ErratumIDs []ErratumID `json:"-"`
 
 	Errata         []string `json:"errata_list"`
 	Packages       []string `json:"package_list"`

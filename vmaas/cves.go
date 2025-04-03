@@ -30,7 +30,7 @@ func filterInputCves(c *Cache, cves []string, req *CvesRequest) []string {
 		if req.RHOnly && cveDetail.Source != "Red Hat" {
 			continue
 		}
-		if req.AreErrataAssociated && len(cveDetail.ErrataIDs) == 0 {
+		if req.AreErrataAssociated && len(cveDetail.ErratumIDs) == 0 {
 			// FIXME: also check CSAF
 			continue
 		}
@@ -57,7 +57,7 @@ func (c *Cache) getCveDetails(cves []string) CveDetails {
 	for _, cve := range cves {
 		cveDetail := c.CveDetail[cve]
 		cveDetail.Name = cve
-		cveDetail.Errata = c.errataIDs2Names(cveDetail.ErrataIDs)
+		cveDetail.Errata = c.erratumIDs2Names(cveDetail.ErratumIDs)
 		binPackages, sourcePackages := c.packageIDs2Nevras(cveDetail.PkgIDs)
 		cveDetail.Packages = binPackages
 		cveDetail.SourcePackages = sourcePackages

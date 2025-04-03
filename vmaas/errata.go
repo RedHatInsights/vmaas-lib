@@ -8,13 +8,13 @@ import (
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
 )
 
-type ErrataDetails map[string]ErratumDetail
+type ErratumDetails map[string]ErratumDetail
 
 type Errata struct {
-	Errata     ErrataDetails `json:"errata_list"`
-	Type       TypeT         `json:"type,omitempty"`
-	Severity   SeverityT     `json:"severity,omitempty"`
-	LastChange time.Time     `json:"last_change"`
+	Errata     ErratumDetails `json:"errata_list"`
+	Type       TypeT          `json:"type,omitempty"`
+	Severity   SeverityT      `json:"severity,omitempty"`
+	LastChange time.Time      `json:"last_change"`
 	utils.Pagination
 }
 
@@ -72,8 +72,8 @@ func (c *Cache) erratumID2Releasevers(erratumID ErratumID) []string {
 	return releaseVers
 }
 
-func (c *Cache) getErrataDetails(errata []string) ErrataDetails {
-	errataDetails := make(ErrataDetails, len(errata))
+func (c *Cache) getErratumDetails(errata []string) ErratumDetails {
+	erratumDetails := make(ErratumDetails, len(errata))
 	for _, erratum := range errata {
 		erratumDetail := c.ErratumDetails[erratum]
 		binPackages, sourcePackages := c.packageIDs2Nevras(erratumDetail.PkgIDs)
@@ -92,9 +92,9 @@ func (c *Cache) getErrataDetails(errata []string) ErrataDetails {
 		if erratumDetail.Modules == nil {
 			erratumDetail.Modules = []Module{}
 		}
-		errataDetails[erratum] = erratumDetail
+		erratumDetails[erratum] = erratumDetail
 	}
-	return errataDetails
+	return erratumDetails
 }
 
 func (req *ErrataRequest) errata(c *Cache) (*Errata, error) { // TODO: implement opts
@@ -113,7 +113,7 @@ func (req *ErrataRequest) errata(c *Cache) (*Errata, error) { // TODO: implement
 	errata, pagination := utils.Paginate(errata, req.PaginationRequest)
 
 	res := Errata{
-		Errata:     c.getErrataDetails(errata),
+		Errata:     c.getErratumDetails(errata),
 		Type:       req.Type,
 		Severity:   req.Severity,
 		LastChange: c.DBChange.LastChange,

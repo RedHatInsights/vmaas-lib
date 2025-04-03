@@ -200,7 +200,7 @@ func updateManualCvesFromProducts(c *Cache, pkg Package, product CSAFProduct, se
 			if !(inCves || inUnpatchedCves) {
 				// show only CVE hit which is not in Cves and UnpatchedCves
 				cpe := c.CpeID2Label[product.CpeID]
-				erratum := c.CSAFCVEProduct2Errata[CSAFCVEProduct{
+				erratum := c.CSAFCVEProduct2Erratum[CSAFCVEProduct{
 					CVEID:         cve.ID,
 					CSAFProductID: c.CSAFProduct2ID[product],
 				}]

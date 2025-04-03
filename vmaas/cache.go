@@ -46,7 +46,7 @@ type Cache struct {
 	PkgID2RepoIDs     map[PkgID][]RepoID
 
 	ErratumID2Name    map[ErratumID]string
-	PkgID2ErrataIDs   map[PkgID][]ErratumID
+	PkgID2ErratumIDs  map[PkgID][]ErratumID
 	ErratumID2RepoIDs map[ErratumID]map[RepoID]bool
 
 	CveDetail map[string]CveDetail
@@ -65,10 +65,10 @@ type Cache struct {
 	CpeID2Label         map[CpeID]CpeLabel
 
 	// CSAF
-	CSAFProductStatus     map[int]string
-	CSAFCVEs              map[CpeIDNameID]map[CSAFProduct]CSAFCVEs
-	CSAFCVEProduct2Errata map[CSAFCVEProduct]string
-	CSAFProduct2ID        map[CSAFProduct]CSAFProductID
+	CSAFProductStatus      map[int]string
+	CSAFCVEs               map[CpeIDNameID]map[CSAFProduct]CSAFCVEs
+	CSAFCVEProduct2Erratum map[CSAFCVEProduct]string
+	CSAFProduct2ID         map[CSAFProduct]CSAFProductID
 
 	OSReleaseDetails map[int]OSReleaseDetail
 }
@@ -111,7 +111,7 @@ func ShouldReload(c *Cache, latestDumpEndpoint string) bool {
 	return false
 }
 
-func (c *Cache) errataIDs2Names(eids []ErratumID) []string {
+func (c *Cache) erratumIDs2Names(eids []ErratumID) []string {
 	return utils.ApplyMap(eids, c.ErratumID2Name)
 }
 
@@ -150,16 +150,16 @@ func (c *Cache) buildRepoID2ErratumIDs(modifiedSince *time.Time) map[RepoID][]Er
 	if modifiedSince == nil {
 		return nil
 	}
-	repoID2ErrataIDsMap := make(map[RepoID][]ErratumID, len(c.RepoIDs))
+	repoID2ErratumIDsMap := make(map[RepoID][]ErratumID, len(c.RepoIDs))
 	for _, erratumDetail := range c.ErratumDetails {
 		if erratumDetail.Updated != nil && !erratumDetail.Updated.After(*modifiedSince) {
 			continue
 		}
 		for repoID := range c.ErratumID2RepoIDs[erratumDetail.ID] {
-			repoID2ErrataIDsMap[repoID] = append(repoID2ErrataIDsMap[repoID], erratumDetail.ID)
+			repoID2ErratumIDsMap[repoID] = append(repoID2ErratumIDsMap[repoID], erratumDetail.ID)
 		}
 	}
-	return repoID2ErrataIDsMap
+	return repoID2ErratumIDsMap
 }
 
 func (c *Cache) cpeIDs2Labels(cpeIDs []CpeID) []CpeLabel {
