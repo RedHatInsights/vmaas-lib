@@ -36,7 +36,7 @@ type PkgTreeItems map[string][]PkgTreeItem
 type PkgTree struct {
 	PackageNames PkgTreeItems `json:"package_name_list"`
 	LastChange   time.Time    `json:"last_change"`
-	utils.PaginationDetails
+	utils.Pagination
 }
 
 func (c *Cache) getPackageRepos(pkgID PkgID) ([]PkgTreeRepoDetail, bool) {
@@ -72,15 +72,15 @@ func (c *Cache) getPackageRepos(pkgID PkgID) ([]PkgTreeRepoDetail, bool) {
 }
 
 func (c *Cache) getPackageErrata(req *PkgTreeRequest, pkgID PkgID) ([]PkgTreeErratumDetail, *time.Time, bool) {
-	errataIDs, ok := c.PkgID2ErrataIDs[pkgID]
+	erratumIDs, ok := c.PkgID2ErratumIDs[pkgID]
 	if !ok {
 		return []PkgTreeErratumDetail{}, nil, false
 	}
 
 	var modifiedFound bool
 	var firstPublished *time.Time
-	errata := make([]PkgTreeErratumDetail, 0, len(errataIDs))
-	for _, erratumID := range errataIDs {
+	errata := make([]PkgTreeErratumDetail, 0, len(erratumIDs))
+	for _, erratumID := range erratumIDs {
 		erratum, found := c.ErratumID2Name[erratumID]
 		if !found {
 			continue
@@ -199,11 +199,12 @@ func (req *PkgTreeRequest) pkgtree(c *Cache) (*PkgTree, error) { // TODO: implem
 	}
 
 	slices.Sort(names)
-	names, paginationDetails := utils.Paginate(names, req.PageNumber, req.PageSize)
+	names, pagination := utils.Paginate(names, req.PaginationRequest)
+
 	res := PkgTree{
-		PackageNames:      c.getPkgTreeItems(req, names),
-		LastChange:        c.DBChange.LastChange,
-		PaginationDetails: paginationDetails,
+		PackageNames: c.getPkgTreeItems(req, names),
+		LastChange:   c.DBChange.LastChange,
+		Pagination:   pagination,
 	}
 	return &res, nil
 }

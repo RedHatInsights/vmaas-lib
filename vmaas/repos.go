@@ -14,7 +14,7 @@ type Repos struct {
 	Repos            RepoDetails `json:"repository_list"`
 	LatestRepoChange *time.Time  `json:"latest_repo_change,omitempty"`
 	LastChange       time.Time   `json:"last_change"`
-	utils.PaginationDetails
+	utils.Pagination
 }
 
 func filterInputRepos(c *Cache, repos []string, req *ReposRequest) []string {
@@ -108,25 +108,29 @@ func (c *Cache) getRepoDetails(req *ReposRequest, repos []string, repoID2Erratum
 }
 
 func (req *ReposRequest) repos(c *Cache) (*Repos, error) { // TODO: implement opts
-	if len(req.Repos) == 0 {
+	repos := req.Repos
+	if len(repos) == 0 {
 		return &Repos{}, errors.Wrap(ErrProcessingInput, "'repository_list' is a required property")
 	}
-	repos, err := utils.TryExpandRegexPattern(req.Repos, c.RepoLabel2IDs)
+
+	repos, err := utils.TryExpandRegexPattern(repos, c.RepoLabel2IDs)
 	if err != nil {
 		return &Repos{}, errors.Wrap(ErrProcessingInput, "invalid regex pattern")
 	}
+
 	repos = filterInputRepos(c, repos, req)
 	slices.Sort(repos)
-	repos, paginationDetails := utils.Paginate(repos, req.PageNumber, req.PageSize)
+	repos, pagination := utils.Paginate(repos, req.PaginationRequest)
 
 	repoID2ErratumIDs := c.buildRepoID2ErratumIDs(req.ModifiedSince)
 	repoDetails, latestRepoChange, actualPageSize := c.getRepoDetails(req, repos, repoID2ErratumIDs)
-	paginationDetails.PageSize = actualPageSize
+	pagination.PageSize = actualPageSize
+
 	res := Repos{
-		Repos:             repoDetails,
-		LatestRepoChange:  latestRepoChange,
-		LastChange:        c.DBChange.LastChange,
-		PaginationDetails: paginationDetails,
+		Repos:            repoDetails,
+		LatestRepoChange: latestRepoChange,
+		LastChange:       c.DBChange.LastChange,
+		Pagination:       pagination,
 	}
 	return &res, nil
 }

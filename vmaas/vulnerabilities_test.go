@@ -216,7 +216,7 @@ func TestManualCvesNewerRelease(t *testing.T) {
 			productCveFixed:      5,
 			productCveFixedNewer: 6,
 		},
-		CSAFCVEProduct2Errata: map[CSAFCVEProduct]string{
+		CSAFCVEProduct2Erratum: map[CSAFCVEProduct]string{
 			{1, 1}: "RHSA-1",
 			{3, 2}: "RHSA-2",
 			{1, 3}: "RHSA-3",

@@ -25,8 +25,7 @@ func extractUpdatesErrata(updates *Updates) []string {
 }
 
 func (r *Request) patches(c *Cache, opts *options) (*Patches, error) {
-	packages := r.Packages
-	if len(packages) == 0 {
+	if r.Packages == nil {
 		return &Patches{}, errors.Wrap(ErrProcessingInput, "'package_list' is a required property")
 	}
 

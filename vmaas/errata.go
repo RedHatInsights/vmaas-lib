@@ -8,27 +8,14 @@ import (
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
 )
 
-type ErrataDetails map[string]ErratumDetail
+type ErratumDetails map[string]ErratumDetail
 
 type Errata struct {
-	ErrataList ErrataDetails `json:"errata_list"`
-	Type       TypeT         `json:"type,omitempty"`
-	Severity   SeverityT     `json:"severity,omitempty"`
-	LastChange time.Time     `json:"last_change"`
-	utils.PaginationDetails
-}
-
-func (req *ErrataRequest) getSortedErrata(c *Cache) ([]string, error) {
-	if len(req.Errata) == 0 {
-		return nil, errors.Wrap(ErrProcessingInput, "'errata_list' is a required property")
-	}
-
-	errata, err := utils.TryExpandRegexPattern(req.Errata, c.ErratumDetails)
-	if err != nil {
-		return nil, errors.Wrap(ErrProcessingInput, "invalid regex pattern")
-	}
-	slices.Sort(errata)
-	return errata, nil
+	Errata     ErratumDetails `json:"errata_list"`
+	Type       TypeT          `json:"type,omitempty"`
+	Severity   SeverityT      `json:"severity,omitempty"`
+	LastChange time.Time      `json:"last_change"`
+	utils.Pagination
 }
 
 func filterInputErrata(c *Cache, errata []string, req *ErrataRequest) []string {
@@ -85,8 +72,8 @@ func (c *Cache) erratumID2Releasevers(erratumID ErratumID) []string {
 	return releaseVers
 }
 
-func (c *Cache) loadErrataDetails(errata []string) ErrataDetails {
-	errataDetails := make(ErrataDetails, len(errata))
+func (c *Cache) getErratumDetails(errata []string) ErratumDetails {
+	erratumDetails := make(ErratumDetails, len(errata))
 	for _, erratum := range errata {
 		erratumDetail := c.ErratumDetails[erratum]
 		binPackages, sourcePackages := c.packageIDs2Nevras(erratumDetail.PkgIDs)
@@ -105,26 +92,32 @@ func (c *Cache) loadErrataDetails(errata []string) ErrataDetails {
 		if erratumDetail.Modules == nil {
 			erratumDetail.Modules = []Module{}
 		}
-		errataDetails[erratum] = erratumDetail
+		erratumDetails[erratum] = erratumDetail
 	}
-	return errataDetails
+	return erratumDetails
 }
 
 func (req *ErrataRequest) errata(c *Cache) (*Errata, error) { // TODO: implement opts
-	errata, err := req.getSortedErrata(c)
+	errata := req.Errata
+	if len(errata) == 0 {
+		return &Errata{}, errors.Wrap(ErrProcessingInput, "'errata_list' is a required property")
+	}
+
+	errata, err := utils.TryExpandRegexPattern(errata, c.ErratumDetails)
 	if err != nil {
-		return &Errata{}, err
+		return &Errata{}, errors.Wrap(ErrProcessingInput, "invalid regex pattern")
 	}
 
 	errata = filterInputErrata(c, errata, req)
-	errata, paginationDetails := utils.Paginate(errata, req.PageNumber, req.PageSize)
+	slices.Sort(errata)
+	errata, pagination := utils.Paginate(errata, req.PaginationRequest)
 
 	res := Errata{
-		ErrataList:        c.loadErrataDetails(errata),
-		Type:              req.Type,
-		Severity:          req.Severity,
-		LastChange:        c.DBChange.LastChange,
-		PaginationDetails: paginationDetails,
+		Errata:     c.getErratumDetails(errata),
+		Type:       req.Type,
+		Severity:   req.Severity,
+		LastChange: c.DBChange.LastChange,
+		Pagination: pagination,
 	}
 	return &res, nil
 }

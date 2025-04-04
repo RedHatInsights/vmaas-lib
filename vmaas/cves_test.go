@@ -7,21 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetSortedCves(t *testing.T) {
-	req := mockCvesRequest()
-	reqWithoutReq := &CvesRequest{}
-	c := mockCache()
-
-	cves, err := req.getSortedCves(c)
-	assert.NoError(t, err)
-	assert.Equal(t, "CVE-2024-1111111", cves[0])
-	assert.Equal(t, "CVE-2024-1234", cves[1])
-	assert.Equal(t, "CVE-2024-21345", cves[2])
-
-	_, err = reqWithoutReq.getSortedCves(c)
-	assert.Error(t, err)
-}
-
 func TestFilterInputCves(t *testing.T) {
 	cves := []string{"CVE-2024-1234", "CVE-2024-21345", ""}
 	c := mockCache()
@@ -54,33 +39,17 @@ func TestFilterInputCves(t *testing.T) {
 	assert.Equal(t, 0, len(filteredIDs))
 }
 
-func TestLoadCveDetails(t *testing.T) {
+func TestGetCveDetails(t *testing.T) {
 	c := mockCache()
 	cve := "CVE-2024-1111111"
-	cvePropertiesMap := c.loadCveDetails([]string{cve})
+	cvePropertiesMap := c.getCveDetails([]string{cve})
 	assert.Equal(t, 1, len(cvePropertiesMap))
 	assert.Equal(t, cve, cvePropertiesMap[cve].Name)
 }
 
 func TestCves(t *testing.T) {
 	req := &CvesRequest{}
-	c := mockCache()
-
 	// empty cve list
-	_, err := req.cves(c)
+	_, err := req.cves(nil)
 	assert.Error(t, err)
-}
-
-func mockCvesRequest() *CvesRequest {
-	modifiedSince, _ := time.Parse(time.RFC3339, "2024-10-02T16:08:00+02:00")
-	publishedSince, _ := time.Parse(time.RFC3339, "2024-10-02T16:08:00+02:00")
-	return &CvesRequest{
-		Cves:                []string{"CVE-2024-21345", "CVE-2024-1234", "CVE-2024-1111111"},
-		ModifiedSince:       &modifiedSince,
-		PublishedSince:      &publishedSince,
-		RHOnly:              false,
-		AreErrataAssociated: false,
-		PageNumber:          1,
-		PageSize:            5000,
-	}
 }

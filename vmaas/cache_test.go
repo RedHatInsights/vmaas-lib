@@ -269,7 +269,7 @@ func mockCache() *Cache {
 				PublishedDate: &publishedDate,
 			},
 			"CVE-2024-1234": {
-				ErrataIDs: []ErratumID{1, 2},
+				ErratumIDs: []ErratumID{1, 2},
 			},
 			"CVE-2024-1111111": {},
 		},
@@ -304,7 +304,7 @@ func mockCache() *Cache {
 			42: {1, 2, 3},
 		},
 
-		PkgID2ErrataIDs: map[PkgID][]ErratumID{
+		PkgID2ErratumIDs: map[PkgID][]ErratumID{
 			4: {1, 2},
 		},
 	}

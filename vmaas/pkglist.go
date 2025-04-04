@@ -11,10 +11,10 @@ type PkgList struct {
 	PkgList    []PkgListItem `json:"package_list"`
 	Total      int           `json:"total"`
 	LastChange time.Time     `json:"last_change"`
-	utils.PaginationDetails
+	utils.Pagination
 }
 
-func (req *PkgListRequest) getFilteredPkgList(c *Cache) []PkgID {
+func (c *Cache) getFilteredPkgList(req *PkgListRequest) []PkgID {
 	if req.ModifiedSince == nil {
 		return c.PackageDetailsModifiedIndex
 	}
@@ -32,7 +32,7 @@ func (req *PkgListRequest) getFilteredPkgList(c *Cache) []PkgID {
 	return c.PackageDetailsModifiedIndex[i:]
 }
 
-func (c *Cache) loadPkgListItems(pkgListItemIDs []PkgID, returnModified bool) []PkgListItem {
+func (c *Cache) getPkgListItems(pkgListItemIDs []PkgID, returnModified bool) []PkgListItem {
 	pkgList := make([]PkgListItem, 0, len(pkgListItemIDs))
 	for _, pkgID := range pkgListItemIDs {
 		pkgDetail := c.PackageDetails[pkgID]
@@ -49,14 +49,15 @@ func (c *Cache) loadPkgListItems(pkgListItemIDs []PkgID, returnModified bool) []
 	return pkgList
 }
 
-func (req *PkgListRequest) pkglist(c *Cache) (*PkgList, error) { // TODO: implement opts
-	pkgIDs := req.getFilteredPkgList(c)
-	pkgListItemIDs, paginationDetails := utils.Paginate(pkgIDs, req.PageNumber, req.PageSize)
+func (req *PkgListRequest) pkglist(c *Cache) *PkgList { // TODO: implement opts
+	pkgIDs := c.getFilteredPkgList(req)
+	pkgListItemIDs, pagination := utils.Paginate(pkgIDs, req.PaginationRequest)
+
 	res := PkgList{
-		PkgList:           c.loadPkgListItems(pkgListItemIDs, req.ReturnModified),
-		Total:             len(pkgIDs),
-		LastChange:        c.DBChange.LastChange,
-		PaginationDetails: paginationDetails,
+		PkgList:    c.getPkgListItems(pkgListItemIDs, req.ReturnModified),
+		Total:      len(pkgIDs),
+		LastChange: c.DBChange.LastChange,
+		Pagination: pagination,
 	}
-	return &res, nil
+	return &res
 }

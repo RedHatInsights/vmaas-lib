@@ -59,9 +59,7 @@ func TestGetRepoDetails(t *testing.T) {
 
 func TestRepos(t *testing.T) {
 	req := &ReposRequest{}
-	c := mockCache()
-
 	// empty repository list
-	_, err := req.repos(c)
+	_, err := req.repos(nil)
 	assert.Error(t, err)
 }

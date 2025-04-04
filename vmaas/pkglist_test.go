@@ -18,14 +18,13 @@ func TestGetFilteredPkgList(t *testing.T) {
 		},
 		PackageDetailsModifiedIndex: []PkgID{2, 3, 1},
 	}
-	req := PkgListRequest{ModifiedSince: &t1}
-	pkgList := req.getFilteredPkgList(&c)
+	pkgList := c.getFilteredPkgList(&PkgListRequest{ModifiedSince: &t1})
 	assert.Equal(t, 2, len(pkgList))
 }
 
-func TestLoadPkgListItems(t *testing.T) {
+func TestGetPkgListItems(t *testing.T) {
 	c := mockCache()
-	pkgList := c.loadPkgListItems([]PkgID{1, 2, 3}, true)
+	pkgList := c.getPkgListItems([]PkgID{1, 2, 3}, true)
 	assert.Equal(t, 3, len(pkgList))
 	assert.NotNil(t, pkgList[0].Modified)
 }

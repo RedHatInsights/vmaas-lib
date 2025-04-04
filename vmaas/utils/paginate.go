@@ -1,46 +1,39 @@
 package utils
 
-import (
-	"math"
-)
-
 const (
 	DefaultPageNumber = 1
 	DefaultPageSize   = 5000
 )
 
-type PaginationDetails struct {
+type PaginationRequest struct {
+	PageNumber int `json:"page"`
+	PageSize   int `json:"page_size"`
+}
+
+type Pagination struct {
 	PageNumber int `json:"page"`
 	PageSize   int `json:"page_size"`
 	TotalPages int `json:"pages"`
 }
 
-// Paginate returns pageSize-long sub-slice of items corresponding to the pageNumber.
-// For the last page, there may be fewer than pageSize items.
-func Paginate[T any](slice []T, pageNumber, pageSize int) ([]T, PaginationDetails) {
-	if pageNumber <= 0 {
-		pageNumber = DefaultPageNumber
-	}
-	if pageSize <= 0 {
-		pageSize = DefaultPageSize
+// Paginate returns pagination.PageSize-long sub-slice of items corresponding to the pagination.PageNumber.
+// For the last page, there may be fewer than pagination.PageSize items.
+func Paginate[T any](slice []T, req PaginationRequest) ([]T, Pagination) {
+	number := max(DefaultPageNumber, req.PageNumber)
+	size := req.PageSize
+	if size <= 0 {
+		size = DefaultPageSize
 	}
 
-	start := (pageNumber - 1) * pageSize
-	if start > len(slice) {
-		start = len(slice)
-	}
-	end := pageNumber * pageSize
-	if end > len(slice) {
-		end = len(slice)
-	}
+	length := len(slice)
+	start := min((number-1)*size, length)
+	end := min(number*size, length)
 	subslice := slice[start:end]
 
-	totalPages := int(math.Ceil(float64(len(slice)) / float64(pageSize)))
-
-	paginationDetails := PaginationDetails{
-		PageNumber: pageNumber,
+	pagination := Pagination{
+		PageNumber: number,
 		PageSize:   len(subslice),
-		TotalPages: totalPages,
+		TotalPages: (length + size - 1) / size,
 	}
-	return subslice, paginationDetails
+	return subslice, pagination
 }

@@ -25,7 +25,7 @@ var (
 var loadFuncs = []func(c *Cache){
 	loadPkgNames, loadUpdates, loadUpdatesIndex, loadEvrMaps, loadArchs, loadArchCompat, loadRepoDetails,
 	loadLabel2ContentSetID, loadContentSetID2PkgNameIDs, loadSrcPkgNameID2ContentSetIDs, loadPkgRepos, loadErrata,
-	loadPkgErratum, loadErrataRepoIDs, loadCves, loadPkgErratumModule, loadModule2IDs, loadModuleRequires,
+	loadPkgErratum, loadErratumRepoIDs, loadCves, loadPkgErratumModule, loadModule2IDs, loadModuleRequires,
 	loadDBChanges, loadString, loadOSReleaseDetails,
 	// CSAF
 	loadRepoCpes, loadContentSet2Cpes, loadCpeID2Label, loadCSAFCVE,
@@ -112,14 +112,14 @@ func loadCache(path string, opts *options) (*Cache, error) {
 	return &c, nil
 }
 
-func loadErrataRepoIDs(c *Cache) {
+func loadErratumRepoIDs(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "ErratumID2RepoIDs")
 
-	type ErrataRepo struct {
+	type ErratumRepo struct {
 		ErratumID ErratumID
 		RepoID    RepoID
 	}
-	r := ErrataRepo{}
+	r := ErratumRepo{}
 	cnt := getCount("errata_repo", "distinct errata_id")
 	m := make(map[ErratumID]map[RepoID]bool, cnt)
 	rows := getAllRows("errata_repo", "errata_id,repo_id")
@@ -128,12 +128,12 @@ func loadErrataRepoIDs(c *Cache) {
 		if err := rows.Scan(&r.ErratumID, &r.RepoID); err != nil {
 			panic(err)
 		}
-		errataMap := m[r.ErratumID]
-		if errataMap == nil {
-			errataMap = map[RepoID]bool{}
+		erratumMap := m[r.ErratumID]
+		if erratumMap == nil {
+			erratumMap = map[RepoID]bool{}
 		}
-		errataMap[r.RepoID] = true
-		m[r.ErratumID] = errataMap
+		erratumMap[r.RepoID] = true
+		m[r.ErratumID] = erratumMap
 	}
 	c.ErratumID2RepoIDs = m
 }
@@ -141,13 +141,13 @@ func loadErrataRepoIDs(c *Cache) {
 func loadPkgErratum(c *Cache) {
 	cnt := getCount("pkg_errata", "distinct pkg_id")
 	pkgToErrata := make(map[PkgID][]ErratumID, cnt)
-	for k, v := range loadK2Vs[int, int]("pkg_errata", "pkg_id,errata_id", "PkgID2ErrataIDs", false) {
+	for k, v := range loadK2Vs[int, int]("pkg_errata", "pkg_id,errata_id", "PkgID2ErratumIDs", false) {
 		id := PkgID(k)
 		for _, i := range v {
 			pkgToErrata[id] = append(pkgToErrata[id], ErratumID(i))
 		}
 	}
-	c.PkgID2ErrataIDs = pkgToErrata
+	c.PkgID2ErratumIDs = pkgToErrata
 }
 
 func loadPkgRepos(c *Cache) {
@@ -499,15 +499,15 @@ func loadErrata(c *Cache) {
 	erratumID2Name := map[ErratumID]string{}
 	var erratumID ErratumID
 	var issuedStr, updatedStr string
-	var errataName string
+	var erratumName string
 	for rows.Next() {
 		var det ErratumDetail
-		err := rows.Scan(&erratumID, &errataName, &det.Synopsis, &det.Summary, &det.Type, &det.Severity,
+		err := rows.Scan(&erratumID, &erratumName, &det.Synopsis, &det.Summary, &det.Type, &det.Severity,
 			&det.Description, &det.Solution, &issuedStr, &updatedStr, &det.URL, &det.ThirdParty, &det.RequiresReboot)
 		if err != nil {
 			panic(err)
 		}
-		erratumID2Name[erratumID] = errataName
+		erratumID2Name[erratumID] = erratumName
 
 		if issued, err := time.Parse(time.RFC3339, issuedStr); err == nil {
 			det.Issued = &issued
@@ -536,7 +536,7 @@ func loadErrata(c *Cache) {
 		if modules, ok := erID2modules[int(erratumID)]; ok {
 			det.Modules = modules
 		}
-		erratumDetails[errataName] = det
+		erratumDetails[erratumName] = det
 	}
 	c.ErratumDetails = erratumDetails
 	c.ErratumID2Name = erratumID2Name
@@ -585,7 +585,7 @@ func loadCves(c *Cache) {
 
 		eids, ok := cve2eid[det.Name]
 		if ok {
-			det.ErrataIDs = eids
+			det.ErratumIDs = eids
 		}
 		cveDetails[det.Name] = det
 		cveNames[cveID] = det.Name
@@ -928,7 +928,7 @@ func loadCSAFCVE(c *Cache) {
 	}
 
 	c.CSAFCVEs = cveCache
-	c.CSAFCVEProduct2Errata = errataCache
+	c.CSAFCVEProduct2Erratum = errataCache
 	c.CSAFProduct2ID = product2id
 }
 
