@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.26.0 (2025-04-04)
+
+### Feature
+
+* Rewrite vmaas dbchange endpoint in go ([`4f110a4`](https://github.com/RedHatInsights/vmaas-lib/commit/4f110a47a79f40f38a85892166c8dab72c92457e))
+
 ## v1.25.0 (2025-03-28)
 
 ### Feature
