@@ -49,7 +49,7 @@ func (c *Cache) getPkgListItems(pkgListItemIDs []PkgID, returnModified bool) []P
 	return pkgList
 }
 
-func (req *PkgListRequest) pkglist(c *Cache) (*PkgList, error) { // TODO: implement opts
+func (req *PkgListRequest) pkglist(c *Cache) *PkgList { // TODO: implement opts
 	pkgIDs := c.getFilteredPkgList(req)
 	pkgListItemIDs, pagination := utils.Paginate(pkgIDs, req.PaginationRequest)
 
@@ -59,5 +59,5 @@ func (req *PkgListRequest) pkglist(c *Cache) (*PkgList, error) { // TODO: implem
 		LastChange: c.DBChange.LastChange,
 		Pagination: pagination,
 	}
-	return &res, nil
+	return &res
 }

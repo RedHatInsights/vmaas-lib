@@ -70,7 +70,7 @@ func (api *API) Packages(request *PackagesRequest) (*Packages, error) {
 	return request.packages(api.Cache)
 }
 
-func (api *API) PkgList(request *PkgListRequest) (*PkgList, error) {
+func (api *API) PkgList(request *PkgListRequest) *PkgList {
 	return request.pkglist(api.Cache)
 }
 
