@@ -2,6 +2,14 @@
 
 <!--next-version-placeholder-->
 
+## v1.26.1 (2025-04-07)
+
+### Fix
+
+* Fix patches request required param check ([`efec9f7`](https://github.com/RedHatInsights/vmaas-lib/commit/efec9f7e5b117d0f7a3fb0a29cd38d6a4e9904eb))
+* Remove obsolete return error param from pkglist ([`bca058d`](https://github.com/RedHatInsights/vmaas-lib/commit/bca058dbbc1cead7bc61de919eaef729b45fa503))
+* Add check for duplicate input cves ([`743ae19`](https://github.com/RedHatInsights/vmaas-lib/commit/743ae194b2891ee7b5f9cbd066db553dd50e6a25))
+
 ## v1.26.0 (2025-04-04)
 
 ### Feature
