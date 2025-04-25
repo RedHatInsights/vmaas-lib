@@ -958,10 +958,6 @@ func loadDumpSchemaVersion(c *Cache) {
 
 func loadOSReleaseDetails(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "OSReleaseDetails")
-	if c.DumpSchemaVersion < 3 {
-		utils.LogWarn("OSReleaseDetails requires dump schema version 3, skipping.")
-		return
-	}
 
 	rows := getAllRows(
 		"operating_system",
