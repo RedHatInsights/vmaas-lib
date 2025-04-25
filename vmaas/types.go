@@ -45,8 +45,9 @@ type Request struct {
 	LatestOnly   bool `json:"latest_only"`
 	SecurityOnly bool `json:"security_only"`
 
-	Extended      bool `json:"extended"`
-	EpochRequired bool `json:"epoch_required"`
+	Extended      bool   `json:"extended"`
+	EpochRequired bool   `json:"epoch_required"`
+	Organization  string `json:"organization"`
 }
 
 type CvesRequest struct {
@@ -172,6 +173,7 @@ type ReposRequest struct {
 	ThirdParty    bool       `json:"third_party"`
 	ShowPackages  bool       `json:"show_packages"`
 	HasPackages   bool       `json:"has_packages"`
+	Organization  string     `json:"organization"`
 	utils.PaginationRequest
 }
 
@@ -300,10 +302,11 @@ type Nevra struct {
 }
 
 type RepoDetailCommon struct {
-	Label      string `json:"label"`
-	Name       string `json:"name"`
-	Basearch   string `json:"basearch"`
-	Releasever string `json:"releasever"`
+	Label        string `json:"label"`
+	Name         string `json:"name"`
+	Basearch     string `json:"basearch"`
+	Releasever   string `json:"releasever"`
+	Organization string `json:"organization"`
 }
 
 type RepoDetail struct {

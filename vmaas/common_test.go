@@ -102,6 +102,31 @@ func testReleaseverBasearch(t *testing.T, f func(*Cache, *string, RepoID) bool, 
 	assert.False(t, res)
 }
 
+func testOrg(t *testing.T, f func(*Cache, string, RepoID) bool, input string) {
+	c := Cache{
+		RepoDetails: map[RepoID]RepoDetail{
+			1: {RepoDetailCommon: RepoDetailCommon{Organization: "DEFAULT"}},
+			2: {RepoDetailCommon: RepoDetailCommon{Organization: "ABCD"}},
+		},
+	}
+
+	// empty org, return false (should not be sent to the func normally)
+	res := f(&c, "", 1)
+	assert.False(t, res)
+	res = f(&c, "", 2)
+	assert.False(t, res)
+
+	// input org, return true only on one repo
+	res = f(&c, input, 1)
+	assert.False(t, res)
+	res = f(&c, input, 2)
+	assert.True(t, res)
+
+	// repo not in cache
+	res = f(&c, input, 99)
+	assert.False(t, res)
+}
+
 func TestPassBasearch(t *testing.T) {
 	testReleaseverBasearch(t, passBasearch, "x86_64")
 }
@@ -110,29 +135,38 @@ func TestPassReleasever(t *testing.T) {
 	testReleaseverBasearch(t, passReleasever, "el8")
 }
 
+func TestPassOrg(t *testing.T) {
+	testOrg(t, passOrg, "ABCD")
+}
+
 //nolint:funlen
 func TestGetRepoIDs(t *testing.T) {
 	updates := Updates{}
+	originalRequestDefaultOrg := Request{Organization: "DEFAULT"}
+	originalRequestWithoutOrg := Request{}
+	originalRequestOtherOrg := Request{Organization: "ABCD"}
+	processedRequest := ProcessedRequest{Updates: &updates, OriginalRequest: &originalRequestDefaultOrg}
 	x8664 := "x86_64"
 	el9 := "el9"
 	other := "other"
 	c := Cache{
-		RepoIDs: []RepoID{1, 2, 3},
+		RepoIDs: []RepoID{1, 2, 3, 4},
 		RepoDetails: map[RepoID]RepoDetail{
-			1: {RepoDetailCommon: RepoDetailCommon{Releasever: x8664, Basearch: el9}},
-			2: {RepoDetailCommon: RepoDetailCommon{Releasever: x8664, Basearch: el9}},
-			3: {RepoDetailCommon: RepoDetailCommon{Releasever: x8664, Basearch: el9}},
+			1: {RepoDetailCommon: RepoDetailCommon{Releasever: x8664, Basearch: el9, Organization: "DEFAULT"}},
+			2: {RepoDetailCommon: RepoDetailCommon{Releasever: x8664, Basearch: el9, Organization: "DEFAULT"}},
+			3: {RepoDetailCommon: RepoDetailCommon{Releasever: x8664, Basearch: el9, Organization: "DEFAULT"}},
+			4: {RepoDetailCommon: RepoDetailCommon{Releasever: x8664, Basearch: el9, Organization: "ABCD"}},
 		},
 	}
 
 	// missing repolist, return all repos available in cache
-	res := getRepoIDs(&c, &updates, &defaultOpts)
+	res := getRepoIDs(&c, &processedRequest, &defaultOpts)
 	assert.Equal(t, 3, len(res.currentReleasever))
 	assert.False(t, hasDuplicities(res.currentReleasever))
 
 	// missing repolist, with releasever
 	updates.Releasever = &x8664
-	res = getRepoIDs(&c, &updates, &defaultOpts)
+	res = getRepoIDs(&c, &processedRequest, &defaultOpts)
 	assert.Equal(t, 3, len(res.currentReleasever))
 	assert.False(t, hasDuplicities(res.currentReleasever))
 	updates.Releasever = nil
@@ -140,53 +174,55 @@ func TestGetRepoIDs(t *testing.T) {
 	// empty repolist, empty response
 	repolist := []string{}
 	updates.RepoList = &repolist
-	res = getRepoIDs(&c, &updates, &defaultOpts)
+	res = getRepoIDs(&c, &processedRequest, &defaultOpts)
 	assert.Equal(t, 0, len(res.currentReleasever))
 
 	// labels to ids
 	c.RepoLabel2IDs = map[string][]RepoID{
 		"repo1": {1, 2},
 		"repo2": {2, 3},
+		"repo3": {4},
 	}
-	repolist = []string{"repo1", "repo2"}
+	repolist = []string{"repo1", "repo2", "repo3"}
 	updates.RepoList = &repolist
-	res = getRepoIDs(&c, &updates, &defaultOpts)
+	res = getRepoIDs(&c, &processedRequest, &defaultOpts)
 	assert.Equal(t, 3, len(res.currentReleasever))
 	assert.False(t, hasDuplicities(res.currentReleasever))
 
 	// releasever & basearch
 	updates.Releasever = &x8664
 	updates.Basearch = &el9
-	res = getRepoIDs(&c, &updates, &defaultOpts)
+	res = getRepoIDs(&c, &processedRequest, &defaultOpts)
 	assert.Equal(t, 3, len(res.currentReleasever))
 	assert.False(t, hasDuplicities(res.currentReleasever))
 
 	updates.Basearch = nil
-	res = getRepoIDs(&c, &updates, &defaultOpts)
+	res = getRepoIDs(&c, &processedRequest, &defaultOpts)
 	assert.Equal(t, 3, len(res.currentReleasever))
 	assert.False(t, hasDuplicities(res.currentReleasever))
 
 	updates.Basearch = &other
-	res = getRepoIDs(&c, &updates, &defaultOpts)
+	res = getRepoIDs(&c, &processedRequest, &defaultOpts)
 	assert.Equal(t, 0, len(res.currentReleasever))
 	assert.False(t, hasDuplicities(res.currentReleasever))
 
 	// repository paths
-	c.RepoIDs = append(c.RepoIDs, 4)
-	c.RepoDetails[4] = RepoDetail{
+	c.RepoIDs = append(c.RepoIDs, 5)
+	c.RepoDetails[5] = RepoDetail{
 		RepoDetailCommon: RepoDetailCommon{
-			Releasever: x8664,
-			Basearch:   el9,
+			Releasever:   x8664,
+			Basearch:     el9,
+			Organization: "DEFAULT",
 		},
 		URL: "http://example.com/content/dist/rhel/rhui/server/7/7Server/x86_64/os/repodata",
 	}
 	c.RepoPath2IDs = map[string][]RepoID{
-		"/content/dist/rhel/rhui/server/7/7Server/x86_64/os": {4},
+		"/content/dist/rhel/rhui/server/7/7Server/x86_64/os": {5},
 	}
 	updates.Releasever = nil
 	updates.Basearch = nil
 	updates.RepoPaths = []string{"/content/dist/rhel/rhui/server/7/7Server/x86_64/os/"}
-	res = getRepoIDs(&c, &updates, &defaultOpts)
+	res = getRepoIDs(&c, &processedRequest, &defaultOpts)
 	assert.Equal(t, 4, len(res.currentReleasever))
 	assert.False(t, hasDuplicities(res.currentReleasever))
 	updates.RepoPaths = []string{}
@@ -194,14 +230,29 @@ func TestGetRepoIDs(t *testing.T) {
 	// invalid label
 	invalidRepolist := []string{"invalid"}
 	updates.RepoList = &invalidRepolist
-	res = getRepoIDs(&c, &updates, &defaultOpts)
+	res = getRepoIDs(&c, &processedRequest, &defaultOpts)
 	assert.Equal(t, 0, len(res.currentReleasever))
 
 	updates.Basearch = nil
 	updates.Releasever = nil
 	updates.RepoList = &invalidRepolist
-	res = getRepoIDs(&c, &updates, &defaultOpts)
+	res = getRepoIDs(&c, &processedRequest, &defaultOpts)
 	assert.Equal(t, 0, len(res.currentReleasever))
+
+	// requests without specified org should return results from DEFAULT org
+	updates.Releasever = &x8664
+	updates.Basearch = &el9
+	updates.RepoList = &repolist
+	processedRequest = ProcessedRequest{Updates: &updates, OriginalRequest: &originalRequestWithoutOrg}
+	res = getRepoIDs(&c, &processedRequest, &defaultOpts)
+	assert.Equal(t, 3, len(res.currentReleasever))
+	assert.False(t, hasDuplicities(res.currentReleasever))
+
+	// request to ABCD org
+	processedRequest = ProcessedRequest{Updates: &updates, OriginalRequest: &originalRequestOtherOrg}
+	res = getRepoIDs(&c, &processedRequest, &defaultOpts)
+	assert.Equal(t, 1, len(res.currentReleasever))
+	assert.False(t, hasDuplicities(res.currentReleasever))
 }
 
 func TestFilterPkgList(t *testing.T) {

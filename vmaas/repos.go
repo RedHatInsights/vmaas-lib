@@ -69,6 +69,12 @@ func (c *Cache) getRepoDetailSlice(req *ReposRequest, repo string, repoID2Erratu
 	var latestChange *time.Time
 	for _, repoID := range repoIDs {
 		repoDetail := c.RepoDetails[repoID]
+
+		// Filter out repos from other orgs
+		if req.Organization != "" && req.Organization != repoDetail.Organization {
+			continue
+		}
+
 		repoDetail.Label = repo
 		repoDetail.CPEs = c.repoID2CPEs(repoID, contentSetID)
 
