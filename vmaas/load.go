@@ -386,10 +386,15 @@ func loadPkgDetails(c *Cache) {
 func loadRepoDetails(c *Cache) { //nolint: funlen
 	defer utils.TimeTrack(time.Now(), "RepoIDs, RepoDetails, RepoLabel2IDs, RepoPath2IDs, ProductID2RepoIDs")
 
+	cols := "id,label,name,url,COALESCE(basearch,''),COALESCE(releasever,''),product,product_id,COALESCE(revision,'')," +
+		"last_change,third_party,organization"
+	if c.DumpSchemaVersion < 4 {
+		cols = "id,label,name,url,COALESCE(basearch,''),COALESCE(releasever,''),product,product_id,COALESCE(revision,'')," +
+			"last_change,third_party,'DEFAULT'"
+	}
 	rows := getAllRows(
 		"repo_detail",
-		"id,label,name,url,COALESCE(basearch,''),COALESCE(releasever,''),product,product_id,COALESCE(revision,''),"+
-			"last_change,third_party",
+		cols,
 	)
 	cntRepo := getCount("repo_detail", "*")
 	cntLabel := getCount("repo_detail", "distinct label")
@@ -405,7 +410,7 @@ func loadRepoDetails(c *Cache) { //nolint: funlen
 	for rows.Next() {
 		var det RepoDetail
 		err := rows.Scan(&repoID, &det.Label, &det.Name, &det.URL, &det.Basearch, &det.Releasever,
-			&det.Product, &det.ProductID, &det.Revision, &lastChange, &det.ThirdParty)
+			&det.Product, &det.ProductID, &det.Revision, &lastChange, &det.ThirdParty, &det.Organization)
 		if err != nil {
 			panic(err)
 		}

@@ -57,10 +57,11 @@ func (c *Cache) getPackageRepos(pkgID PkgID) ([]PkgTreeRepoDetail, bool) {
 		}
 		repos = append(repos, PkgTreeRepoDetail{
 			RepoDetailCommon: RepoDetailCommon{
-				Label:      repoDetail.Label,
-				Name:       repoDetail.Name,
-				Basearch:   repoDetail.Basearch,
-				Releasever: repoDetail.Releasever,
+				Label:        repoDetail.Label,
+				Name:         repoDetail.Name,
+				Basearch:     repoDetail.Basearch,
+				Releasever:   repoDetail.Releasever,
+				Organization: repoDetail.Organization,
 			},
 			Revision: repoDetail.Revision,
 		}) // TODO: add support for ModuleStream

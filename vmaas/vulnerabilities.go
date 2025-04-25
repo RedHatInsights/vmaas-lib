@@ -328,6 +328,9 @@ func repos2IDs(c *Cache, r *Request) ([]RepoID, []RepoID, []ContentSetID) {
 	for _, label := range *r.Repos {
 		if r.Basearch != nil || r.Releasever != nil {
 			for _, repoID := range c.RepoLabel2IDs[label] {
+				if r.Organization != "" && c.RepoDetails[repoID].Organization != r.Organization {
+					continue
+				}
 				if r.Basearch != nil && c.RepoDetails[repoID].Basearch != *r.Basearch {
 					continue
 				}

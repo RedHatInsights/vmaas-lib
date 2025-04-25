@@ -55,7 +55,7 @@ func (r *ProcessedRequest) evaluateRepositories(c *Cache, opts *options) *Update
 	}
 
 	// Get list of valid repository IDs based on input parameters
-	repoIDs := getRepoIDs(c, r.Updates, opts)
+	repoIDs := getRepoIDs(c, r, opts)
 
 	moduleIDs := getModules(c, r.Updates.ModuleList)
 
@@ -543,38 +543,59 @@ func filterPkgList(pkgs []string, latestOnly bool) []string {
 	return filtered
 }
 
-func getRepoIDs(c *Cache, u *Updates, opts *options) repoIDMaps { //nolint: gocognit
+func getRepoIDs(c *Cache, p *ProcessedRequest, opts *options) repoIDMaps { //nolint: gocognit,gocyclo
 	current := map[RepoID]bool{}
 	newer := map[RepoID]bool{}
-	if u.RepoList == nil && len(u.RepoPaths) == 0 {
+	org := p.OriginalRequest.Organization
+	// If organization is not in the updates/vulnerabilities request, assume DEFAULT
+	if org == "" {
+		org = "DEFAULT"
+	}
+	if p.Updates.RepoList == nil && len(p.Updates.RepoPaths) == 0 {
 		for _, r := range c.RepoIDs {
-			if passReleasever(c, u.Releasever, r) && passBasearch(c, u.Basearch, r) {
+			if passOrg(c, org, r) &&
+				passReleasever(c, p.Updates.Releasever, r) &&
+				passBasearch(c, p.Updates.Basearch, r) {
 				current[r] = true
-			} else if passBasearch(c, u.Basearch, r) && isNewerReleasever(c, u.Releasever, r, opts) {
+			} else if passOrg(c, org, r) &&
+				passBasearch(c, p.Updates.Basearch, r) &&
+				isNewerReleasever(c, p.Updates.Releasever, r, opts) {
 				newer[r] = true
 			}
 		}
 	}
-	if u.RepoList != nil {
-		current = make(map[RepoID]bool, len(*u.RepoList))
-		for _, label := range *u.RepoList {
+	if p.Updates.RepoList != nil {
+		current = make(map[RepoID]bool, len(*p.Updates.RepoList))
+		for _, label := range *p.Updates.RepoList {
 			repoIDsCache := c.RepoLabel2IDs[label]
 			for _, r := range repoIDsCache {
-				if !current[r] && passReleasever(c, u.Releasever, r) && passBasearch(c, u.Basearch, r) {
+				if !current[r] &&
+					passOrg(c, org, r) &&
+					passReleasever(c, p.Updates.Releasever, r) &&
+					passBasearch(c, p.Updates.Basearch, r) {
 					current[r] = true
-				} else if !newer[r] && passBasearch(c, u.Basearch, r) && isNewerReleasever(c, u.Releasever, r, opts) {
+				} else if !newer[r] &&
+					passOrg(c, org, r) &&
+					passBasearch(c, p.Updates.Basearch, r) &&
+					isNewerReleasever(c, p.Updates.Releasever, r, opts) {
 					newer[r] = true
 				}
 			}
 		}
 	}
-	for _, path := range u.RepoPaths {
+	for _, path := range p.Updates.RepoPaths {
 		path = strings.TrimSuffix(path, "/")
 		repoIDsCache := c.RepoPath2IDs[path]
 		for _, r := range repoIDsCache {
-			if !current[r] && passReleasever(c, u.Releasever, r) && passBasearch(c, u.Basearch, r) {
+			if !current[r] &&
+				passOrg(c, org, r) &&
+				passReleasever(c, p.Updates.Releasever, r) &&
+				passBasearch(c, p.Updates.Basearch, r) {
 				current[r] = true
-			} else if !newer[r] && passBasearch(c, u.Basearch, r) && isNewerReleasever(c, u.Releasever, r, opts) {
+			} else if !newer[r] &&
+				passOrg(c, org, r) &&
+				passBasearch(c, p.Updates.Basearch, r) &&
+				isNewerReleasever(c, p.Updates.Releasever, r, opts) {
 				newer[r] = true
 			}
 		}
@@ -602,6 +623,14 @@ func passBasearch(c *Cache, basearch *string, repoID RepoID) bool {
 		return true
 	}
 	return (detail.Basearch == "" && strings.Contains(detail.URL, *basearch)) || detail.Basearch == *basearch
+}
+
+func passOrg(c *Cache, org string, repoID RepoID) bool {
+	detail, ok := c.RepoDetails[repoID]
+	if !ok {
+		return false
+	}
+	return detail.Organization == org
 }
 
 func isNewerReleasever(c *Cache, requestReleasever *string, repoID RepoID, opts *options) bool {
