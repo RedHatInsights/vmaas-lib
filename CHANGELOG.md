@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.27.0 (2025-04-28)
+
+### Feature
+
+* Rewrite vmaas version endpoint in go ([`0df434f`](https://github.com/RedHatInsights/vmaas-lib/commit/0df434fd2372b33b104d8a8ec2282fb489826bf8))
+
 ## v1.26.1 (2025-04-07)
 
 ### Fix
