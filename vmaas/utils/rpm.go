@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -74,43 +73,88 @@ func ParseNevra(nevra string, epochRequired bool) (Nevra, error) {
 }
 
 func ParseNameEVRA(name, evra string, epochRequired bool) (Nevra, error) {
-	return ParseNevra(fmt.Sprintf("%s-%s", name, evra), epochRequired)
-}
-
-func (n *Nevra) StringE(showEpoch bool) string {
-	if evra := n.EVRAStringE(showEpoch); n.Name != "" && evra != "" {
-		return fmt.Sprintf("%s-%s", n.Name, evra)
-	}
-	return ""
+	return ParseNevra(name+"-"+evra, epochRequired)
 }
 
 func (n *Nevra) String() string {
 	return n.StringE(false)
 }
 
-func (n *Nevra) EVRStringE(showEpoch bool) string {
-	if n.Epoch == 0 && n.Version == "" && n.Release == "" {
+func (n *Nevra) StringE(showEpoch bool) string {
+	var builder strings.Builder
+	err := n.stringE(&builder, showEpoch)
+	if err != nil {
 		return ""
 	}
-	if n.Epoch != 0 || showEpoch {
-		return fmt.Sprintf("%d:%s-%s", n.Epoch, n.Version, n.Release)
+	return builder.String()
+}
+
+func (n *Nevra) stringE(builder *strings.Builder, showEpoch bool) error {
+	if n.Name == "" {
+		return errors.New("missing nevra name")
 	}
-	return fmt.Sprintf("%s-%s", n.Version, n.Release)
+
+	// push name
+	builder.WriteString(n.Name)
+	builder.WriteByte('-')
+
+	// push evra
+	return n.evraStringE(builder, showEpoch)
+}
+
+func (n *Nevra) EVRAString() string {
+	return n.EVRAStringE(false)
+}
+
+func (n *Nevra) EVRAStringE(showEpoch bool) string {
+	var builder strings.Builder
+	err := n.evraStringE(&builder, showEpoch)
+	if err != nil {
+		return ""
+	}
+	return builder.String()
+}
+
+func (n *Nevra) evraStringE(builder *strings.Builder, showEpoch bool) error {
+	// push evr
+	err := n.evrStringE(builder, showEpoch)
+	if err != nil {
+		return err
+	}
+
+	// push arch
+	builder.WriteByte('.')
+	builder.WriteString(n.Arch)
+	return nil
 }
 
 func (n *Nevra) EVRString() string {
 	return n.EVRStringE(false)
 }
 
-func (n *Nevra) EVRAStringE(showEpoch bool) string {
-	if evr := n.EVRStringE(showEpoch); evr != "" {
-		return fmt.Sprintf("%s.%s", evr, n.Arch)
+func (n *Nevra) EVRStringE(showEpoch bool) string {
+	var builder strings.Builder
+	err := n.evrStringE(&builder, showEpoch)
+	if err != nil {
+		return ""
 	}
-	return ""
+	return builder.String()
 }
 
-func (n *Nevra) EVRAString() string {
-	return n.EVRAStringE(false)
+func (n *Nevra) evrStringE(builder *strings.Builder, showEpoch bool) error {
+	if n.Epoch == 0 && n.Version == "" && n.Release == "" {
+		return errors.New("empty nevra evr")
+	}
+
+	// push evr
+	if n.Epoch != 0 || showEpoch {
+		builder.WriteString(strconv.Itoa(n.Epoch))
+		builder.WriteByte(':')
+	}
+	builder.WriteString(n.Version)
+	builder.WriteByte('-')
+	builder.WriteString(n.Release)
+	return nil
 }
 
 func (n *Nevra) EVRACmp(other *Nevra) int {
@@ -132,8 +176,8 @@ func (n *Nevra) EVRCmp(other *Nevra) int {
 
 func (n *Nevra) NevraCmpEvr(other Evr) int {
 	return rpm.LabelCompare(
-		&rpm.EVR{Epoch: fmt.Sprint(n.Epoch), Version: n.Version, Release: n.Release},
-		&rpm.EVR{Epoch: fmt.Sprint(other.Epoch), Version: other.Version, Release: other.Release},
+		&rpm.EVR{Epoch: strconv.Itoa(n.Epoch), Version: n.Version, Release: n.Release},
+		&rpm.EVR{Epoch: strconv.Itoa(other.Epoch), Version: other.Version, Release: other.Release},
 	)
 }
 
