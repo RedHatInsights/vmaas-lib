@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.28.0 (2025-05-07)
+
+### Feature
+
+* Support organization for repos ([`3ff5bd9`](https://github.com/RedHatInsights/vmaas-lib/commit/3ff5bd9c3ab9eb96727b34caf43b9f47cebd2ae4))
+
 ## v1.27.0 (2025-04-28)
 
 ### Feature
