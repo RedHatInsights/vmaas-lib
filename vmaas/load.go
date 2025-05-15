@@ -2,6 +2,7 @@ package vmaas
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -28,7 +29,7 @@ var loadFuncs = []func(c *Cache){
 	loadPkgErratum, loadErratumRepoIDs, loadCves, loadPkgErratumModule, loadModule2IDs, loadModuleRequires,
 	loadDBChanges, loadString, loadOSReleaseDetails,
 	// CSAF
-	loadRepoCpes, loadContentSet2Cpes, loadCpeID2Label, loadCSAFCVE,
+	loadRepoCpes, loadContentSet2Cpes, loadCpeID2Label, loadCSAFCVE, loadReleaseGraphs,
 }
 
 func openDB(path string) error {
@@ -981,4 +982,31 @@ func loadOSReleaseDetails(c *Cache) {
 		id2OSReleaseDetail[OSReleaseID] = det
 	}
 	c.OSReleaseDetails = id2OSReleaseDetail
+}
+
+func loadReleaseGraphs(c *Cache) {
+	defer utils.TimeTrack(time.Now(), "ReleaseGraphs")
+	if c.DumpSchemaVersion < 5 {
+		utils.LogWarn("ReleaseGraphs requires dump schema version 5, skipping.")
+		return
+	}
+
+	rows := getAllRows("release_graph", "graph")
+	cnt := getCount("release_graph", "*")
+	graphs := make([]ReleaseGraph, 0, cnt)
+	for rows.Next() {
+		var rawGraph ReleseGraphRaw
+		var raw string
+		if err := rows.Scan(&raw); err != nil {
+			panic(err)
+		}
+
+		if err := json.Unmarshal([]byte(raw), &rawGraph); err != nil {
+			panic(err)
+		}
+
+		graph := rawGraph.BuildGraph()
+		graphs = append(graphs, *graph)
+	}
+	c.ReleaseGraphs = graphs
 }
