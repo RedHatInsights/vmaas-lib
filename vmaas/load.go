@@ -886,11 +886,14 @@ func loadCSAFCVE(c *Cache) {
 
 	defer utils.TimeTrack(time.Now(), "CSAF CVEs")
 
-	rows := getAllRows(
-		"csaf_product p join csaf_cve_product cp on p.id = cp.csaf_product_id",
-		"p.id,p.cpe_id,p.package_name_id,p.package_id,p.module_stream,"+
-			"cp.cve_id,cp.csaf_product_status_id,COALESCE(cp.erratum,'')",
-	)
+	cols := "p.id,p.cpe_id,p.variant_suffix,p.package_name_id,p.package_id,p.module_stream," +
+		"cp.cve_id,cp.csaf_product_status_id,COALESCE(cp.erratum,'')"
+	if c.DumpSchemaVersion < 6 {
+		cols = "p.id,p.cpe_id," + "'" + DefaultVariantSuffix + "'," + "p.package_name_id,p.package_id," +
+			"p.module_stream,cp.cve_id,cp.csaf_product_status_id,COALESCE(cp.erratum,'')"
+	}
+
+	rows := getAllRows("csaf_product p join csaf_cve_product cp on p.id = cp.csaf_product_id", cols)
 	cntProducts := getCount("csaf_product", "*")
 	cntCveProducts := getCount("csaf_cve_product", "*")
 
@@ -902,6 +905,7 @@ func loadCSAFCVE(c *Cache) {
 		cpr := csafCVEProductRow{}
 		if err := rows.Scan(&cpr.ID,
 			&cpr.Product.CpeID,
+			&cpr.Product.VariantSuffix,
 			&cpr.Product.PackageNameID,
 			&cpr.Product.PackageID,
 			&cpr.Product.ModuleStream,
@@ -915,6 +919,7 @@ func loadCSAFCVE(c *Cache) {
 		cveProduct := CSAFCVEProduct{CVEID: cpr.CVEID, CSAFProductID: CSAFProductID(cpr.ID)}
 		product := CSAFProduct{
 			CpeID:         cpr.Product.CpeID,
+			VariantSuffix: cpr.Product.VariantSuffix,
 			PackageNameID: cpr.Product.PackageNameID,
 			PackageID:     cpr.Product.PackageID,
 			ModuleStream:  cpr.Product.ModuleStream,
