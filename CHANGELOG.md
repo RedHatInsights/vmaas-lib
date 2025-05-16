@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.29.0 (2025-05-16)
+
+### Feature
+
+* Load release graphs ([`b85d48b`](https://github.com/RedHatInsights/vmaas-lib/commit/b85d48b684dc7be76aaebce3c62e7aa75c8bd278))
+
 ## v1.28.0 (2025-05-07)
 
 ### Feature
