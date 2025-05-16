@@ -29,7 +29,10 @@ type (
 	CVEID         int
 	SeverityT     []*string
 	TypeT         []string
+	VariantSuffix string
 )
+
+const DefaultVariantSuffix = "N/A"
 
 type Request struct {
 	Packages []string  `json:"package_list"`
@@ -430,6 +433,7 @@ type NevraString struct {
 
 type CSAFProduct struct {
 	CpeID         CpeID
+	VariantSuffix VariantSuffix
 	PackageNameID NameID
 	PackageID     PkgID
 	ModuleStream  ModuleStream

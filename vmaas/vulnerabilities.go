@@ -423,7 +423,8 @@ func contentSets2cpes(c *Cache, csIDs []ContentSetID) []CpeID {
 func productsWithUnfixedCVEs(c *Cache, cpe CpeID, nameID NameID, modules []ModuleStream) []CSAFProduct {
 	products := make([]CSAFProduct, 0, len(modules))
 	cn := CpeIDNameID{CpeID: cpe, NameID: nameID}
-	product := CSAFProduct{CpeID: cpe, PackageNameID: nameID}
+	// VariantSuffix for Unfixed products is always "N/A" and hopefully SECDATA-1025 won't change it
+	product := CSAFProduct{CpeID: cpe, VariantSuffix: DefaultVariantSuffix, PackageNameID: nameID}
 	for _, ms := range modules {
 		product.ModuleStream = ms
 		if _, ok := c.CSAFCVEs[cn][product]; ok {

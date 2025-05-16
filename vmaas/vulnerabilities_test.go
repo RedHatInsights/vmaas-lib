@@ -13,10 +13,10 @@ import (
 //nolint:funlen
 func TestCSAF(t *testing.T) {
 	ms := ModuleStream{Module: "name", Stream: "stream"}
-	unfixed1 := CSAFProduct{CpeID: 1, PackageNameID: 1}
-	unfixed2 := CSAFProduct{CpeID: 2, PackageNameID: 1, ModuleStream: ms}
-	fixed1 := CSAFProduct{CpeID: 1, PackageNameID: 1, PackageID: 1}
-	fixed2 := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 2, ModuleStream: ms}
+	unfixed1 := CSAFProduct{CpeID: 1, PackageNameID: 1, VariantSuffix: DefaultVariantSuffix}
+	unfixed2 := CSAFProduct{CpeID: 2, PackageNameID: 1, ModuleStream: ms, VariantSuffix: DefaultVariantSuffix}
+	fixed1 := CSAFProduct{CpeID: 1, PackageNameID: 1, PackageID: 1, VariantSuffix: DefaultVariantSuffix}
+	fixed2 := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 2, ModuleStream: ms, VariantSuffix: DefaultVariantSuffix}
 	var one PkgID = 1
 
 	c := Cache{
