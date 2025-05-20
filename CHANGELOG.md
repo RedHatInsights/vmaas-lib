@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.30.0 (2025-05-20)
+
+### Feature
+
+* **csaf:** Load and use product variants ([`eb90aa9`](https://github.com/RedHatInsights/vmaas-lib/commit/eb90aa92dc1ed00c0e1d2d41e8f026cc6d4d5d6b))
+
 ## v1.29.0 (2025-05-16)
 
 ### Feature
