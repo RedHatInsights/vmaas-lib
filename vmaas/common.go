@@ -39,14 +39,18 @@ type repoIDReleasevers struct {
 	newerReleasever   RepoID
 }
 
+type variantCPE struct {
+	VariantSuffix VariantSuffix
+	CpeID         CpeID
+}
+
 type ProcessedRequest struct {
-	Updates             *Updates
-	Packages            []NevraString
-	Cpes                []CpeID
-	NewerReleaseverCpes []CpeID
-	ContentSetsCpes     []CpeID
-	ContentSets         []ContentSetID
-	OriginalRequest     *Request
+	Updates               *Updates
+	Packages              []NevraString
+	VariantCpes           []variantCPE
+	NewerVariantCpes      []variantCPE
+	ContentSetVariantCpes []variantCPE
+	OriginalRequest       *Request
 }
 
 func (r *ProcessedRequest) evaluateRepositories(c *Cache, opts *options) *Updates {
