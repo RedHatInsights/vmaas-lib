@@ -9,19 +9,20 @@ import (
 type ReleaseNode struct {
 	VariantSuffix VariantSuffix
 	Type          string
-	CPEs          []string
+	CPEs          []CpeLabel
 	Children      []*ReleaseNode
 	Parent        *ReleaseNode
 }
 
 type ReleaseGraph struct {
 	GetByVariant map[VariantSuffix]*ReleaseNode
+	GetByCpe     map[CpeLabel][]*ReleaseNode
 }
 
 type ReleseGraphRaw struct {
 	Nodes map[string]struct {
-		Type string   `json:"type"`
-		CPEs []string `json:"cpes"`
+		Type string     `json:"type"`
+		CPEs []CpeLabel `json:"cpes"`
 	} `json:"nodes"`
 	Edges map[string][]string `json:"edges"`
 }
@@ -42,8 +43,11 @@ func getVariantSuffix(variant string) (VariantSuffix, error) {
 }
 
 // Build the ReleaseGraph tree structure
-func (raw *ReleseGraphRaw) BuildGraph() *ReleaseGraph {
-	g := &ReleaseGraph{GetByVariant: make(map[VariantSuffix]*ReleaseNode)}
+func (raw *ReleseGraphRaw) BuildGraph(cpeID2Label map[CpeID]CpeLabel, cpeLabel2ID map[CpeLabel]CpeID) *ReleaseGraph {
+	g := &ReleaseGraph{
+		GetByVariant: make(map[VariantSuffix]*ReleaseNode),
+		GetByCpe:     make(map[CpeLabel][]*ReleaseNode),
+	}
 
 	// Create all nodes
 	for id, data := range raw.Nodes {
@@ -51,10 +55,24 @@ func (raw *ReleseGraphRaw) BuildGraph() *ReleaseGraph {
 		if err != nil {
 			continue
 		}
-		g.GetByVariant[variantSuffix] = &ReleaseNode{
+
+		// extend CPEs by all matching CPEs
+		cpes := getMatchingCpes(cpeID2Label, data.CPEs)
+
+		node := &ReleaseNode{
 			VariantSuffix: variantSuffix,
 			Type:          data.Type,
-			CPEs:          data.CPEs,
+			CPEs:          cpes,
+		}
+		g.GetByVariant[variantSuffix] = node
+
+		// Important! Make GetByCpe map only from original CPEs from graphs
+		// if we use all matching `cpeLabels`, we will link e.g.
+		// cpe:/o:redhat:enterprise_linux:8 with all variants which we don't want
+		for _, cpe := range data.CPEs {
+			nodes := g.GetByCpe[cpe]
+			nodes = append(nodes, node)
+			g.GetByCpe[cpe] = nodes
 		}
 	}
 
@@ -86,6 +104,17 @@ func (g *ReleaseGraph) GetAncestors(variant VariantSuffix) []*ReleaseNode {
 	for node != nil && node.Parent != nil {
 		ancestors = append(ancestors, node.Parent)
 		node = node.Parent
+	}
+	return ancestors
+}
+
+// Get all parent nodes (ancestors) of a node
+func (n *ReleaseNode) GetAncestors() []*ReleaseNode {
+	var ancestors []*ReleaseNode
+	node := *n // don't change caller
+	for node.Parent != nil {
+		ancestors = append(ancestors, node.Parent)
+		node = *node.Parent
 	}
 	return ancestors
 }
