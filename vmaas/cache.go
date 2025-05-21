@@ -63,6 +63,7 @@ type Cache struct {
 	ContentSetID2CpeIDs map[ContentSetID][]CpeID
 	RepoID2CpeIDs       map[RepoID][]CpeID
 	CpeID2Label         map[CpeID]CpeLabel
+	CpeLabel2ID         map[CpeLabel]CpeID
 
 	// CSAF
 	CSAFProductStatus      map[int]string
