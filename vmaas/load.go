@@ -29,7 +29,7 @@ var loadFuncs = []func(c *Cache){
 	loadPkgErratum, loadErratumRepoIDs, loadCves, loadPkgErratumModule, loadModule2IDs, loadModuleRequires,
 	loadDBChanges, loadString, loadOSReleaseDetails,
 	// CSAF
-	loadRepoCpes, loadContentSet2Cpes, loadCpeID2Label, loadCSAFCVE, loadReleaseGraphs,
+	loadRepoCpes, loadContentSet2Cpes, loadCpeID2Label, loadCpeLabel2ID, loadCSAFCVE, loadReleaseGraphs,
 }
 
 func openDB(path string) error {
@@ -833,6 +833,10 @@ func loadContentSet2Cpes(c *Cache) {
 
 func loadCpeID2Label(c *Cache) {
 	c.CpeID2Label = loadK2V[CpeID, CpeLabel]("cpe", "id,label", "CpeID2Label")
+}
+
+func loadCpeLabel2ID(c *Cache) {
+	c.CpeLabel2ID = loadK2V[CpeLabel, CpeID]("cpe", "label,id", "CpeLabel2ID")
 }
 
 func loadCSAFProductStatus(c *Cache) {
