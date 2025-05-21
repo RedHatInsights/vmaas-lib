@@ -29,7 +29,7 @@ var loadFuncs = []func(c *Cache){
 	loadPkgErratum, loadErratumRepoIDs, loadCves, loadPkgErratumModule, loadModule2IDs, loadModuleRequires,
 	loadDBChanges, loadString, loadOSReleaseDetails,
 	// CSAF
-	loadRepoCpes, loadContentSet2Cpes, loadCpeID2Label, loadCpeLabel2ID, loadCSAFCVE, loadReleaseGraphs,
+	loadRepoCpes, loadContentSet2Cpes, loadCSAFCVE, loadReleaseGraphs,
 }
 
 func openDB(path string) error {
@@ -873,13 +873,14 @@ type csafCVEProductRow struct {
 
 func productsByStatus(
 	c *Cache, cpr *csafCVEProductRow, product *CSAFProduct, cn *CpeIDNameID,
-	cveCache map[CpeIDNameID]map[CSAFProduct]CSAFCVEs,
+	cveCache map[VariantSuffix]map[CpeIDNameID]map[CSAFProduct]CSAFCVEs,
 ) ([]CVEID, []CVEID) {
+	variant := product.VariantSuffix
 	switch c.CSAFProductStatus[cpr.CSAFProductStatusID] {
 	case "fixed":
-		return append(cveCache[*cn][*product].Fixed, cpr.CVEID), cveCache[*cn][*product].Unfixed
+		return append(cveCache[variant][*cn][*product].Fixed, cpr.CVEID), cveCache[variant][*cn][*product].Unfixed
 	case "known_affected":
-		return cveCache[*cn][*product].Fixed, append(cveCache[*cn][*product].Unfixed, cpr.CVEID)
+		return cveCache[variant][*cn][*product].Fixed, append(cveCache[variant][*cn][*product].Unfixed, cpr.CVEID)
 	default:
 		panic(fmt.Sprintf("unknown product status: %s", c.CSAFProductStatus[cpr.CSAFProductStatusID]))
 	}
@@ -902,7 +903,7 @@ func loadCSAFCVE(c *Cache) {
 	cntCveProducts := getCount("csaf_cve_product", "*")
 
 	product2id := make(map[CSAFProduct]CSAFProductID, cntProducts)
-	cveCache := make(map[CpeIDNameID]map[CSAFProduct]CSAFCVEs, cntProducts)
+	cveCache := make(map[VariantSuffix]map[CpeIDNameID]map[CSAFProduct]CSAFCVEs, cntProducts)
 	errataCache := make(map[CSAFCVEProduct]string, cntCveProducts)
 
 	for rows.Next() {
@@ -933,12 +934,16 @@ func loadCSAFCVE(c *Cache) {
 			errataCache[cveProduct] = cpr.Erratum
 		}
 
+		variant := product.VariantSuffix
 		cn := CpeIDNameID{product.CpeID, product.PackageNameID}
 		fixed, unfixed := productsByStatus(c, &cpr, &product, &cn, cveCache)
-		if _, ok := cveCache[cn]; !ok {
-			cveCache[cn] = map[CSAFProduct]CSAFCVEs{}
+		if _, ok := cveCache[variant]; !ok {
+			cveCache[variant] = map[CpeIDNameID]map[CSAFProduct]CSAFCVEs{}
 		}
-		cveCache[cn][product] = CSAFCVEs{Fixed: fixed, Unfixed: unfixed}
+		if _, ok := cveCache[variant][cn]; !ok {
+			cveCache[variant][cn] = map[CSAFProduct]CSAFCVEs{}
+		}
+		cveCache[variant][cn][product] = CSAFCVEs{Fixed: fixed, Unfixed: unfixed}
 		product2id[product] = CSAFProductID(cpr.ID)
 	}
 
@@ -995,6 +1000,8 @@ func loadOSReleaseDetails(c *Cache) {
 
 func loadReleaseGraphs(c *Cache) {
 	defer utils.TimeTrack(time.Now(), "ReleaseGraphs")
+	loadCpeID2Label(c)
+	loadCpeLabel2ID(c)
 	if c.DumpSchemaVersion < 5 {
 		utils.LogWarn("ReleaseGraphs requires dump schema version 5, skipping.")
 		return
@@ -1014,7 +1021,7 @@ func loadReleaseGraphs(c *Cache) {
 			panic(err)
 		}
 
-		graph := rawGraph.BuildGraph()
+		graph := rawGraph.BuildGraph(c.CpeID2Label, c.CpeLabel2ID)
 		graphs = append(graphs, *graph)
 	}
 	c.ReleaseGraphs = graphs
