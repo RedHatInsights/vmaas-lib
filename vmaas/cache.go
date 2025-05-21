@@ -67,7 +67,7 @@ type Cache struct {
 
 	// CSAF
 	CSAFProductStatus      map[int]string
-	CSAFCVEs               map[CpeIDNameID]map[CSAFProduct]CSAFCVEs
+	CSAFCVEs               map[VariantSuffix]map[CpeIDNameID]map[CSAFProduct]CSAFCVEs
 	CSAFCVEProduct2Erratum map[CSAFCVEProduct]string
 	CSAFProduct2ID         map[CSAFProduct]CSAFProductID
 	ReleaseGraphs          []ReleaseGraph
