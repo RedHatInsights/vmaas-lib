@@ -7,7 +7,7 @@ import (
 )
 
 type ReleaseNode struct {
-	VariantSuffix string
+	VariantSuffix VariantSuffix
 	Type          string
 	CPEs          []string
 	Children      []*ReleaseNode
@@ -15,7 +15,7 @@ type ReleaseNode struct {
 }
 
 type ReleaseGraph struct {
-	GetByVariant map[string]*ReleaseNode
+	GetByVariant map[VariantSuffix]*ReleaseNode
 }
 
 type ReleseGraphRaw struct {
@@ -27,7 +27,7 @@ type ReleseGraphRaw struct {
 }
 
 // Get suffix from release name mappable to product variant suffix
-func getVariantSuffix(variant string) (string, error) {
+func getVariantSuffix(variant string) (VariantSuffix, error) {
 	// we are interested only in rhel release name suffix
 	// that we can directly map to rhel product variant
 	// and replace "+" with "." because product variants don't contain "+"
@@ -38,12 +38,12 @@ func getVariantSuffix(variant string) (string, error) {
 	if len(splitted) != 2 {
 		return "", errors.New("release name without '-'")
 	}
-	return strings.ReplaceAll(splitted[1], "+", "."), nil
+	return VariantSuffix(strings.ReplaceAll(splitted[1], "+", ".")), nil
 }
 
 // Build the ReleaseGraph tree structure
 func (raw *ReleseGraphRaw) BuildGraph() *ReleaseGraph {
-	g := &ReleaseGraph{GetByVariant: make(map[string]*ReleaseNode)}
+	g := &ReleaseGraph{GetByVariant: make(map[VariantSuffix]*ReleaseNode)}
 
 	// Create all nodes
 	for id, data := range raw.Nodes {
@@ -80,7 +80,7 @@ func (raw *ReleseGraphRaw) BuildGraph() *ReleaseGraph {
 }
 
 // Get all parent nodes (ancestors) of a node by a node id - product variant suffix
-func (g *ReleaseGraph) GetAncestors(variant string) []*ReleaseNode {
+func (g *ReleaseGraph) GetAncestors(variant VariantSuffix) []*ReleaseNode {
 	var ancestors []*ReleaseNode
 	node := g.GetByVariant[variant]
 	for node != nil && node.Parent != nil {
