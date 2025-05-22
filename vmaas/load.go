@@ -1011,7 +1011,7 @@ func loadReleaseGraphs(c *Cache) {
 	cnt := getCount("release_graph", "*")
 	graphs := make([]ReleaseGraph, 0, cnt)
 	for rows.Next() {
-		var rawGraph ReleseGraphRaw
+		var rawGraph ReleaseGraphRaw
 		var raw string
 		if err := rows.Scan(&raw); err != nil {
 			panic(err)
