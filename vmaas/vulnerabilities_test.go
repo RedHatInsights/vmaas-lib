@@ -7,6 +7,7 @@ import (
 
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/maps"
 )
 
@@ -41,14 +42,16 @@ func TestCSAF(t *testing.T) {
 			2: {NameID: 1, EvrID: 2, ArchID: 1, SrcPkgID: nil},  // kernel-0:2-2
 			3: {NameID: 2, EvrID: 1, ArchID: 1, SrcPkgID: &one}, // kernel-devel-0:1-1
 		},
-		CSAFCVEs: map[CpeIDNameID]map[CSAFProduct]CSAFCVEs{
-			{CpeID: 1, NameID: 1}: {
-				unfixed1: {Unfixed: []CVEID{1, 2}},
-				fixed1:   {Fixed: []CVEID{3, 4}},
-			},
-			{CpeID: 2, NameID: 1}: {
-				unfixed2: {Unfixed: []CVEID{1, 2}},
-				fixed2:   {Fixed: []CVEID{5}},
+		CSAFCVEs: map[VariantSuffix]map[CpeIDNameID]map[CSAFProduct]CSAFCVEs{
+			DefaultVariantSuffix: {
+				{CpeID: 1, NameID: 1}: {
+					unfixed1: {Unfixed: []CVEID{1, 2}},
+					fixed1:   {Fixed: []CVEID{3, 4}},
+				},
+				{CpeID: 2, NameID: 1}: {
+					unfixed2: {Unfixed: []CVEID{1, 2}},
+					fixed2:   {Fixed: []CVEID{5}},
+				},
 			},
 		},
 		CveNames: map[int]string{
@@ -92,7 +95,8 @@ func TestCSAF(t *testing.T) {
 
 	products := make([]ProductsPackage, 0, len(matrix))
 	for _, m := range matrix {
-		pp := cpes2products(&c, []CpeID{1, 2}, m.nameID, m.pkgID, []ModuleStream{ms}, m.pkg, &defaultOpts)
+		varCpes := []variantCPE{{DefaultVariantSuffix, 1}, {DefaultVariantSuffix, 2}}
+		pp := cpes2products(&c, varCpes, m.nameID, m.pkgID, []ModuleStream{ms}, m.pkg, &defaultOpts)
 		assert.Equal(t, m.fixed, pp.ProductsFixed)
 		assert.Equal(t, m.unfixed, pp.ProductsUnfixed)
 		// duplicate products to cover code handling duplicates
@@ -178,12 +182,15 @@ func TestCPEMatch(t *testing.T) {
 //nolint:funlen
 func TestManualCvesNewerRelease(t *testing.T) {
 	ms := ModuleStream{Module: "name", Stream: "stream"}
-	productCveFixed := CSAFProduct{CpeID: 1, PackageNameID: 1, PackageID: 1}
-	productCve1 := CSAFProduct{CpeID: 1, PackageNameID: 1, PackageID: 2}
-	productCve3 := CSAFProduct{CpeID: 1, PackageNameID: 1, PackageID: 5}
-	productCveFixedNewer := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 3, ModuleStream: ms}
-	productCve1Newer := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 4, ModuleStream: ms}
-	productCve2Newer := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 5, ModuleStream: ms}
+	productCveFixed := CSAFProduct{CpeID: 1, PackageNameID: 1, PackageID: 1, VariantSuffix: DefaultVariantSuffix}
+	productCve1 := CSAFProduct{CpeID: 1, PackageNameID: 1, PackageID: 2, VariantSuffix: DefaultVariantSuffix}
+	productCve3 := CSAFProduct{CpeID: 1, PackageNameID: 1, PackageID: 5, VariantSuffix: DefaultVariantSuffix}
+	productCveFixedNewer := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 3, ModuleStream: ms,
+		VariantSuffix: DefaultVariantSuffix}
+	productCve1Newer := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 4, ModuleStream: ms,
+		VariantSuffix: DefaultVariantSuffix}
+	productCve2Newer := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 5, ModuleStream: ms,
+		VariantSuffix: DefaultVariantSuffix}
 	currentReleaseCPE := CpeLabel("cpe:/o:redhat:rhel_eus:8.6")
 	newerReleaseCPE := CpeLabel("cpe:/o:redhat:rhel_eus:8.8")
 	c := Cache{
@@ -222,16 +229,18 @@ func TestManualCvesNewerRelease(t *testing.T) {
 			{1, 3}: "RHSA-3",
 			{2, 4}: "RHSA-4",
 		},
-		CSAFCVEs: map[CpeIDNameID]map[CSAFProduct]CSAFCVEs{
-			{1, 1}: {
-				productCve1:     {Fixed: []CVEID{1}},
-				productCve3:     {Fixed: []CVEID{3}},
-				productCveFixed: {Fixed: []CVEID{5}},
-			},
-			{2, 1}: {
-				productCve1Newer:     {Fixed: []CVEID{1}},
-				productCve2Newer:     {Fixed: []CVEID{2}},
-				productCveFixedNewer: {Fixed: []CVEID{5}},
+		CSAFCVEs: map[VariantSuffix]map[CpeIDNameID]map[CSAFProduct]CSAFCVEs{
+			DefaultVariantSuffix: {
+				{1, 1}: {
+					productCve1:     {Fixed: []CVEID{1}},
+					productCve3:     {Fixed: []CVEID{3}},
+					productCveFixed: {Fixed: []CVEID{5}},
+				},
+				{2, 1}: {
+					productCve1Newer:     {Fixed: []CVEID{1}},
+					productCve2Newer:     {Fixed: []CVEID{2}},
+					productCveFixedNewer: {Fixed: []CVEID{5}},
+				},
 			},
 		},
 	}
@@ -290,7 +299,7 @@ func TestManualCvesNewerRelease(t *testing.T) {
 	}
 	// CVE-1 is reported from both (current, newer) CPEs and is fixed by
 	// RHSA-1 (current release CSAF), RHSA-3 (newer release CSAF), RHSA-5 (newer release Repos)
-	assert.Len(t, cves.ManualCves["CVE-1"].Errata, 3)
+	require.Len(t, cves.ManualCves["CVE-1"].Errata, 3)
 	assert.Contains(t, cves.ManualCves["CVE-1"].Errata, "RHSA-1")
 	assert.Contains(t, cves.ManualCves["CVE-1"].Errata, "RHSA-3")
 	assert.Contains(t, cves.ManualCves["CVE-1"].Errata, "RHSA-6")
@@ -316,7 +325,6 @@ func TestManualCvesNewerRelease(t *testing.T) {
 	assert.Contains(t, cves.ManualCves["CVE-4"].Errata, "RHSA-8")
 	// CVE-4 comes completely from `newerReleaseReposCves` and nothing is added
 	assert.Equal(t, cves.ManualCves["CVE-4"], newerReleaseReposCves["CVE-4"])
-	utils.LogInfo("DEBUG")
 }
 
 func cpeMatch(l, r CpeLabel) bool {
