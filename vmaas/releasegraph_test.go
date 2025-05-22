@@ -21,7 +21,7 @@ const testJSON = `{
 }`
 
 func TestBuildGraphAndAncestors(t *testing.T) {
-	var raw ReleseGraphRaw
+	var raw ReleaseGraphRaw
 	err := json.Unmarshal([]byte(testJSON), &raw)
 	require.NoError(t, err)
 
