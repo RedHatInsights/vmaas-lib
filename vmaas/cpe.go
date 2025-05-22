@@ -105,7 +105,7 @@ func cpes2variantCpes(c *Cache, cpes []CpeLabel, except []variantCPE) []variantC
 
 	slices.SortStableFunc(variantCpes, func(x, y variantCPE) int {
 		verX, errx := version.NewVersion(string(x.VariantSuffix))
-		verY, erry := version.NewVersion(string(x.VariantSuffix))
+		verY, erry := version.NewVersion(string(y.VariantSuffix))
 		switch {
 		case errx != nil && erry != nil:
 			return 0

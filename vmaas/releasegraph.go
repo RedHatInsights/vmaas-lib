@@ -43,7 +43,7 @@ func getVariantSuffix(variant string) (VariantSuffix, error) {
 }
 
 // Build the ReleaseGraph tree structure
-func (raw *ReleaseGraphRaw) BuildGraph(cpeID2Label map[CpeID]CpeLabel, cpeLabel2ID map[CpeLabel]CpeID) *ReleaseGraph {
+func (raw *ReleaseGraphRaw) BuildGraph(cpeID2Label map[CpeID]CpeLabel) *ReleaseGraph {
 	g := &ReleaseGraph{
 		GetByVariant: make(map[VariantSuffix]*ReleaseNode),
 		GetByCpe:     make(map[CpeLabel][]*ReleaseNode),
