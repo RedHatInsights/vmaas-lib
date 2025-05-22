@@ -886,7 +886,7 @@ func productsByStatus(
 	}
 }
 
-func loadCSAFCVE(c *Cache) {
+func loadCSAFCVE(c *Cache) { //nolint: funlen
 	loadCSAFProductStatus(c) // Load statuses before other CSAF load functions
 
 	defer utils.TimeTrack(time.Now(), "CSAF CVEs")
@@ -1021,7 +1021,7 @@ func loadReleaseGraphs(c *Cache) {
 			panic(err)
 		}
 
-		graph := rawGraph.BuildGraph(c.CpeID2Label, c.CpeLabel2ID)
+		graph := rawGraph.BuildGraph(c.CpeID2Label)
 		graphs = append(graphs, *graph)
 	}
 	c.ReleaseGraphs = graphs

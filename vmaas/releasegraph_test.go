@@ -23,14 +23,13 @@ const testJSON = `{
 func TestBuildGraphAndAncestors(t *testing.T) {
 	c := &Cache{
 		CpeID2Label: map[CpeID]CpeLabel{1: "cpe:/a:redhat:enterprise_linux:8::appstream"},
-		CpeLabel2ID: map[CpeLabel]CpeID{"cpe:/a:redhat:enterprise_linux:8::appstream": 1},
 	}
 
 	var raw ReleaseGraphRaw
 	err := json.Unmarshal([]byte(testJSON), &raw)
 	require.NoError(t, err)
 
-	graph := raw.BuildGraph(c.CpeID2Label, c.CpeLabel2ID)
+	graph := raw.BuildGraph(c.CpeID2Label)
 
 	require.Len(t, graph.GetByVariant, 3)
 

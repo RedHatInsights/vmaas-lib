@@ -185,12 +185,18 @@ func TestManualCvesNewerRelease(t *testing.T) {
 	productCveFixed := CSAFProduct{CpeID: 1, PackageNameID: 1, PackageID: 1, VariantSuffix: DefaultVariantSuffix}
 	productCve1 := CSAFProduct{CpeID: 1, PackageNameID: 1, PackageID: 2, VariantSuffix: DefaultVariantSuffix}
 	productCve3 := CSAFProduct{CpeID: 1, PackageNameID: 1, PackageID: 5, VariantSuffix: DefaultVariantSuffix}
-	productCveFixedNewer := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 3, ModuleStream: ms,
-		VariantSuffix: DefaultVariantSuffix}
-	productCve1Newer := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 4, ModuleStream: ms,
-		VariantSuffix: DefaultVariantSuffix}
-	productCve2Newer := CSAFProduct{CpeID: 2, PackageNameID: 1, PackageID: 5, ModuleStream: ms,
-		VariantSuffix: DefaultVariantSuffix}
+	productCveFixedNewer := CSAFProduct{
+		CpeID: 2, PackageNameID: 1, PackageID: 3, ModuleStream: ms,
+		VariantSuffix: DefaultVariantSuffix,
+	}
+	productCve1Newer := CSAFProduct{
+		CpeID: 2, PackageNameID: 1, PackageID: 4, ModuleStream: ms,
+		VariantSuffix: DefaultVariantSuffix,
+	}
+	productCve2Newer := CSAFProduct{
+		CpeID: 2, PackageNameID: 1, PackageID: 5, ModuleStream: ms,
+		VariantSuffix: DefaultVariantSuffix,
+	}
 	currentReleaseCPE := CpeLabel("cpe:/o:redhat:rhel_eus:8.6")
 	newerReleaseCPE := CpeLabel("cpe:/o:redhat:rhel_eus:8.8")
 	c := Cache{
