@@ -2,6 +2,16 @@
 
 <!--next-version-placeholder-->
 
+## v1.31.0 (2025-05-22)
+
+### Feature
+
+* Use product variants in cve evaluation ([`2eaa607`](https://github.com/RedHatInsights/vmaas-lib/commit/2eaa6070fb681527bf6241ecff23511555001867))
+* Load updated ReleaseGraph and CSAFCVEs ([`ced7f9f`](https://github.com/RedHatInsights/vmaas-lib/commit/ced7f9f53be2b3197274c8db089984eda2f6e5a4))
+* Add variant key for CSAFCVEs map ([`5f35a65`](https://github.com/RedHatInsights/vmaas-lib/commit/5f35a6533909f9528d2a9d7f811df7c1e60ac085))
+* Extend release graph struct ([`7f04e34`](https://github.com/RedHatInsights/vmaas-lib/commit/7f04e349074c6207eaa531a1c3bd6e19aef9093c))
+* Add map for cpe labels to cpe ids ([`cb459b8`](https://github.com/RedHatInsights/vmaas-lib/commit/cb459b8ef0b90b88a4da42cdba356848ba72ca33))
+
 ## v1.30.0 (2025-05-20)
 
 ### Feature
