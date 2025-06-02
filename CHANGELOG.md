@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.31.1 (2025-06-02)
+
+### Fix
+
+* Resolve missing field in response without rpm names ([`0875d27`](https://github.com/RedHatInsights/vmaas-lib/commit/0875d27f256cf3dd3c387dbf697be3cc921eb6f9))
+
 ## v1.31.0 (2025-05-22)
 
 ### Feature
