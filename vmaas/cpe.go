@@ -3,7 +3,6 @@ package vmaas
 import (
 	"slices"
 
-	"github.com/hashicorp/go-version"
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
 )
 
@@ -111,17 +110,7 @@ func cpes2variantsCpes(c *Cache, cpes []CpeLabel, exceptVariants []VariantSuffix
 	cpeIDs = append(cpeIDs, ancestorCpes...)
 
 	slices.SortStableFunc(variants, func(x, y VariantSuffix) int {
-		verX, errx := version.NewVersion(string(x))
-		verY, erry := version.NewVersion(string(y))
-		switch {
-		case errx != nil && erry != nil:
-			return 0
-		case errx != nil:
-			return -1
-		case erry != nil:
-			return 1
-		}
-		return verX.Compare(verY)
+		return x.Compare(&y)
 	})
 	slices.Sort(cpeIDs)
 	return variants, cpeIDs

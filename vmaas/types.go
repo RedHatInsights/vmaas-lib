@@ -635,3 +635,44 @@ type CveIDString struct {
 	ID     CVEID
 	String string
 }
+
+// Split variant into slice of version numbers followed by string
+func (x *VariantSuffix) Split() ([]string, string) {
+	if x == nil {
+		return nil, ""
+	}
+	// variant suffix should consist of 3 numbers separated by "."
+	// followed by strings with dots
+	splitted := strings.SplitN(string(*x), ".", 4)
+	if len(splitted) <= 3 {
+		// we always want 4 items so append "0"
+		for i := 0; i < 4-len(splitted); i++ {
+			splitted = append(splitted, "0")
+		}
+	}
+	return splitted[:3], splitted[3]
+}
+
+// Compare compares this variant to another variant.
+// Returns -1, 0, or 1 if this variant is smaller, equal, or larger than the other variant.
+func (x *VariantSuffix) Compare(y *VariantSuffix) int {
+	switch {
+	case x == y:
+		return 0
+	case x == nil:
+		return -1
+	case y == nil:
+		return 1
+	case *x == *y:
+		return 0
+	}
+
+	xVersion, xRest := x.Split()
+	yVersion, yRest := y.Split()
+
+	cmp := slices.Compare(xVersion, yVersion)
+	if cmp == 0 {
+		cmp = strings.Compare(xRest, yRest)
+	}
+	return cmp
+}
