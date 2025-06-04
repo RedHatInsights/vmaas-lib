@@ -95,8 +95,8 @@ func TestCSAF(t *testing.T) {
 
 	products := make([]ProductsPackage, 0, len(matrix))
 	for _, m := range matrix {
-		varCpes := []variantCPE{{DefaultVariantSuffix, 1}, {DefaultVariantSuffix, 2}}
-		pp := cpes2products(&c, varCpes, m.nameID, m.pkgID, []ModuleStream{ms}, m.pkg, &defaultOpts)
+		pp := cpes2products(&c, []VariantSuffix{DefaultVariantSuffix}, []CpeID{1, 2}, m.nameID, m.pkgID,
+			[]ModuleStream{ms}, m.pkg, &defaultOpts)
 		assert.Equal(t, m.fixed, pp.ProductsFixed)
 		assert.Equal(t, m.unfixed, pp.ProductsUnfixed)
 		// duplicate products to cover code handling duplicates
