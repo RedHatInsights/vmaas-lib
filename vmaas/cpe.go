@@ -4,7 +4,6 @@ import (
 	"slices"
 
 	"github.com/hashicorp/go-version"
-
 	"github.com/redhatinsights/vmaas-lib/vmaas/utils"
 )
 
@@ -63,49 +62,57 @@ func releaseNodesFromCpes(c *Cache, cpes []CpeLabel) []*ReleaseNode {
 	return res
 }
 
-func releaseNodes2VariantCpes(c *Cache, nodes []*ReleaseNode, except map[variantCPE]bool) []variantCPE {
-	variantCpes := make([]variantCPE, 0)
-	seen := make(map[variantCPE]bool)
+func releaseNodes2VariantsCpes(
+	c *Cache, nodes []*ReleaseNode, exceptVariants map[VariantSuffix]bool,
+) ([]VariantSuffix, []CpeID) {
+	variants := make([]VariantSuffix, 0)
+	cpes := make([]CpeID, 0)
+	seenVariants := make(map[VariantSuffix]bool)
+	seenCpes := make(map[CpeID]bool)
 	for _, node := range nodes {
 		for _, nodeCpe := range node.CPEs {
 			cpeID, ok := c.CpeLabel2ID[nodeCpe]
 			if !ok {
 				utils.LogInfo("cpe", nodeCpe, "Unknown CPE")
 			}
-			varCpe := variantCPE{
-				VariantSuffix: node.VariantSuffix,
-				CpeID:         cpeID,
+			if !seenCpes[cpeID] {
+				cpes = append(cpes, cpeID)
+				seenCpes[cpeID] = true
 			}
-			if !except[varCpe] && !seen[varCpe] {
-				variantCpes = append(variantCpes, varCpe)
-				seen[varCpe] = true
+			if !exceptVariants[node.VariantSuffix] && !seenVariants[node.VariantSuffix] {
+				variants = append(variants, node.VariantSuffix)
+				seenVariants[node.VariantSuffix] = true
 			}
 		}
 	}
-	return variantCpes
+	return variants, cpes
 }
 
-func cpes2variantCpes(c *Cache, cpes []CpeLabel, except []variantCPE) []variantCPE {
+func cpes2variantsCpes(c *Cache, cpes []CpeLabel, exceptVariants []VariantSuffix) ([]VariantSuffix, []CpeID) {
 	ancestorNodes := make([]*ReleaseNode, 0)
 	nodes := releaseNodesFromCpes(c, cpes)
-	variantCpes := releaseNodes2VariantCpes(c, nodes, nil)
+	variants, cpeIDs := releaseNodes2VariantsCpes(c, nodes, nil)
 
 	for _, node := range nodes {
 		ancestors := node.GetAncestors()
 		ancestorNodes = append(ancestorNodes, ancestors...)
 	}
 
-	exceptMap := make(map[variantCPE]bool, len(except))
-	for _, x := range except {
-		exceptMap[x] = true
+	exceptVariantsMap := make(map[VariantSuffix]bool, len(exceptVariants))
+	for _, x := range exceptVariants {
+		exceptVariantsMap[x] = true
+	}
+	for _, x := range variants {
+		exceptVariantsMap[x] = true
 	}
 
-	ancestorVariantCpes := releaseNodes2VariantCpes(c, ancestorNodes, exceptMap)
-	variantCpes = append(variantCpes, ancestorVariantCpes...)
+	ancestorVariants, ancestorCpes := releaseNodes2VariantsCpes(c, ancestorNodes, exceptVariantsMap)
+	variants = append(variants, ancestorVariants...)
+	cpeIDs = append(cpeIDs, ancestorCpes...)
 
-	slices.SortStableFunc(variantCpes, func(x, y variantCPE) int {
-		verX, errx := version.NewVersion(string(x.VariantSuffix))
-		verY, erry := version.NewVersion(string(y.VariantSuffix))
+	slices.SortStableFunc(variants, func(x, y VariantSuffix) int {
+		verX, errx := version.NewVersion(string(x))
+		verY, erry := version.NewVersion(string(y))
 		switch {
 		case errx != nil && erry != nil:
 			return 0
@@ -116,7 +123,8 @@ func cpes2variantCpes(c *Cache, cpes []CpeLabel, except []variantCPE) []variantC
 		}
 		return verX.Compare(verY)
 	})
-	return variantCpes
+	slices.Sort(cpeIDs)
+	return variants, cpeIDs
 }
 
 func repos2cpes(c *Cache, repoIDs []RepoID) []CpeLabel {
