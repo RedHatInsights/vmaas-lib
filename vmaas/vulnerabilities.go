@@ -285,15 +285,17 @@ func (r *ProcessedRequest) processRepos(c *Cache) {
 	newerReleaseverCpes := repos2cpes(c, newerReleaseverRepoIDs)
 	newerVariants, newerCpes := cpes2variantsCpes(c, newerReleaseverCpes, variants)
 
-	csCpes := contentSets2cpes(c, contentSetIDs)
-	csVariants, csCpeIDs := cpes2variantsCpes(c, csCpes, nil)
+	if len(cpes) == 0 {
+		csCpes := contentSets2cpes(c, contentSetIDs)
+		csVariants, csCpeIDs := cpes2variantsCpes(c, csCpes, nil)
+		r.ContentSetCpes = csCpeIDs
+		r.ContentSetVariants = csVariants
+	}
 
 	r.Cpes = cpeIDs
 	r.Variants = variants
 	r.NewerCpes = newerCpes
 	r.NewerVariants = newerVariants
-	r.ContentSetCpes = csCpeIDs
-	r.ContentSetVariants = csVariants
 }
 
 func (r *ProcessedRequest) processProducts(c *Cache, opts *options) []ProductsPackage {
