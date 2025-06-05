@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.31.2 (2025-06-05)
+
+### Fix
+
+* Variants comparison and sorting ([`f5dd468`](https://github.com/RedHatInsights/vmaas-lib/commit/f5dd4689458573ed5352273b7ffb7b955c225dee))
+* **csaf:** Reduce memory usage ([`59c6155`](https://github.com/RedHatInsights/vmaas-lib/commit/59c6155817d0e854e8b91e243ced6891a402aaa7))
+
 ## v1.31.1 (2025-06-02)
 
 ### Fix
