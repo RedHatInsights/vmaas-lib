@@ -17,9 +17,9 @@ type VulnerabilitiesCvesDetails struct {
 }
 
 type ProductsPackage struct {
-	ProductsFixed             []CSAFProduct
-	ProductsUnfixed           []CSAFProduct
-	ProductsFixedNewerRelease []CSAFProduct
+	ProductsFixed             []CSAFProductID
+	ProductsUnfixed           []CSAFProductID
+	ProductsFixedNewerRelease []CSAFProductID
 	Package                   Package
 }
 
@@ -124,18 +124,19 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 
 func evaluateUnpatchedCves(c *Cache, products []ProductsPackage, cves *VulnerabilitiesCvesDetails) {
 	for _, pp := range products {
-		seenProducts := make(map[CSAFProduct]bool, len(pp.ProductsUnfixed))
-		for _, product := range pp.ProductsUnfixed {
-			if seenProducts[product] {
+		seenProducts := make(map[CSAFProductID]bool, len(pp.ProductsUnfixed))
+		for _, productID := range pp.ProductsUnfixed {
+			if seenProducts[productID] {
 				// duplicate product in pp.ProductsUnfixed
 				// skip processing of already processed product
 				continue
 			}
-			seenProducts[product] = true
+			seenProducts[productID] = true
+			product := c.CSAFProductID2Product[productID]
 			module := product.ModuleStream
 			vs := product.VariantSuffix
 			cn := CpeIDNameID{CpeID: product.CpeID, NameID: product.PackageNameID}
-			csafCves := c.CSAFCVEs[vs][cn][product]
+			csafCves := c.CSAFCVEs[vs][cn][productID]
 			for _, cve := range getCveStrings(c, csafCves.Unfixed) {
 				cpe := c.CpeID2Label[product.CpeID]
 				if module.Module != "" {
@@ -148,15 +149,16 @@ func evaluateUnpatchedCves(c *Cache, products []ProductsPackage, cves *Vulnerabi
 	}
 }
 
-func updateManualCvesFromProducts(c *Cache, pkg Package, product CSAFProduct, seenProducts map[CSAFProduct]bool,
+func updateManualCvesFromProducts(c *Cache, pkg Package, productID CSAFProductID, seenProducts map[CSAFProductID]bool,
 	alreadyFixed map[string]map[string]bool, cves *VulnerabilitiesCvesDetails, opts *options,
 ) {
-	if seenProducts[product] {
+	if seenProducts[productID] {
 		// duplicate product in pp.ProductsFixed
 		// skip processing of already processed product
 		return
 	}
-	seenProducts[product] = true
+	seenProducts[productID] = true
+	product := c.CSAFProductID2Product[productID]
 	updateNevra := pkgID2Nevra(c, product.PackageID)
 	cn := CpeIDNameID{CpeID: product.CpeID, NameID: pkg.NameID}
 
@@ -168,7 +170,7 @@ func updateManualCvesFromProducts(c *Cache, pkg Package, product CSAFProduct, se
 			alreadyFixed[pkg.String] = make(map[string]bool)
 		}
 		vs := product.VariantSuffix
-		csafCves := c.CSAFCVEs[vs][cn][product]
+		csafCves := c.CSAFCVEs[vs][cn][productID]
 		for _, cve := range getCveStrings(c, csafCves.Fixed) {
 			alreadyFixed[pkg.String][cve.String] = true
 		}
@@ -179,7 +181,7 @@ func updateManualCvesFromProducts(c *Cache, pkg Package, product CSAFProduct, se
 		// update is applicable to the currently installed package
 		module := product.ModuleStream
 		vs := product.VariantSuffix
-		csafCves := c.CSAFCVEs[vs][cn][product]
+		csafCves := c.CSAFCVEs[vs][cn][productID]
 		for _, cve := range getCveStrings(c, csafCves.Fixed) {
 			if alreadyFixed[pkg.String][cve.String] {
 				// This CVE has already been fixed for the current package.
@@ -204,7 +206,7 @@ func updateManualCvesFromProducts(c *Cache, pkg Package, product CSAFProduct, se
 				cpe := c.CpeID2Label[product.CpeID]
 				erratum := c.CSAFCVEProduct2Erratum[CSAFCVEProduct{
 					CVEID:         cve.ID,
-					CSAFProductID: c.CSAFProduct2ID[product],
+					CSAFProductID: productID,
 				}]
 				if module.Module != "" {
 					updateCves(cves.ManualCves, cve.String, pkg, []string{erratum}, cpe, &module)
@@ -259,7 +261,7 @@ func evaluateManualCves(c *Cache, products []ProductsPackage, cves *Vulnerabilit
 ) {
 	allAlreadyFixed := make(map[string]map[string]bool) // map[package]map[cve]bool
 	for _, pp := range products {
-		seenProducts := make(map[CSAFProduct]bool, len(pp.ProductsFixed))
+		seenProducts := make(map[CSAFProductID]bool, len(pp.ProductsFixed))
 		// already fixed pkg-cve per product to include product information into VulnerabilitiesExtended
 		alreadyFixed := make(map[string]map[string]bool) // map[package]map[cve]bool
 		for _, product := range pp.ProductsFixed {
@@ -372,15 +374,16 @@ func repos2IDs(c *Cache, r *Request) ([]RepoID, []RepoID, []ContentSetID) {
 	return repoIDs, newerReleaseverRepoIDs, contentSetIDs
 }
 
-func productsWithUnfixedCVEs(c *Cache, cpe CpeID, nameID NameID, modules []ModuleStream) []CSAFProduct {
-	products := make([]CSAFProduct, 0, len(modules))
+func productsWithUnfixedCVEs(c *Cache, cpe CpeID, nameID NameID, modules []ModuleStream) []CSAFProductID {
+	products := make([]CSAFProductID, 0, len(modules))
 	cn := CpeIDNameID{CpeID: cpe, NameID: nameID}
 	// VariantSuffix for Unfixed products is always "N/A" and hopefully SECDATA-1025 won't change it
 	product := CSAFProduct{CpeID: cpe, VariantSuffix: DefaultVariantSuffix, PackageNameID: nameID}
 	for _, ms := range modules {
 		product.ModuleStream = ms
-		if _, ok := c.CSAFCVEs[DefaultVariantSuffix][cn][product]; ok {
-			products = append(products, product)
+		productID := c.CSAFProduct2ID[product]
+		if _, ok := c.CSAFCVEs[DefaultVariantSuffix][cn][productID]; ok {
+			products = append(products, productID)
 		}
 	}
 	return products
@@ -388,17 +391,18 @@ func productsWithUnfixedCVEs(c *Cache, cpe CpeID, nameID NameID, modules []Modul
 
 func productWithFixedCVEs(
 	c *Cache, variant VariantSuffix, cpe CpeID, nameID NameID, modules []ModuleStream,
-) ([]CSAFProduct, bool) {
+) ([]CSAFProductID, bool) {
 	cn := CpeIDNameID{CpeID: cpe, NameID: nameID}
 	productCves, ok := c.CSAFCVEs[variant][cn]
-	products := make([]CSAFProduct, 0, len(productCves))
+	products := make([]CSAFProductID, 0, len(productCves))
 	for p := range productCves {
-		if p.PackageID == 0 {
+		product := c.CSAFProductID2Product[p]
+		if product.PackageID == 0 {
 			// fixed product always has PackageID
 			continue
 		}
 		for _, module := range modules {
-			if p.ModuleStream == module {
+			if product.ModuleStream == module {
 				products = append(products, p)
 			}
 		}
@@ -409,8 +413,8 @@ func productWithFixedCVEs(
 func cpes2products(c *Cache, variants []VariantSuffix, cpes []CpeID, nameID NameID, pkgID PkgID,
 	modules []ModuleStream, pkg NevraString, opts *options,
 ) ProductsPackage {
-	productsUnfixed := make([]CSAFProduct, 0, len(cpes))
-	productsFixed := make([]CSAFProduct, 0, len(variants))
+	productsUnfixed := make([]CSAFProductID, 0, len(cpes))
+	productsFixed := make([]CSAFProductID, 0, len(variants))
 	// add empty module to module list to find affected products without modules
 	modules = append(modules, ModuleStream{})
 	for _, cpe := range cpes {
