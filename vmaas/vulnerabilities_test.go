@@ -42,15 +42,27 @@ func TestCSAF(t *testing.T) {
 			2: {NameID: 1, EvrID: 2, ArchID: 1, SrcPkgID: nil},  // kernel-0:2-2
 			3: {NameID: 2, EvrID: 1, ArchID: 1, SrcPkgID: &one}, // kernel-devel-0:1-1
 		},
-		CSAFCVEs: map[VariantSuffix]map[CpeIDNameID]map[CSAFProduct]CSAFCVEs{
+		CSAFProduct2ID: map[CSAFProduct]CSAFProductID{
+			unfixed1: 1,
+			unfixed2: 2,
+			fixed1:   3,
+			fixed2:   4,
+		},
+		CSAFProductID2Product: map[CSAFProductID]CSAFProduct{
+			1: unfixed1,
+			2: unfixed2,
+			3: fixed1,
+			4: fixed2,
+		},
+		CSAFCVEs: map[VariantSuffix]map[CpeIDNameID]map[CSAFProductID]CSAFCVEs{
 			DefaultVariantSuffix: {
 				{CpeID: 1, NameID: 1}: {
-					unfixed1: {Unfixed: []CVEID{1, 2}},
-					fixed1:   {Fixed: []CVEID{3, 4}},
+					1: {Unfixed: []CVEID{1, 2}},
+					3: {Fixed: []CVEID{3, 4}},
 				},
 				{CpeID: 2, NameID: 1}: {
-					unfixed2: {Unfixed: []CVEID{1, 2}},
-					fixed2:   {Fixed: []CVEID{5}},
+					2: {Unfixed: []CVEID{1, 2}},
+					4: {Fixed: []CVEID{5}},
 				},
 			},
 		},
@@ -63,8 +75,8 @@ func TestCSAF(t *testing.T) {
 		pkg     NevraString
 		nameID  NameID
 		pkgID   PkgID
-		fixed   []CSAFProduct
-		unfixed []CSAFProduct
+		fixed   []CSAFProductID
+		unfixed []CSAFProductID
 	}
 	pkg1 := utils.Nevra{Name: "kernel", Epoch: 0, Version: "1", Release: "1", Arch: "x86_64"}
 	pkg2 := utils.Nevra{Name: "kernel", Epoch: 0, Version: "2", Release: "2", Arch: "x86_64"}
@@ -74,22 +86,22 @@ func TestCSAF(t *testing.T) {
 			pkg:     NevraString{Nevra: pkg1, Pkg: pkg1.String()},
 			nameID:  1,
 			pkgID:   1,
-			unfixed: []CSAFProduct{unfixed1, unfixed2},
-			fixed:   []CSAFProduct{fixed1, fixed2},
+			unfixed: []CSAFProductID{1, 2},
+			fixed:   []CSAFProductID{3, 4},
 		},
 		{
 			pkg:     NevraString{Nevra: pkg2, Pkg: pkg2.String()},
 			nameID:  1,
 			pkgID:   2,
-			unfixed: []CSAFProduct{unfixed1, unfixed2},
-			fixed:   []CSAFProduct{fixed1, fixed2},
+			unfixed: []CSAFProductID{1, 2},
+			fixed:   []CSAFProductID{3, 4},
 		},
 		{
 			pkg:     NevraString{Nevra: pkg3, Pkg: pkg3.String()},
 			nameID:  2,
 			pkgID:   3,
-			unfixed: []CSAFProduct{unfixed1, unfixed2},
-			fixed:   []CSAFProduct{},
+			unfixed: []CSAFProductID{1, 2},
+			fixed:   []CSAFProductID{},
 		}, // match source package
 	}
 
@@ -229,38 +241,46 @@ func TestManualCvesNewerRelease(t *testing.T) {
 			productCveFixed:      5,
 			productCveFixedNewer: 6,
 		},
+		CSAFProductID2Product: map[CSAFProductID]CSAFProduct{
+			1: productCve1,
+			2: productCve3,
+			3: productCve1Newer,
+			4: productCve2Newer,
+			5: productCveFixed,
+			6: productCveFixedNewer,
+		},
 		CSAFCVEProduct2Erratum: map[CSAFCVEProduct]string{
 			{1, 1}: "RHSA-1",
 			{3, 2}: "RHSA-2",
 			{1, 3}: "RHSA-3",
 			{2, 4}: "RHSA-4",
 		},
-		CSAFCVEs: map[VariantSuffix]map[CpeIDNameID]map[CSAFProduct]CSAFCVEs{
+		CSAFCVEs: map[VariantSuffix]map[CpeIDNameID]map[CSAFProductID]CSAFCVEs{
 			DefaultVariantSuffix: {
 				{1, 1}: {
-					productCve1:     {Fixed: []CVEID{1}},
-					productCve3:     {Fixed: []CVEID{3}},
-					productCveFixed: {Fixed: []CVEID{5}},
+					1: {Fixed: []CVEID{1}},
+					2: {Fixed: []CVEID{3}},
+					5: {Fixed: []CVEID{5}},
 				},
 				{2, 1}: {
-					productCve1Newer:     {Fixed: []CVEID{1}},
-					productCve2Newer:     {Fixed: []CVEID{2}},
-					productCveFixedNewer: {Fixed: []CVEID{5}},
+					3: {Fixed: []CVEID{1}},
+					4: {Fixed: []CVEID{2}},
+					6: {Fixed: []CVEID{5}},
 				},
 			},
 		},
 	}
 	products := []ProductsPackage{
 		{
-			ProductsFixed: []CSAFProduct{
-				productCveFixed, // fixing CVE-FIXED, should not show up as it is already fixed in current release
-				productCve1,     // fixing CVE-1, RHSA-1
-				productCve3,     // fixing CVE-3, RHSA-2
+			ProductsFixed: []CSAFProductID{
+				5, // productCveFixed - fixing CVE-FIXED, should not show up as it is already fixed in current release
+				1, // productCve1 - fixing CVE-1, RHSA-1
+				2, // productCve3 - fixing CVE-3, RHSA-2
 			},
-			ProductsFixedNewerRelease: []CSAFProduct{
-				productCveFixedNewer, // CVE-FIXED, fixed pkg has higher NEVRA but it is already fixed
-				productCve1Newer,     // fixing CVE-1, RHSA-3
-				productCve2Newer,     // fixing CVE-2, RHSA-4
+			ProductsFixedNewerRelease: []CSAFProductID{
+				6, // productCveFixedNewer - CVE-FIXED, fixed pkg has higher NEVRA but it is already fixed
+				3, // productCve1Newer - fixing CVE-1, RHSA-3
+				4, // productCve2Newer - fixing CVE-2, RHSA-4
 			},
 			Package: Package{
 				Nevra:  utils.Nevra{Name: "pkg", Epoch: 0, Version: "1", Release: "0", Arch: "x86_64"},

@@ -873,14 +873,15 @@ type csafCVEProductRow struct {
 
 func productsByStatus(
 	c *Cache, cpr *csafCVEProductRow, product *CSAFProduct, cn *CpeIDNameID,
-	cveCache map[VariantSuffix]map[CpeIDNameID]map[CSAFProduct]CSAFCVEs,
+	cveCache map[VariantSuffix]map[CpeIDNameID]map[CSAFProductID]CSAFCVEs,
 ) ([]CVEID, []CVEID) {
 	variant := product.VariantSuffix
+	productID := CSAFProductID(cpr.ID)
 	switch c.CSAFProductStatus[cpr.CSAFProductStatusID] {
 	case "fixed":
-		return append(cveCache[variant][*cn][*product].Fixed, cpr.CVEID), cveCache[variant][*cn][*product].Unfixed
+		return append(cveCache[variant][*cn][productID].Fixed, cpr.CVEID), cveCache[variant][*cn][productID].Unfixed
 	case "known_affected":
-		return cveCache[variant][*cn][*product].Fixed, append(cveCache[variant][*cn][*product].Unfixed, cpr.CVEID)
+		return cveCache[variant][*cn][productID].Fixed, append(cveCache[variant][*cn][productID].Unfixed, cpr.CVEID)
 	default:
 		panic(fmt.Sprintf("unknown product status: %s", c.CSAFProductStatus[cpr.CSAFProductStatusID]))
 	}
@@ -903,7 +904,8 @@ func loadCSAFCVE(c *Cache) { //nolint: funlen
 	cntCveProducts := getCount("csaf_cve_product", "*")
 
 	product2id := make(map[CSAFProduct]CSAFProductID, cntProducts)
-	cveCache := make(map[VariantSuffix]map[CpeIDNameID]map[CSAFProduct]CSAFCVEs, cntProducts)
+	id2product := make(map[CSAFProductID]CSAFProduct, cntProducts)
+	cveCache := make(map[VariantSuffix]map[CpeIDNameID]map[CSAFProductID]CSAFCVEs, cntProducts)
 	errataCache := make(map[CSAFCVEProduct]string, cntCveProducts)
 
 	for rows.Next() {
@@ -921,7 +923,8 @@ func loadCSAFCVE(c *Cache) { //nolint: funlen
 			panic(fmt.Errorf("failed to scan csaf_product row: %s", err.Error()))
 		}
 
-		cveProduct := CSAFCVEProduct{CVEID: cpr.CVEID, CSAFProductID: CSAFProductID(cpr.ID)}
+		csafProductID := CSAFProductID(cpr.ID)
+		cveProduct := CSAFCVEProduct{CVEID: cpr.CVEID, CSAFProductID: csafProductID}
 		product := CSAFProduct{
 			CpeID:         cpr.Product.CpeID,
 			VariantSuffix: cpr.Product.VariantSuffix,
@@ -938,13 +941,14 @@ func loadCSAFCVE(c *Cache) { //nolint: funlen
 		cn := CpeIDNameID{product.CpeID, product.PackageNameID}
 		fixed, unfixed := productsByStatus(c, &cpr, &product, &cn, cveCache)
 		if _, ok := cveCache[variant]; !ok {
-			cveCache[variant] = map[CpeIDNameID]map[CSAFProduct]CSAFCVEs{}
+			cveCache[variant] = map[CpeIDNameID]map[CSAFProductID]CSAFCVEs{}
 		}
 		if _, ok := cveCache[variant][cn]; !ok {
-			cveCache[variant][cn] = map[CSAFProduct]CSAFCVEs{}
+			cveCache[variant][cn] = map[CSAFProductID]CSAFCVEs{}
 		}
-		cveCache[variant][cn][product] = CSAFCVEs{Fixed: fixed, Unfixed: unfixed}
-		product2id[product] = CSAFProductID(cpr.ID)
+		cveCache[variant][cn][csafProductID] = CSAFCVEs{Fixed: fixed, Unfixed: unfixed}
+		product2id[product] = csafProductID
+		id2product[csafProductID] = product
 	}
 
 	c.CSAFCVEs = cveCache
