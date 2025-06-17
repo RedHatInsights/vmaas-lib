@@ -6,8 +6,8 @@ const (
 )
 
 type PaginationRequest struct {
-	PageNumber int `json:"page"`
-	PageSize   int `json:"page_size"`
+	PageNumber int `json:"page" example:"1"`
+	PageSize   int `json:"page_size" example:"10"`
 }
 
 type Pagination struct {

@@ -11,7 +11,7 @@ type PackageDetails map[string]interface{}
 
 type Packages struct {
 	Packages   PackageDetails `json:"package_list"`
-	LastChange time.Time      `json:"last_change"`
+	LastChange time.Time      `json:"last_change" example:"2024-11-20T12:36:49.640592Z"`
 }
 
 func filterInputPkgs(c *Cache, pkgs []string, req *PackagesRequest) ([]string, map[string]PkgID) {

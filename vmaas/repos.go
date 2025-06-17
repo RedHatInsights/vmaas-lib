@@ -12,8 +12,8 @@ type RepoDetails map[string][]RepoDetail
 
 type Repos struct {
 	Repos            RepoDetails `json:"repository_list"`
-	LatestRepoChange *time.Time  `json:"latest_repo_change,omitempty"`
-	LastChange       time.Time   `json:"last_change"`
+	LatestRepoChange *time.Time  `json:"latest_repo_change,omitempty" example:"2024-11-20T12:36:49.640592Z"`
+	LastChange       time.Time   `json:"last_change" example:"2024-11-20T12:36:49.640592Z"`
 	utils.Pagination
 }
 

@@ -12,9 +12,9 @@ type ErratumDetails map[string]ErratumDetail
 
 type Errata struct {
 	Errata     ErratumDetails `json:"errata_list"`
-	Type       TypeT          `json:"type,omitempty"`
-	Severity   SeverityT      `json:"severity,omitempty"`
-	LastChange time.Time      `json:"last_change"`
+	Type       TypeT          `json:"type,omitempty" example:"security"`
+	Severity   SeverityT      `json:"severity,omitempty" enums:"Low,Moderate,Important,Critical,null"`
+	LastChange time.Time      `json:"last_change" example:"2024-11-20T12:36:49.640592Z"`
 	utils.Pagination
 }
 

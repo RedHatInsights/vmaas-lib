@@ -12,7 +12,7 @@ type ContentData map[string][]string
 
 type RPMPkgNames struct {
 	Names      ContentData `json:"rpm_name_list"` // TODO: use `omitzero` from go1.24
-	LastChange time.Time   `json:"last_change"`
+	LastChange time.Time   `json:"last_change" example:"2024-11-20T12:36:49.640592Z"`
 }
 
 func (c *Cache) getContentData(rpmNames []string, contentSets []string) ContentData {

@@ -8,9 +8,10 @@ import (
 )
 
 type PkgList struct {
-	PkgList    []PkgListItem `json:"package_list"`
-	Total      int           `json:"total"`
-	LastChange time.Time     `json:"last_change"`
+	PkgList []PkgListItem `json:"package_list"`
+	// Total number of packages to return.
+	Total      int       `json:"total" example:"100"`
+	LastChange time.Time `json:"last_change" example:"2024-11-20T12:36:49.640592Z"`
 	utils.Pagination
 }
 
