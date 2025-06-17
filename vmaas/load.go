@@ -954,6 +954,7 @@ func loadCSAFCVE(c *Cache) { //nolint: funlen
 	c.CSAFCVEs = cveCache
 	c.CSAFCVEProduct2Erratum = errataCache
 	c.CSAFProduct2ID = product2id
+	c.CSAFProductID2Product = id2product
 }
 
 func loadDumpSchemaVersion(c *Cache) {
