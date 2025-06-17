@@ -7,8 +7,8 @@ import (
 )
 
 type Patches struct {
-	Errata     []string  `json:"errata_list"`
-	LastChange time.Time `json:"last_change"`
+	Errata     []string  `json:"errata_list" example:"RHSA-2018:0151"`
+	LastChange time.Time `json:"last_change" example:"2024-11-20T12:36:49.640592Z"`
 }
 
 func extractUpdatesErrata(updates *Updates) []string {

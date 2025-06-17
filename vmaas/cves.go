@@ -12,7 +12,7 @@ type CveDetails map[string]CveDetail
 
 type Cves struct {
 	Cves       CveDetails `json:"cve_list"`
-	LastChange time.Time  `json:"last_change"`
+	LastChange time.Time  `json:"last_change" example:"2024-11-20T12:36:49.640592Z"`
 	utils.Pagination
 }
 

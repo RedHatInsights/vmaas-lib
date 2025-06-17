@@ -35,16 +35,15 @@ type (
 const DefaultVariantSuffix = "N/A"
 
 type Request struct {
-	Packages []string  `json:"package_list"`
-	Repos    *[]string `json:"repository_list"`
-	// we need to use pointers to modules to distinguish between nil and ""
-	// to keep consistency with python implementation
+	Packages   []string           `json:"package_list" example:"kernel-2.6.32-696.20.1.el6.x86_64" validate:"required"`
+	Repos      *[]string          `json:"repository_list" example:"rhel-6-server-rpms"`
 	Modules    []ModuleStreamPtrs `json:"modules_list"`
-	Releasever *string            `json:"releasever"`
-	Basearch   *string            `json:"basearch"`
-	RepoPaths  []string           `json:"repository_paths"`
+	Releasever *string            `json:"releasever" example:"6Server"`
+	Basearch   *string            `json:"basearch" example:"x86_64"`
+	RepoPaths  []string           `json:"repository_paths" example:"/content/dist/rhel/rhui/server/7/7Server/x86_64/os/"`
 
-	ThirdParty   bool `json:"third_party"`
+	// Include content from "third party" repositories into the response, disabled by default.
+	ThirdParty   bool `json:"third_party" default:"false"`
 	LatestOnly   bool `json:"latest_only"`
 	SecurityOnly bool `json:"security_only"`
 
@@ -54,28 +53,37 @@ type Request struct {
 }
 
 type CvesRequest struct {
-	Cves                []string   `json:"cve_list"`
-	PublishedSince      *time.Time `json:"published_since"`
-	ModifiedSince       *time.Time `json:"modified_since"`
-	RHOnly              bool       `json:"rh_only"`
-	AreErrataAssociated bool       `json:"errata_associated"`
-	ThirdParty          bool       `json:"third_party"`
+	Cves           []string   `json:"cve_list" example:"CVE-2017-57.*" minItems:"1" validate:"required"`
+	PublishedSince *time.Time `json:"published_since" example:"2018-04-05T01:23:45+02:00" format:"date-time"`
+	ModifiedSince  *time.Time `json:"modified_since" example:"2018-04-05T01:23:45+02:00" format:"date-time"`
+	RHOnly         bool       `json:"rh_only"`
+	// Return only those CVEs which are associated with at least one errata. Defaults to false.
+	AreErrataAssociated bool `json:"errata_associated"`
+	// Include content from \"third party\" repositories into the response, disabled by default.
+	ThirdParty bool `json:"third_party" default:"false"`
 	utils.PaginationRequest
 }
+
 type PkgListRequest struct {
-	ModifiedSince  *time.Time `json:"modified_since"`
-	ReturnModified bool       `json:"return_modified"`
+	ModifiedSince *time.Time `json:"modified_since" example:"2018-04-05T01:23:45+02:00" format:"date-time"`
+	// Include 'modified' package attribute into the response
+	ReturnModified bool `json:"return_modified" default:"false"`
 	utils.PaginationRequest
 }
 
 type PkgTreeRequest struct {
-	PackageNames       []string   `json:"package_name_list"`
-	ModifiedSince      *time.Time `json:"modified_since"`
-	ThirdParty         bool       `json:"third_party"`
-	ReturnRepositories *bool      `json:"return_repositories"`
-	ReturnErrata       *bool      `json:"return_errata"`
-	ReturnSummary      bool       `json:"return_summary"`
-	ReturnDescription  bool       `json:"return_description"`
+	PackageNames  []string   `json:"package_name_list" example:"kernel-rt" minItems:"1" validate:"required"`
+	ModifiedSince *time.Time `json:"modified_since" example:"2018-04-05T01:23:45+02:00" format:"date-time"`
+	// Include content from "third party" repositories into the response, disabled by default.
+	ThirdParty bool `json:"third_party" default:"false"`
+	// Include nevra repositories info into the response.
+	ReturnRepositories *bool `json:"return_repositories" default:"true"`
+	// Include nevra errata info into the response.
+	ReturnErrata *bool `json:"return_errata" default:"true"`
+	// Include nevra summary info into the response.
+	ReturnSummary bool `json:"return_summary" default:"false"`
+	// Include nevra description info into the response.
+	ReturnDescription bool `json:"return_description" default:"false"`
 	utils.PaginationRequest
 }
 
@@ -162,47 +170,53 @@ func (slice *TypeT) UnmarshalJSON(data []byte) error {
 }
 
 type ErrataRequest struct {
-	Errata        []string   `json:"errata_list"`
-	ModifiedSince *time.Time `json:"modified_since"`
-	ThirdParty    bool       `json:"third_party"`
-	Type          TypeT      `json:"type"`
-	Severity      SeverityT  `json:"severity"`
+	Errata        []string   `json:"errata_list" example:"RHSA-2018:05.*" minItems:"1" validate:"required"`
+	ModifiedSince *time.Time `json:"modified_since" example:"2018-04-05T01:23:45+02:00" format:"date-time"`
+	// Include content from \"third party\" repositories into the response, disabled by default.
+	ThirdParty bool      `json:"third_party" default:"false"`
+	Type       TypeT     `json:"type" example:"security"`
+	Severity   SeverityT `json:"severity" enums:"Low,Moderate,Important,Critical,null"`
 	utils.PaginationRequest
 }
 
 type ReposRequest struct {
-	Repos         []string   `json:"repository_list"`
-	ModifiedSince *time.Time `json:"modified_since"`
-	ThirdParty    bool       `json:"third_party"`
-	ShowPackages  bool       `json:"show_packages"`
-	HasPackages   bool       `json:"has_packages"`
-	Organization  string     `json:"organization"`
+	Repos []string `json:"repository_list" example:"rhel-6-server-rpms" minItems:"1" validate:"required"`
+	// Return only repositories changed after the given date
+	ModifiedSince *time.Time `json:"modified_since" example:"2018-04-05T01:23:45+02:00" format:"date-time"`
+	// Include content from \"third party\" repositories into the response, disabled by default.
+	ThirdParty bool `json:"third_party" default:"false"`
+	// Show updated package names in a repo since the last modified_since
+	ShowPackages bool `json:"show_packages" default:"false"`
+	// Return only repositories having advisories with packages released since the last modified_since
+	HasPackages  bool   `json:"has_packages" default:"false"`
+	Organization string `json:"organization"`
 	utils.PaginationRequest
 }
 
 type PackagesRequest struct {
-	Packages   []string `json:"package_list"`
-	ThirdParty bool     `json:"third_party"`
+	Packages []string `json:"package_list" example:"kernel-2.6.32-696.20.1.el6.x86_64" minItems:"1" validate:"required"`
+	// Include content from "third party" repositories into the response, disabled by default.
+	ThirdParty bool `json:"third_party" default:"false"`
 }
 
 type RPMPkgNamesRequest struct {
-	RPMNames    []string `json:"rpm_name_list"`
-	ContentSets []string `json:"content_set_list"`
+	RPMNames    []string `json:"rpm_name_list" example:"openssl-libs" validate:"required"`
+	ContentSets []string `json:"content_set_list" example:"rhel-7-desktop-rpms"`
 }
 
 type SRPMPkgNamesRequest struct {
-	SRPMNames   []string `json:"srpm_name_list"`
-	ContentSets []string `json:"content_set_list"`
+	SRPMNames   []string `json:"srpm_name_list" example:"openssl" validate:"required"`
+	ContentSets []string `json:"content_set_list" example:"rhel-7-desktop-rpms"`
 }
 
 type Update struct {
-	Package     string `json:"package"`
-	PackageName string `json:"package_name"`
-	EVRA        string `json:"evra"`
-	Erratum     string `json:"erratum"`
-	Repository  string `json:"repository"`
-	Basearch    string `json:"basearch"`
-	Releasever  string `json:"releasever"`
+	Package     string `json:"package" example:"kernel-2.6.32-696.23.1.el6.x86_64"`
+	PackageName string `json:"package_name" example:"kernel"`
+	EVRA        string `json:"evra" example:"0:2.6.32-696.23.1.el6.x86_64"`
+	Erratum     string `json:"erratum" example:"RHSA-2018:0512"`
+	Repository  string `json:"repository" example:"rhel-6-server-rpms"`
+	Basearch    string `json:"basearch" example:"x86_64"`
+	Releasever  string `json:"releasever" example:"6Server"`
 	// helper for sorting
 	nevra utils.Nevra `json:"-"`
 	// helper to determine manually fixable errata/cves
@@ -216,13 +230,14 @@ type UpdateDetail struct {
 type UpdateList map[string]UpdateDetail
 
 type Updates struct {
-	UpdateList UpdateList     `json:"update_list"`
-	RepoList   *[]string      `json:"repository_list,omitempty"`
+	UpdateList UpdateList `json:"update_list"`
+	RepoList   *[]string  `json:"repository_list,omitempty" example:"rhel-6-server-rpms"`
+	// Example: /content/dist/rhel/rhui/server/7/7Server/x86_64/os/
 	RepoPaths  []string       `json:"repository_paths,omitempty"`
 	ModuleList []ModuleStream `json:"modules_list,omitempty"`
-	Releasever *string        `json:"releasever,omitempty"`
-	Basearch   *string        `json:"basearch,omitempty"`
-	LastChange time.Time      `json:"last_change"`
+	Releasever *string        `json:"releasever,omitempty" example:"6Server"`
+	Basearch   *string        `json:"basearch,omitempty" example:"x86_64"`
+	LastChange time.Time      `json:"last_change" example:"2024-11-20T12:36:49.640592Z"`
 }
 
 type Vulnerability string
@@ -237,9 +252,9 @@ type VulnerabilityDetail struct {
 // marshal VulnerabilityDetail Packages and Errata as json arrays for backward compatibility
 func (d VulnerabilityDetail) MarshalJSON() ([]byte, error) {
 	var out struct {
-		CVE      string            `json:"cve"`
-		Packages []string          `json:"affected_packages"`
-		Errata   []string          `json:"errata"`
+		CVE      string            `json:"cve" example:"CVE-2017-15089" validate:"required"`
+		Packages []string          `json:"affected_packages" example:"libxml2-0:2.9.1-6.el7_2.3.x86_64" validate:"required"`
+		Errata   []string          `json:"errata" example:"RHSA-2018:0512" validate:"required"`
 		Affected []AffectedPackage `json:"affected,omitempty"`
 	}
 	out.CVE = d.CVE
@@ -267,10 +282,10 @@ type AffectedPackage struct {
 }
 
 type Vulnerabilities struct {
-	CVEs                []Vulnerability `json:"cve_list"`
-	ManuallyFixableCVEs []Vulnerability `json:"manually_fixable_cve_list"`
-	UnpatchedCVEs       []Vulnerability `json:"unpatched_cve_list"`
-	LastChange          time.Time       `json:"last_change"`
+	CVEs                []Vulnerability `json:"cve_list" validate:"required"`
+	ManuallyFixableCVEs []Vulnerability `json:"manually_fixable_cve_list" validate:"required"`
+	UnpatchedCVEs       []Vulnerability `json:"unpatched_cve_list" validate:"required"`
+	LastChange          time.Time       `json:"last_change" example:"2024-11-20T12:36:49.640592Z"`
 }
 
 type VulnerabilitiesExtended struct {
@@ -305,56 +320,56 @@ type Nevra struct {
 }
 
 type RepoDetailCommon struct {
-	Label        string `json:"label"`
-	Name         string `json:"name"`
-	Basearch     string `json:"basearch"`
-	Releasever   string `json:"releasever"`
+	Label        string `json:"label" example:"rhel-6-server-rpms" validate:"required"`
+	Name         string `json:"name" example:"Red Hat Enterprise Linux 6 Server (RPMs)" validate:"required"`
+	Basearch     string `json:"basearch" example:"x86_64" validate:"required"`
+	Releasever   string `json:"releasever" example:"6Server" validate:"required"`
 	Organization string `json:"organization"`
 }
 
 type RepoDetail struct {
 	RepoDetailCommon
-	URL        string     `json:"url"`
-	Product    string     `json:"product"`
+	URL        string     `json:"url" example:"https://cdn.redhat.com/content/dist/rhel/server/6/6Server/x86_64/os/"`
+	Product    string     `json:"product" example:"Red Hat Enterprise Linux Server"`
 	ProductID  int        `json:"-"`
-	Revision   string     `json:"revision"`
+	Revision   string     `json:"revision" example:"2018-03-27T10:55:16+00:00"`
 	LastChange *time.Time `json:"last_change"`
 	ThirdParty bool       `json:"third_party"`
 
-	CPEs                []CpeLabel `json:"cpes"`
-	UpdatedPackageNames *[]string  `json:"updated_package_names,omitempty"`
+	CPEs                []CpeLabel `json:"cpes" example:"cpe:/a:redhat"`
+	UpdatedPackageNames *[]string  `json:"updated_package_names,omitempty" example:"kernel"`
 }
 
 type PackageDetailResponse struct {
-	Summary       string             `json:"summary"`
-	Description   string             `json:"description"`
-	SourcePackage string             `json:"source_package"`
-	Packages      []string           `json:"package_list"`
+	Summary       string             `json:"summary" example:"package summary"`
+	Description   string             `json:"description" example:"package description"`
+	SourcePackage string             `json:"source_package" example:"kernel-2.6.32-696.23.1.el6.src"`
+	Packages      []string           `json:"package_list" example:"kernel-2.6.32-696.23.1.el6.x86_64"`
 	Repositories  []RepoDetailCommon `json:"repositories"`
 }
 
 type CveDetail struct {
-	Name          string     `json:"synopsis"`
-	RedHatURL     string     `json:"redhat_url"`
-	SecondaryURL  string     `json:"secondary_url"`
-	Cvss3Score    string     `json:"cvss3_score"`
-	Cvss3Metrics  string     `json:"cvss3_metrics"`
-	Impact        string     `json:"impact"`
-	PublishedDate *time.Time `json:"public_date"`
-	ModifiedDate  *time.Time `json:"modified_date"`
+	Name          string     `json:"synopsis" example:"CVE-2017-5715"`
+	RedHatURL     string     `json:"redhat_url" example:"https://access.redhat.com/security/cve/cve-2017-5715"`
+	SecondaryURL  string     `json:"secondary_url" example:"https://seconday.url.com"`
+	Cvss3Score    string     `json:"cvss3_score" example:"5.1"`
+	Cvss3Metrics  string     `json:"cvss3_metrics" example:"AV:L/AC:H/PR:L/UI:N/S:C/C:H/I:N/A:N"`
+	Impact        string     `json:"impact" enums:"NotSet,None,Low,Medium,Moderate,Important,High,Critical"`
+	PublishedDate *time.Time `json:"public_date" example:"2018-01-04T13:29:00+00:00" format:"date-time"`
+	ModifiedDate  *time.Time `json:"modified_date" example:"2018-03-31T01:29:00+00:00" format:"date-time"`
 	Iava          string     `json:"-"`
-	Description   string     `json:"description"`
-	Cvss2Score    string     `json:"cvss2_score"`
-	Cvss2Metrics  string     `json:"cvss2_metrics"`
+	Description   string     `json:"description" example:"description text"`
+	Cvss2Score    string     `json:"cvss2_score" example:"5.600"`
+	Cvss2Metrics  string     `json:"cvss2_metrics" example:"AV:L/AC:H/PR:L/UI:N/S:C/C:H/I:N/A:N"`
 	Source        string     `json:"-"`
 
-	CWEs       []string    `json:"cwe_list"`
+	CWEs       []string    `json:"cwe_list" example:"CWE-20"`
 	PkgIDs     []int       `json:"-"`
 	ErratumIDs []ErratumID `json:"-"`
 
-	Errata         []string `json:"errata_list"`
-	Packages       []string `json:"package_list"`
-	SourcePackages []string `json:"source_package_list"`
+	Errata         []string `json:"errata_list" example:"RHSA-2015:1981"`
+	Packages       []string `json:"package_list" example:"nss-devel-3.16.1-9.el6_5.x86_64"`
+	SourcePackages []string `json:"source_package_list" example:"nss-devel-3.16.1-9.el6_5.src"`
 }
 
 type PkgErratum struct {
@@ -377,48 +392,49 @@ type ModuleStream struct {
 }
 
 type ModuleStreamPtrs struct {
-	Module *string `json:"module_name"`
-	Stream *string `json:"module_stream"`
+	Module *string `json:"module_name" example:"rhn-tools" validate:"required"`
+	Stream *string `json:"module_stream" example:"1" validate:"required"`
 }
 
+// @Description VMaaS DB last-updated time stramps
 type DBChange struct {
-	ErrataChanges time.Time `json:"errata_changes"`
-	CveChanges    time.Time `json:"cve_changes"`
-	RepoChanges   time.Time `json:"repository_changes"`
-	LastChange    time.Time `json:"last_change"`
-	Exported      time.Time `json:"exported"`
+	ErrataChanges time.Time `json:"errata_changes" example:"2024-11-20T12:24:23.488871Z"`
+	CveChanges    time.Time `json:"cve_changes" example:"2024-11-20T12:26:20.009512Z"`
+	RepoChanges   time.Time `json:"repository_changes" example:"2024-11-20T12:24:23.486827Z"`
+	LastChange    time.Time `json:"last_change" example:"2024-11-20T12:36:49.640592Z"`
+	Exported      time.Time `json:"exported" example:"2024-11-20T12:37:47.605526Z"`
 }
 
 type ErratumDetail struct {
-	Synopsis       string  `json:"synopsis"`
-	Summary        string  `json:"summary"`
-	Type           string  `json:"type"`
-	Severity       *string `json:"severity"`
-	Description    string  `json:"description"`
-	Solution       string  `json:"solution"`
-	URL            string  `json:"url"`
+	Synopsis       string  `json:"synopsis" example:"Important: kernel security and bug fix update"`
+	Summary        string  `json:"summary" example:"summary text"`
+	Type           string  `json:"type" example:"security"`
+	Severity       *string `json:"severity" enums:"Low,Moderate,Important,Critical,null"`
+	Description    string  `json:"description" example:"description text"`
+	Solution       string  `json:"solution" example:"solution text"`
+	URL            string  `json:"url" example:"https://access.redhat.com/errata/RHSA-2018:0512"`
 	ThirdParty     bool    `json:"third_party"`
 	RequiresReboot bool    `json:"requires_reboot"`
 
 	ID        ErratumID  `json:"-"`
-	Issued    *time.Time `json:"issued"`
-	Updated   *time.Time `json:"updated"`
-	CVEs      []string   `json:"cve_list"`
+	Issued    *time.Time `json:"issued" example:"2018-03-13T17:31:28+00:00" format:"date-time"`
+	Updated   *time.Time `json:"updated" example:"2018-03-13T17:31:41+00:00"`
+	CVEs      []string   `json:"cve_list" example:"CVE-2017-5715"`
 	PkgIDs    []int      `json:"-"`
-	Bugzillas []string   `json:"bugzilla_list"`
-	Refs      []string   `json:"reference_list"`
+	Bugzillas []string   `json:"bugzilla_list" example:"1519778"`
+	Refs      []string   `json:"reference_list" example:"classification-RHSA-2018:0512"`
 	Modules   []Module   `json:"modules_list"`
 
-	PackageList       []string `json:"package_list"`
-	SourcePackageList []string `json:"source_package_list"`
-	ReleaseVersions   []string `json:"release_versions"`
+	PackageList       []string `json:"package_list" example:"kernel-2.6.32-696.23.1.el6.x86_64"`
+	SourcePackageList []string `json:"source_package_list" example:"kernel-2.6.32-696.23.1.el6.src"`
+	ReleaseVersions   []string `json:"release_versions" example:"8.1"`
 }
 
 type PkgListItem struct {
-	Nevra       string     `json:"nevra"`
-	Summary     string     `json:"summary"`
-	Description string     `json:"description"`
-	Modified    *time.Time `json:"modified,omitempty"`
+	Nevra       string     `json:"nevra" example:"kernel-rt-4.18.0-147.rt24.93.el8.x86_64"`
+	Summary     string     `json:"summary" example:"My package summary"`
+	Description string     `json:"description" example:"My package description"`
+	Modified    *time.Time `json:"modified,omitempty" example:"2018-04-05T01:23:45+02:00" format:"date-time"`
 }
 
 type NameArch struct {

@@ -10,23 +10,25 @@ import (
 )
 
 type PkgTreeErratumDetail struct {
-	Name    string     `json:"name"`
-	Issued  *time.Time `json:"issued"`
-	Updated *time.Time `json:"updated"`
-	CVEs    []string   `json:"cve_list"`
+	Name    string     `json:"name" example:"RHSA-2019:2730" validate:"required"`
+	Issued  *time.Time `json:"issued" example:"2019-11-19T09:41:05+00:00" format:"date-time" validate:"required"`
+	Updated *time.Time `json:"updated" example:"2019-11-19T09:41:05+00:00" format:"date-time"`
+	CVEs    []string   `json:"cve_list" example:"CVE-2018-13405"`
 }
 
 type PkgTreeRepoDetail struct {
 	RepoDetailCommon
-	Revision string `json:"revision"`
+	Revision string `json:"revision" example:"2019-11-19T09:41:05+00:00" format:"date-time" validate:"required"`
 	// ModuleStream
 }
 
 type PkgTreeItem struct {
-	Nevra          string                  `json:"nevra"`
-	Summary        string                  `json:"summary,omitempty"`
-	Description    string                  `json:"description,omitempty"`
-	FirstPublished *time.Time              `json:"first_published,omitempty"`
+	// Example: kernel-rt-4.18.0-147.rt24.93.el8.x86_64
+	Nevra       string `json:"nevra" validate:"required"`
+	Summary     string `json:"summary,omitempty" example:"My package summary"`
+	Description string `json:"description,omitempty" example:"My package description"`
+	// Example: 2020-01-13T17:31:41+00:00
+	FirstPublished *time.Time              `json:"first_published,omitempty" format:"date-time" validate:"required"`
 	Repositories   *[]PkgTreeRepoDetail    `json:"repositories,omitempty"`
 	Errata         *[]PkgTreeErratumDetail `json:"errata,omitempty"`
 }
@@ -35,7 +37,7 @@ type PkgTreeItems map[string][]PkgTreeItem
 
 type PkgTree struct {
 	PackageNames PkgTreeItems `json:"package_name_list"`
-	LastChange   time.Time    `json:"last_change"`
+	LastChange   time.Time    `json:"last_change" example:"2024-11-20T12:36:49.640592Z"`
 	utils.Pagination
 }
 
