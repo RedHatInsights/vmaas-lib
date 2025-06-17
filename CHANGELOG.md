@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.31.3 (2025-06-17)
+
+### Fix
+
+* Load CSAFProductID2Product map ([`3d0ba64`](https://github.com/RedHatInsights/vmaas-lib/commit/3d0ba64b3cc149b509598dcc7a7373369946f088))
+
 ## v1.31.2 (2025-06-05)
 
 ### Fix
