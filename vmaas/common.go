@@ -549,8 +549,8 @@ func getRepoIDs(c *Cache, p *ProcessedRequest, opts *options) repoIDMaps { //nol
 	current := map[RepoID]bool{}
 	newer := map[RepoID]bool{}
 	org := p.OriginalRequest.Organization
-	// If organization is not in the updates/vulnerabilities request, assume DEFAULT
-	if org == "" {
+	// If organization is not in the updates/vulnerabilities request or is not known, assume DEFAULT
+	if _, ok := c.RepoOrgs[org]; !ok {
 		org = "DEFAULT"
 	}
 	if p.Updates.RepoList == nil && len(p.Updates.RepoPaths) == 0 {
