@@ -2,6 +2,16 @@
 
 <!--next-version-placeholder-->
 
+## v1.31.4 (2025-07-03)
+
+### Fix
+
+* Assume DEFAULT when unknown org is requested ([`0994356`](https://github.com/RedHatInsights/vmaas-lib/commit/099435621f033749e575d890d506972fe4123402))
+
+### Documentation
+
+* Add vmaas-go documentation ([`c1e3791`](https://github.com/RedHatInsights/vmaas-lib/commit/c1e37912cea044240413c9c7451220e409442032))
+
 ## v1.31.3 (2025-06-17)
 
 ### Fix
