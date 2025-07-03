@@ -389,20 +389,18 @@ func loadRepoDetails(c *Cache) { //nolint: funlen
 
 	cols := "id,label,name,url,COALESCE(basearch,''),COALESCE(releasever,''),product,product_id,COALESCE(revision,'')," +
 		"last_change,third_party,organization"
-	if c.DumpSchemaVersion < 4 {
-		cols = "id,label,name,url,COALESCE(basearch,''),COALESCE(releasever,''),product,product_id,COALESCE(revision,'')," +
-			"last_change,third_party,'DEFAULT'"
-	}
 	rows := getAllRows(
 		"repo_detail",
 		cols,
 	)
 	cntRepo := getCount("repo_detail", "*")
 	cntLabel := getCount("repo_detail", "distinct label")
+	cntOrgs := getCount("repo_detail", "distinct organization")
 	cntURL := getCount("repo_detail", "distinct url")
 	cntProd := getCount("repo_detail", "distinct product_id")
 	id2repoDetail := make(map[RepoID]RepoDetail, cntRepo)
 	repoLabel2id := make(map[string][]RepoID, cntLabel)
+	repoOrgs := make(map[string]bool, cntOrgs)
 	repoPath2id := make(map[string][]RepoID, cntURL)
 	prodID2RepoIDs := make(map[int][]RepoID, cntProd)
 	repoIDs := []RepoID{}
@@ -448,10 +446,12 @@ func loadRepoDetails(c *Cache) { //nolint: funlen
 			det.LastChange = &lastChangeTime
 		}
 		id2repoDetail[repoID] = det
+		repoOrgs[det.Organization] = true
 	}
 	c.RepoIDs = repoIDs
 	c.RepoDetails = id2repoDetail
 	c.RepoLabel2IDs = repoLabel2id
+	c.RepoOrgs = repoOrgs
 	c.RepoPath2IDs = repoPath2id
 	c.ProductID2RepoIDs = prodID2RepoIDs
 }

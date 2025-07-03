@@ -145,6 +145,7 @@ func TestGetRepoIDs(t *testing.T) {
 	originalRequestDefaultOrg := Request{Organization: "DEFAULT"}
 	originalRequestWithoutOrg := Request{}
 	originalRequestOtherOrg := Request{Organization: "ABCD"}
+	originalRequestUnknownOrg := Request{Organization: "EFGH"}
 	processedRequest := ProcessedRequest{Updates: &updates, OriginalRequest: &originalRequestDefaultOrg}
 	x8664 := "x86_64"
 	el9 := "el9"
@@ -156,6 +157,10 @@ func TestGetRepoIDs(t *testing.T) {
 			2: {RepoDetailCommon: RepoDetailCommon{Releasever: x8664, Basearch: el9, Organization: "DEFAULT"}},
 			3: {RepoDetailCommon: RepoDetailCommon{Releasever: x8664, Basearch: el9, Organization: "DEFAULT"}},
 			4: {RepoDetailCommon: RepoDetailCommon{Releasever: x8664, Basearch: el9, Organization: "ABCD"}},
+		},
+		RepoOrgs: map[string]bool{
+			"DEFAULT": true,
+			"ABCD":    true,
 		},
 	}
 
@@ -252,6 +257,12 @@ func TestGetRepoIDs(t *testing.T) {
 	processedRequest = ProcessedRequest{Updates: &updates, OriginalRequest: &originalRequestOtherOrg}
 	res = getRepoIDs(&c, &processedRequest, &defaultOpts)
 	assert.Equal(t, 1, len(res.currentReleasever))
+	assert.False(t, hasDuplicities(res.currentReleasever))
+
+	// request to EFGH org should return results from DEFAULT org
+	processedRequest = ProcessedRequest{Updates: &updates, OriginalRequest: &originalRequestUnknownOrg}
+	res = getRepoIDs(&c, &processedRequest, &defaultOpts)
+	assert.Equal(t, 3, len(res.currentReleasever))
 	assert.False(t, hasDuplicities(res.currentReleasever))
 }
 
