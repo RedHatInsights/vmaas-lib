@@ -11,6 +11,12 @@ type Patches struct {
 	LastChange time.Time `json:"last_change" example:"2024-11-20T12:36:49.640592Z"`
 }
 
+// Function variables for dependency injection (mainly for testing)
+var (
+	updatesFunc               = (*Request).updates
+	extractUpdatesErrataFunc = extractUpdatesErrata
+)
+
 func extractUpdatesErrata(updates *Updates) []string {
 	errata := []string{}
 	if updates == nil {
@@ -30,13 +36,13 @@ func (r *Request) patches(c *Cache, opts *options) (*Patches, error) {
 	}
 
 	r.SecurityOnly = false
-	updates, err := r.updates(c, opts)
+	updates, err := updatesFunc(r, c, opts)
 	if err != nil {
 		return &Patches{}, err
 	}
 
 	res := Patches{
-		Errata:     extractUpdatesErrata(updates),
+		Errata:     extractUpdatesErrataFunc(updates),
 		LastChange: c.DBChange.LastChange,
 	}
 	return &res, nil

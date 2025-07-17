@@ -4,13 +4,19 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Function variables for dependency injection (mainly for testing)
+var (
+	processRequestFunc       = (*Request).processRequest
+	evaluateRepositoriesFunc = (*ProcessedRequest).evaluateRepositories
+)
+
 func (r *Request) updates(c *Cache, opts *options) (*Updates, error) {
 	// process request
-	processed, err := r.processRequest(c)
+	processed, err := processRequestFunc(r, c)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't process request")
 	}
-	updates := processed.evaluateRepositories(c, opts)
+	updates := evaluateRepositoriesFunc(processed, c, opts)
 	if updates == nil {
 		return updates, nil
 	}
