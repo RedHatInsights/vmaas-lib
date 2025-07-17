@@ -5,6 +5,9 @@ import (
 	"time"
 )
 
+// Package-level variable to allow mocking in tests
+var evaluateCveCountsFunc = evaluateCveCounts
+
 type VulnerabilityReport struct {
 	OSReleases []OSReleaseDetail `json:"os_releases"`
 	LastChange time.Time         `json:"last_change"`
@@ -54,7 +57,7 @@ func evaluateCveCounts(c *Cache, opts *options, release *OSReleaseDetail) error 
 func prepareVulnerabilityReport(c *Cache, opts *options) ([]OSReleaseDetail, error) {
 	OSReleases := []OSReleaseDetail{}
 	for _, release := range c.OSReleaseDetails {
-		err := evaluateCveCounts(c, opts, &release)
+		err := evaluateCveCountsFunc(c, opts, &release)
 		if err != nil {
 			return OSReleases, err
 		}
