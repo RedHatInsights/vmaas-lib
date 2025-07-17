@@ -18,4 +18,3 @@ func vmaasVersion(opts *options) *string {
 	res := string(bytes)
 	return &res
 }
-

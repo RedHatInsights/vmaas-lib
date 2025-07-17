@@ -1,4 +1,4 @@
-package utils
+package utils //nolint:var-naming
 
 const (
 	DefaultPageNumber = 1

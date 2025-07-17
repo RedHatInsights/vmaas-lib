@@ -34,7 +34,7 @@ func TestVmaasVersion_ValidFile(t *testing.T) {
 	versionFile := filepath.Join(tmpDir, "version.txt")
 	expectedContent := "1.2.3"
 
-	err := os.WriteFile(versionFile, []byte(expectedContent), 0644)
+	err := os.WriteFile(versionFile, []byte(expectedContent), 0o600)
 	assert.NoError(t, err)
 
 	opts := &options{
@@ -53,7 +53,7 @@ func TestVmaasVersion_ValidFileWithNewline(t *testing.T) {
 	versionFile := filepath.Join(tmpDir, "version.txt")
 	expectedContent := "1.2.3\n"
 
-	err := os.WriteFile(versionFile, []byte(expectedContent), 0644)
+	err := os.WriteFile(versionFile, []byte(expectedContent), 0o600)
 	assert.NoError(t, err)
 
 	opts := &options{

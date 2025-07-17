@@ -292,78 +292,57 @@ func TestCpes2variantsCpes(t *testing.T) {
 	})
 }
 
+// Helper function to test CPE mapping functions with common logic
+func testCpeMappingFunction(t *testing.T, emptyResult []CpeLabel, validResult []CpeLabel,
+	nonExistingResult []CpeLabel, mixedResult []CpeLabel,
+) {
+	expectedCPEs := []CpeLabel{
+		"cpe:/o:redhat:enterprise_linux:8",
+		"cpe:/o:redhat:enterprise_linux:8.1",
+		"cpe:/o:redhat:enterprise_linux:9",
+		"cpe:/o:redhat:enterprise_linux:9.1",
+	}
+
+	t.Run("with empty list", func(t *testing.T) {
+		assert.Empty(t, emptyResult)
+	})
+
+	t.Run("with valid IDs", func(t *testing.T) {
+		assert.NotEmpty(t, validResult)
+		for _, cpe := range expectedCPEs {
+			assert.Contains(t, validResult, cpe)
+		}
+	})
+
+	t.Run("with non-existing IDs", func(t *testing.T) {
+		assert.Empty(t, nonExistingResult)
+	})
+
+	t.Run("with mixed existing and non-existing IDs", func(t *testing.T) {
+		assert.NotEmpty(t, mixedResult)
+		assert.Contains(t, mixedResult, CpeLabel("cpe:/o:redhat:enterprise_linux:8"))
+		assert.Contains(t, mixedResult, CpeLabel("cpe:/o:redhat:enterprise_linux:8.1"))
+	})
+}
+
 func TestRepos2cpes(t *testing.T) {
 	cache := createTestCache()
-
-	t.Run("with empty repo list", func(t *testing.T) {
-		result := repos2cpes(cache, []RepoID{})
-		assert.Empty(t, result)
-	})
-
-	t.Run("with valid repo IDs", func(t *testing.T) {
-		repoIDs := []RepoID{1, 2}
-		result := repos2cpes(cache, repoIDs)
-
-		assert.NotEmpty(t, result)
-		// Should contain CPEs from both repos
-		assert.Contains(t, result, CpeLabel("cpe:/o:redhat:enterprise_linux:8"))
-		assert.Contains(t, result, CpeLabel("cpe:/o:redhat:enterprise_linux:8.1"))
-		assert.Contains(t, result, CpeLabel("cpe:/o:redhat:enterprise_linux:9"))
-		assert.Contains(t, result, CpeLabel("cpe:/o:redhat:enterprise_linux:9.1"))
-	})
-
-	t.Run("with non-existing repo IDs", func(t *testing.T) {
-		repoIDs := []RepoID{999}
-		result := repos2cpes(cache, repoIDs)
-		assert.Empty(t, result)
-	})
-
-	t.Run("with mixed existing and non-existing repo IDs", func(t *testing.T) {
-		repoIDs := []RepoID{1, 999}
-		result := repos2cpes(cache, repoIDs)
-
-		assert.NotEmpty(t, result)
-		// Should contain CPEs from existing repo only
-		assert.Contains(t, result, CpeLabel("cpe:/o:redhat:enterprise_linux:8"))
-		assert.Contains(t, result, CpeLabel("cpe:/o:redhat:enterprise_linux:8.1"))
-	})
+	testCpeMappingFunction(t,
+		repos2cpes(cache, []RepoID{}),
+		repos2cpes(cache, []RepoID{1, 2}),
+		repos2cpes(cache, []RepoID{999}),
+		repos2cpes(cache, []RepoID{1, 999}),
+	)
 }
 
 func TestContentSets2cpes(t *testing.T) {
 	cache := createTestCache()
-
-	t.Run("with empty content set list", func(t *testing.T) {
-		result := contentSets2cpes(cache, []ContentSetID{})
-		assert.Empty(t, result)
-	})
-
-	t.Run("with valid content set IDs", func(t *testing.T) {
-		csIDs := []ContentSetID{1, 2}
-		result := contentSets2cpes(cache, csIDs)
-
-		assert.NotEmpty(t, result)
-		// Should contain CPEs from both content sets
-		assert.Contains(t, result, CpeLabel("cpe:/o:redhat:enterprise_linux:8"))
-		assert.Contains(t, result, CpeLabel("cpe:/o:redhat:enterprise_linux:8.1"))
-		assert.Contains(t, result, CpeLabel("cpe:/o:redhat:enterprise_linux:9"))
-		assert.Contains(t, result, CpeLabel("cpe:/o:redhat:enterprise_linux:9.1"))
-	})
-
-	t.Run("with non-existing content set IDs", func(t *testing.T) {
-		csIDs := []ContentSetID{999}
-		result := contentSets2cpes(cache, csIDs)
-		assert.Empty(t, result)
-	})
-
-	t.Run("with mixed existing and non-existing content set IDs", func(t *testing.T) {
-		csIDs := []ContentSetID{1, 999}
-		result := contentSets2cpes(cache, csIDs)
-
-		assert.NotEmpty(t, result)
-		// Should contain CPEs from existing content set only
-		assert.Contains(t, result, CpeLabel("cpe:/o:redhat:enterprise_linux:8"))
-		assert.Contains(t, result, CpeLabel("cpe:/o:redhat:enterprise_linux:8.1"))
-	})
+	testCpeMappingFunction(t,
+		contentSets2cpes(cache, []ContentSetID{}),
+		contentSets2cpes(cache, []ContentSetID{1, 2}),
+		contentSets2cpes(cache, []ContentSetID{999}),
+		contentSets2cpes(cache, []ContentSetID{1, 999}),
+	)
 }
 
 // Helper function to remove duplicate CPE labels for testing

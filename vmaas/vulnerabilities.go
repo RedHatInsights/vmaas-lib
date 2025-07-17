@@ -201,7 +201,7 @@ func updateManualCvesFromProducts(c *Cache, pkg Package, productID CSAFProductID
 			}
 			_, inCves := cves.Cves[cve.String]
 			_, inUnpatchedCves := cves.UnpatchedCves[cve.String]
-			if !(inCves || inUnpatchedCves) {
+			if !inCves && !inUnpatchedCves {
 				// show only CVE hit which is not in Cves and UnpatchedCves
 				cpe := c.CpeID2Label[product.CpeID]
 				erratum := c.CSAFCVEProduct2Erratum[CSAFCVEProduct{
@@ -482,8 +482,8 @@ func updateCves(cves map[string]VulnerabilityDetail, cve string, pkg Package, er
 				Cpe:  cpe,
 			}}
 			if module != nil {
-				cveDetail.Affected[0].ModuleStreamPtrs.Module = &module.Module
-				cveDetail.Affected[0].ModuleStreamPtrs.Stream = &module.Stream
+				cveDetail.Affected[0].Module = &module.Module
+				cveDetail.Affected[0].Stream = &module.Stream
 			}
 		}
 		cves[cve] = cveDetail
@@ -502,8 +502,8 @@ func updateCves(cves map[string]VulnerabilityDetail, cve string, pkg Package, er
 			Cpe:  cpe,
 		}
 		if module != nil {
-			affectedPackage.ModuleStreamPtrs.Module = &module.Module
-			affectedPackage.ModuleStreamPtrs.Stream = &module.Stream
+			affectedPackage.Module = &module.Module
+			affectedPackage.Stream = &module.Stream
 		}
 		vulnDetail.Affected = append(vulnDetail.Affected, affectedPackage)
 	}

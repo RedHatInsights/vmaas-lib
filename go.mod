@@ -1,6 +1,6 @@
 module github.com/redhatinsights/vmaas-lib
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/ezamriy/gorpm v0.0.0-20160905202458-25f7273cbf51

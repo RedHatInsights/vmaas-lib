@@ -1,4 +1,4 @@
-package utils
+package utils //nolint:var-naming
 
 func Intersection[T comparable](slice []T, set map[T]bool) []T {
 	isDuplicate := make(map[T]bool, len(slice))

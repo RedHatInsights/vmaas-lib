@@ -13,7 +13,7 @@ type Patches struct {
 
 // Function variables for dependency injection (mainly for testing)
 var (
-	updatesFunc               = (*Request).updates
+	updatesFunc              = (*Request).updates
 	extractUpdatesErrataFunc = extractUpdatesErrata
 )
 

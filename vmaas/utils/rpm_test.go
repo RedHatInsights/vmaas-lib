@@ -1,5 +1,5 @@
 // tests copied from github.com/RedHatInsights/patchman-engine
-package utils
+package utils //nolint:var-naming
 
 import (
 	"testing"
