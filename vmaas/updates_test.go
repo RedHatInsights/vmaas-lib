@@ -7,63 +7,51 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUpdates(t *testing.T) {
-	// Create mock Updates with mixed manually fixable updates
-	mockUpdates := &Updates{
+// Helper function to create mock Updates data for testing
+func createMockUpdatesForUpdates() *Updates {
+	return &Updates{
 		UpdateList: UpdateList{
 			"package1": UpdateDetail{
 				AvailableUpdates: []Update{
 					{
-						Package:         "package1-1.0.0",
-						PackageName:     "package1",
-						EVRA:            "1.0.0",
-						Erratum:         "RHSA-2023-001",
-						Repository:      "repo1",
-						manuallyFixable: false, // This should be included
+						Package: "package1-1.0.0", PackageName: "package1", EVRA: "1.0.0",
+						Erratum: "RHSA-2023-001", Repository: "repo1", manuallyFixable: false,
 					},
 					{
-						Package:         "package1-1.1.0",
-						PackageName:     "package1",
-						EVRA:            "1.1.0",
-						Erratum:         "RHSA-2023-002",
-						Repository:      "repo1",
-						manuallyFixable: true, // This should be filtered out
+						Package: "package1-1.1.0", PackageName: "package1", EVRA: "1.1.0",
+						Erratum: "RHSA-2023-002", Repository: "repo1", manuallyFixable: true,
 					},
 				},
 			},
 		},
-		RepoList:   &[]string{"repo1"},
-		RepoPaths:  []string{"/path1"},
-		ModuleList: []ModuleStream{},
-		Releasever: stringPtr("8"),
-		Basearch:   stringPtr("x86_64"),
-		LastChange: time.Now(),
+		RepoList: &[]string{"repo1"}, RepoPaths: []string{"/path1"}, ModuleList: []ModuleStream{},
+		Releasever: stringPtr("8"), Basearch: stringPtr("x86_64"), LastChange: time.Now(),
 	}
+}
+
+func TestUpdates(t *testing.T) {
+	mockUpdates := createMockUpdatesForUpdates()
 
 	// Store original function variables
 	originalProcessRequest := processRequestFunc
 	originalEvaluateRepositories := evaluateRepositoriesFunc
-
-	// Mock processRequest to return a simple ProcessedRequest
-	processRequestFunc = func(r *Request, c *Cache) (*ProcessedRequest, error) {
-		return &ProcessedRequest{}, nil
-	}
-
-	// Mock evaluateRepositories to return our test data
-	evaluateRepositoriesFunc = func(pr *ProcessedRequest, c *Cache, opts *options) *Updates {
-		return mockUpdates
-	}
-
-	// Restore original functions after test
 	defer func() {
 		processRequestFunc = originalProcessRequest
 		evaluateRepositoriesFunc = originalEvaluateRepositories
 	}()
 
-	// Create a real Request and call the actual updates function
-	req := &Request{
-		Packages: []string{"package1"},
+	// Mock processRequest to return a simple ProcessedRequest
+	processRequestFunc = func(_ *Request, _ *Cache) (*ProcessedRequest, error) {
+		return &ProcessedRequest{}, nil
 	}
+
+	// Mock evaluateRepositories to return our test data
+	evaluateRepositoriesFunc = func(_ *ProcessedRequest, _ *Cache, _ *options) *Updates {
+		return mockUpdates
+	}
+
+	// Create a real Request and call the actual updates function
+	req := &Request{Packages: []string{"package1"}}
 
 	// Actually call the updates function - this is the key part!
 	result, err := req.updates(&Cache{}, &options{})
