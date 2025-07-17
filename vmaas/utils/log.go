@@ -7,13 +7,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func processArgs(args []interface{}) (log.Fields, interface{}) {
+func processArgs(args []any) (log.Fields, any) {
 	nArgs := len(args)
 	fields := log.Fields{}
 	for i := 1; i < nArgs; i += 2 {
 		fields[args[i-1].(string)] = args[i]
 	}
-	var msg interface{}
+	var msg any
 	if nArgs%2 != 0 {
 		msg = args[nArgs-1]
 	} else {
@@ -24,7 +24,7 @@ func processArgs(args []interface{}) (log.Fields, interface{}) {
 
 // implement LogXXXX functions to enable additional log fields
 // usage: utils.LogInfo("my_field_1", 1, "my_field_2", 4.3, "Testing logging")
-func logLevel(level log.Level, args ...interface{}) {
+func logLevel(level log.Level, args ...any) {
 	if !log.IsLevelEnabled(level) {
 		return
 	}
@@ -42,31 +42,31 @@ func logLevel(level log.Level, args ...interface{}) {
 	}
 }
 
-func LogTrace(args ...interface{}) {
+func LogTrace(args ...any) {
 	logLevel(log.TraceLevel, args...)
 }
 
-func LogDebug(args ...interface{}) {
+func LogDebug(args ...any) {
 	logLevel(log.DebugLevel, args...)
 }
 
-func LogInfo(args ...interface{}) {
+func LogInfo(args ...any) {
 	logLevel(log.InfoLevel, args...)
 }
 
-func LogWarn(args ...interface{}) {
+func LogWarn(args ...any) {
 	logLevel(log.WarnLevel, args...)
 }
 
-func LogError(args ...interface{}) {
+func LogError(args ...any) {
 	logLevel(log.ErrorLevel, args...)
 }
 
-func LogFatal(args ...interface{}) {
+func LogFatal(args ...any) {
 	logLevel(log.FatalLevel, args...)
 }
 
-func LogPanic(args ...interface{}) {
+func LogPanic(args ...any) {
 	logLevel(log.PanicLevel, args...)
 }
 
