@@ -19,6 +19,15 @@ type API struct {
 	options *options
 }
 
+// InitEmptyCache creates a new API with an empty cache and default options
+// This is used for testing purposes
+func InitEmptyCache() *API {
+	api := new(API)
+	api.Cache = &Cache{}
+	api.options = &defaultOpts
+	return api
+}
+
 func InitFromFile(cachePath string, opts ...Option) (*API, error) {
 	api := new(API)
 	api.path = cachePath
