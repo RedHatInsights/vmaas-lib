@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.31.5 (2025-08-12)
+
+### Fix
+
+* Add init for empty cache for testing purposes ([`6759b22`](https://github.com/RedHatInsights/vmaas-lib/commit/6759b227d6c4beac538255326326d8ae90cb018e))
+
 ## v1.31.4 (2025-07-03)
 
 ### Fix
