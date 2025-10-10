@@ -593,6 +593,7 @@ func loadCves(c *Cache) {
 		if ok {
 			det.ErratumIDs = eids
 		}
+		det.CVEID = CVEID(cveID)
 		cveDetails[det.Name] = det
 		cveNames[cveID] = det.Name
 	}
