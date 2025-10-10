@@ -16,9 +16,24 @@ type Cves struct {
 	utils.Pagination
 }
 
+func buildCSAFCVESet(c *Cache) map[int]bool {
+	csafCVESet := make(map[int]bool)
+
+	for csafCVEProduct := range c.CSAFCVEProduct2Erratum {
+		csafCVESet[int(csafCVEProduct.CVEID)] = true
+	}
+	return csafCVESet
+}
+
 func filterInputCves(c *Cache, cves []string, req *CvesRequest) []string {
 	isDuplicate := make(map[string]bool, len(cves))
 	filteredIDs := make([]string, 0, len(cves))
+
+	var csafCVESet map[int]bool
+	if req.AreErrataAssociated {
+		csafCVESet = buildCSAFCVESet(c)
+	}
+
 	for _, cve := range cves {
 		if cve == "" || isDuplicate[cve] {
 			continue
@@ -30,9 +45,14 @@ func filterInputCves(c *Cache, cves []string, req *CvesRequest) []string {
 		if req.RHOnly && cveDetail.Source != "Red Hat" {
 			continue
 		}
-		if req.AreErrataAssociated && len(cveDetail.ErratumIDs) == 0 {
-			// FIXME: also check CSAF
-			continue
+
+		if req.AreErrataAssociated {
+			hasErrata := len(cveDetail.ErratumIDs) > 0
+			hasCSAF := csafCVESet[int(cveDetail.CVEID)]
+
+			if !hasErrata && !hasCSAF {
+				continue
+			}
 		}
 
 		if req.ModifiedSince != nil {
@@ -81,6 +101,7 @@ func (req *CvesRequest) cves(c *Cache) (*Cves, error) { // TODO: implement opts
 	}
 
 	cves = filterInputCves(c, cves, req)
+
 	slices.Sort(cves)
 	cves, pagination := utils.Paginate(cves, req.PaginationRequest)
 

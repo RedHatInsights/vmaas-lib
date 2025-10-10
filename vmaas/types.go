@@ -363,13 +363,13 @@ type CveDetail struct {
 	Cvss2Metrics  string     `json:"cvss2_metrics" example:"AV:L/AC:H/PR:L/UI:N/S:C/C:H/I:N/A:N"`
 	Source        string     `json:"-"`
 
-	CWEs       []string    `json:"cwe_list" example:"CWE-20"`
-	PkgIDs     []int       `json:"-"`
-	ErratumIDs []ErratumID `json:"-"`
-
-	Errata         []string `json:"errata_list" example:"RHSA-2015:1981"`
-	Packages       []string `json:"package_list" example:"nss-devel-3.16.1-9.el6_5.x86_64"`
-	SourcePackages []string `json:"source_package_list" example:"nss-devel-3.16.1-9.el6_5.src"`
+	CWEs           []string    `json:"cwe_list" example:"CWE-20"`
+	PkgIDs         []int       `json:"-"`
+	ErratumIDs     []ErratumID `json:"-"`
+	CVEID          CVEID       `json:"-"`
+	Errata         []string    `json:"errata_list" example:"RHSA-2015:1981"`
+	Packages       []string    `json:"package_list" example:"nss-devel-3.16.1-9.el6_5.x86_64"`
+	SourcePackages []string    `json:"source_package_list" example:"nss-devel-3.16.1-9.el6_5.src"`
 }
 
 type PkgErratum struct {
