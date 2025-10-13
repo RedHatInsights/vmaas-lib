@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.32.0 (2025-10-13)
+
+### Feature
+
+* Add CSAF filter for CVES ([`3a47b1e`](https://github.com/RedHatInsights/vmaas-lib/commit/3a47b1e5affc76b81213e843aeec23b556ac67c6))
+
 ## v1.31.5 (2025-08-12)
 
 ### Fix
