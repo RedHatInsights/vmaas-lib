@@ -1,7 +1,9 @@
 package vmaas
 
+const el7aRelease = "el7a"
+
 var defaultOpts = options{
-	20, true, map[string]bool{"kernel-alt": true}, map[string]bool{"el7a": true}, true, true, "",
+	20, true, map[string]bool{"kernel-alt": true}, map[string]bool{el7aRelease: true}, true, true, "",
 }
 
 type options struct {

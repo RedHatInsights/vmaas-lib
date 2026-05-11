@@ -105,7 +105,7 @@ func testReleaseverBasearch(t *testing.T, f func(*Cache, *string, RepoID) bool, 
 func testOrg(t *testing.T, f func(*Cache, string, RepoID) bool, input string) {
 	c := Cache{
 		RepoDetails: map[RepoID]RepoDetail{
-			1: {RepoDetailCommon: RepoDetailCommon{Organization: "DEFAULT"}},
+			1: {RepoDetailCommon: RepoDetailCommon{Organization: defaultOrg}},
 			2: {RepoDetailCommon: RepoDetailCommon{Organization: "ABCD"}},
 		},
 	}
@@ -142,7 +142,7 @@ func TestPassOrg(t *testing.T) {
 //nolint:funlen
 func TestGetRepoIDs(t *testing.T) {
 	updates := Updates{}
-	originalRequestDefaultOrg := Request{Organization: "DEFAULT"}
+	originalRequestDefaultOrg := Request{Organization: defaultOrg}
 	originalRequestWithoutOrg := Request{}
 	originalRequestOtherOrg := Request{Organization: "ABCD"}
 	originalRequestUnknownOrg := Request{Organization: "EFGH"}
@@ -153,14 +153,14 @@ func TestGetRepoIDs(t *testing.T) {
 	c := Cache{
 		RepoIDs: []RepoID{1, 2, 3, 4},
 		RepoDetails: map[RepoID]RepoDetail{
-			1: {RepoDetailCommon: RepoDetailCommon{Releasever: x8664, Basearch: el9, Organization: "DEFAULT"}},
-			2: {RepoDetailCommon: RepoDetailCommon{Releasever: x8664, Basearch: el9, Organization: "DEFAULT"}},
-			3: {RepoDetailCommon: RepoDetailCommon{Releasever: x8664, Basearch: el9, Organization: "DEFAULT"}},
+			1: {RepoDetailCommon: RepoDetailCommon{Releasever: x8664, Basearch: el9, Organization: defaultOrg}},
+			2: {RepoDetailCommon: RepoDetailCommon{Releasever: x8664, Basearch: el9, Organization: defaultOrg}},
+			3: {RepoDetailCommon: RepoDetailCommon{Releasever: x8664, Basearch: el9, Organization: defaultOrg}},
 			4: {RepoDetailCommon: RepoDetailCommon{Releasever: x8664, Basearch: el9, Organization: "ABCD"}},
 		},
 		RepoOrgs: map[string]bool{
-			"DEFAULT": true,
-			"ABCD":    true,
+			defaultOrg: true,
+			"ABCD":     true,
 		},
 	}
 
@@ -217,7 +217,7 @@ func TestGetRepoIDs(t *testing.T) {
 		RepoDetailCommon: RepoDetailCommon{
 			Releasever:   x8664,
 			Basearch:     el9,
-			Organization: "DEFAULT",
+			Organization: defaultOrg,
 		},
 		URL: "http://example.com/content/dist/rhel/rhui/server/7/7Server/x86_64/os/repodata",
 	}
@@ -614,7 +614,7 @@ func TestApplicability(t *testing.T) {
 		ID2Evr: map[EvrID]utils.Evr{
 			1: {Epoch: 0, Version: "1", Release: "1"},
 			2: {Epoch: 0, Version: "2", Release: "2"},
-			3: {Epoch: 0, Version: "3", Release: "el7a"}, // excluded release in defaultOpts
+			3: {Epoch: 0, Version: "3", Release: el7aRelease}, // excluded release in defaultOpts
 		},
 		PackageDetails: map[PkgID]PackageDetail{
 			1: {NameID: 1, EvrID: 1, ArchID: 1}, // kernel, noarch
@@ -695,10 +695,10 @@ func TestAnyReleaseExcluded(t *testing.T) {
 		expected bool
 	}{
 		{"empty release", []string{}, false},
-		{"single excluded", []string{"el7a"}, true},
-		{"single excluded with dot", []string{"1.el7a"}, true},
-		{"multiple first excluded", []string{"el7a", "el8"}, true},
-		{"multiple second excluded", []string{"el8", "1.el7a"}, true},
+		{"single excluded", []string{el7aRelease}, true},
+		{"single excluded with dot", []string{"1." + el7aRelease}, true},
+		{"multiple first excluded", []string{el7aRelease, "el8"}, true},
+		{"multiple second excluded", []string{"el8", "1." + el7aRelease}, true},
 		{"single not excluded", []string{"el8"}, false},
 		{"single not excluded with dot", []string{"1.el8"}, false},
 		{"multiple not excluded", []string{"1.el8", "el9"}, false},

@@ -41,7 +41,7 @@ func TestExcludedPackagesOption(t *testing.T) {
 
 func TestExcludedReleasesOption(t *testing.T) {
 	api := new(API)
-	rel := map[string]bool{"el7a": true}
+	rel := map[string]bool{el7aRelease: true}
 	func(api *API, opts ...Option) {
 		applyOptions(api, opts)
 		assert.Equal(t, rel, api.options.excludedReleases)
