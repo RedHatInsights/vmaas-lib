@@ -301,7 +301,7 @@ func (r *ProcessedRequest) processRepos(c *Cache) {
 }
 
 func (r *ProcessedRequest) processProducts(c *Cache, opts *options) []ProductsPackage {
-	productsPackages := make([]ProductsPackage, 0)
+	productsPackages := make([]ProductsPackage, 0, len(r.Packages))
 	for _, pkg := range r.Packages {
 		nameID := c.Packagename2ID[pkg.Nevra.Name]
 		evrID := c.Evr2ID[utils.Evr{Epoch: pkg.Nevra.Epoch, Release: pkg.Nevra.Release, Version: pkg.Nevra.Version}]
