@@ -17,6 +17,7 @@ const (
 	ImportantCveImpact  = "Important"
 	ModerateCveImpact   = "Moderate"
 	LowCveImpact        = "Low"
+	defaultOrg          = "DEFAULT"
 )
 
 var (
@@ -551,7 +552,7 @@ func getRepoIDs(c *Cache, p *ProcessedRequest, opts *options) repoIDMaps { //nol
 	org := p.OriginalRequest.Organization
 	// If organization is not in the updates/vulnerabilities request or is not known, assume DEFAULT
 	if _, ok := c.RepoOrgs[org]; !ok {
-		org = "DEFAULT"
+		org = defaultOrg
 	}
 	if p.Updates.RepoList == nil && len(p.Updates.RepoPaths) == 0 {
 		for _, r := range c.RepoIDs {
