@@ -20,6 +20,9 @@ type Repos struct {
 func filterInputRepos(c *Cache, repos []string, req *ReposRequest) []string {
 	isDuplicate := make(map[string]bool, len(repos))
 	filteredRepos := make([]string, 0, len(repos))
+	if req.ModifiedSince != nil && req.ModifiedSince.After(time.Now()) {
+		return filteredRepos
+	}
 	for _, repo := range repos {
 		if repo == "" || isDuplicate[repo] {
 			continue
@@ -28,21 +31,25 @@ func filterInputRepos(c *Cache, repos []string, req *ReposRequest) []string {
 		if !found || len(repoIDs) == 0 {
 			continue
 		}
-		repoDetail, found := c.RepoDetails[repoIDs[len(repoIDs)-1]]
-		if !found {
-			continue
-		}
 
-		if req.ModifiedSince != nil {
-			if req.ModifiedSince.After(time.Now()) {
+		anyRepoMatches := false
+		for _, repoID := range repoIDs {
+			repoDetail, found := c.RepoDetails[repoID]
+			if !found {
 				continue
 			}
-			if repoDetail.LastChange != nil && repoDetail.LastChange.Before(*req.ModifiedSince) {
+			if req.ModifiedSince != nil {
+				if repoDetail.LastChange != nil && repoDetail.LastChange.Before(*req.ModifiedSince) {
+					continue
+				}
+			}
+			if !req.ThirdParty && repoDetail.ThirdParty {
 				continue
 			}
+			anyRepoMatches = true
+			break
 		}
-
-		if !req.ThirdParty && repoDetail.ThirdParty {
+		if !anyRepoMatches {
 			continue
 		}
 

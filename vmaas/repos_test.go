@@ -13,19 +13,42 @@ func TestFilterInputRepos(t *testing.T) {
 
 	// usual case
 	filtered := filterInputRepos(c, repos, &ReposRequest{})
-	assert.Equal(t, 2, len(filtered))
+	assert.Equal(t, 3, len(filtered))
 
 	// ThirdParty
 	req := &ReposRequest{ThirdParty: true}
 	filtered = filterInputRepos(c, repos, req)
-	assert.Equal(t, 3, len(filtered))
+	assert.Equal(t, 4, len(filtered))
 
 	// With LastChange before req.ModifiedSince
 	testTime, _ := time.Parse(time.RFC3339, "2024-11-19T18:01:01+01:00")
 	req = &ReposRequest{ModifiedSince: &testTime}
 	filtered = filterInputRepos(c, repos, req)
+	assert.Equal(t, 2, len(filtered))
+	assert.Contains(t, filtered, "rhel-6-server-rpms")
+	assert.Contains(t, filtered, "rhel-9-server-rpms")
+}
+
+func TestFilterInputReposMultiRepoLastChange(t *testing.T) {
+	// Test that a content set label with multiple repoIDs is included
+	// when ANY repoID has a recent LastChange, even if the last repoID
+	// in the slice has an old LastChange.
+	c := mockCache()
+
+	// modified_since between the two LastChange values
+	modifiedSince, _ := time.Parse(time.RFC3339, "2024-06-01T00:00:00+00:00")
+	req := &ReposRequest{ModifiedSince: &modifiedSince}
+	filtered := filterInputRepos(c, []string{"rhel-9-server-rpms"}, req)
+	// one repoID has LastChange after modified_since, so the label must be included
 	assert.Equal(t, 1, len(filtered))
-	assert.Equal(t, "rhel-6-server-rpms", filtered[0])
+	assert.Equal(t, "rhel-9-server-rpms", filtered[0])
+
+	// modified_since after both LastChange values
+	modifiedSince2, _ := time.Parse(time.RFC3339, "2024-12-01T00:00:00+00:00")
+	req = &ReposRequest{ModifiedSince: &modifiedSince2}
+	filtered = filterInputRepos(c, []string{"rhel-9-server-rpms"}, req)
+	// both repoIDs have LastChange before modified_since, label must be excluded
+	assert.Equal(t, 0, len(filtered))
 }
 
 func TestRepoID2CPEs(t *testing.T) {

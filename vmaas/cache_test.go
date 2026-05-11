@@ -140,6 +140,8 @@ func mockCache() *Cache {
 	important := ImportantCveImpact
 	low := LowCveImpact
 	lastChange, _ := time.Parse(time.RFC3339, "2024-11-18T17:58:00+01:00")
+	recentChange, _ := time.Parse(time.RFC3339, "2024-11-20T10:00:00+01:00")
+	oldChange, _ := time.Parse(time.RFC3339, "2024-01-01T10:00:00+01:00")
 	updated1, _ := time.Parse(time.RFC3339, "2020-10-10T11:00:45+02:00")
 	updated2, _ := time.Parse(time.RFC3339, "2021-10-10T11:00:45+02:00")
 	return &Cache{
@@ -260,6 +262,8 @@ func mockCache() *Cache {
 			42: {RepoDetailCommon: RepoDetailCommon{Releasever: "8.2"}},
 			43: {RepoDetailCommon: RepoDetailCommon{Releasever: "8.3"}, ThirdParty: true},
 			44: {RepoDetailCommon: RepoDetailCommon{Releasever: "8.4"}, LastChange: &lastChange},
+			45: {RepoDetailCommon: RepoDetailCommon{Releasever: "9.0"}, LastChange: &recentChange},
+			46: {RepoDetailCommon: RepoDetailCommon{Releasever: "9.1"}, LastChange: &oldChange},
 		},
 
 		CveDetail: map[string]CveDetail{
@@ -278,6 +282,7 @@ func mockCache() *Cache {
 			"rhel-6-server-rpms": {41, 42},
 			"rhel-7-server-rpms": {43},
 			"rhel-8-server-rpms": {44},
+			"rhel-9-server-rpms": {45, 46},
 		},
 
 		CpeID2Label: map[CpeID]CpeLabel{
