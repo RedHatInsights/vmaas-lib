@@ -47,6 +47,10 @@ linters:
       - third_party$
       - builtin$
       - examples$
+    rules:
+      - linters:
+          - goconst
+        path: _test\.go
 formatters:
   enable:
     - gofmt
