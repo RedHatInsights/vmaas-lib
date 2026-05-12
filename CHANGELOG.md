@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.32.1 (2026-05-12)
+
+### Fix
+
+* Last repo in slice doesn't mean last changed repo ([`5b6c47a`](https://github.com/RedHatInsights/vmaas-lib/commit/5b6c47aa0930b8232d096b4e3ca52d1a02fe0334))
+
 ## v1.32.0 (2025-10-13)
 
 ### Feature
