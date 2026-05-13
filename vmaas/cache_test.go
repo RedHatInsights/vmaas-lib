@@ -51,8 +51,8 @@ func TestBuildRepoID2ErratumIDs(t *testing.T) {
 func TestErratumIDs2PackageNames(t *testing.T) {
 	c := mockCache()
 	erratumIDs := []ErratumID{1, 2, 2}
-	pkgNames := c.erratumIDs2PackageNames(erratumIDs)
-	assert.Equal(t, 2, len(pkgNames))
+	pkgNames := c.erratumIDs2PackageNames(erratumIDs, 43)
+	assert.Equal(t, 1, len(pkgNames))
 }
 
 func TestIsPkgThirdParty(t *testing.T) {
@@ -236,6 +236,7 @@ func mockCache() *Cache {
 				ThirdParty: true,
 				Type:       "bugfix",
 				Severity:   &low,
+				PkgIDs:     []int{4, 5},
 				Updated:    &updated2,
 			},
 		},
@@ -311,6 +312,7 @@ func mockCache() *Cache {
 
 		PkgID2ErratumIDs: map[PkgID][]ErratumID{
 			4: {1, 2},
+			5: {2},
 		},
 	}
 }
