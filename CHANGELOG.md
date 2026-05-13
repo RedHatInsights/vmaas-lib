@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.32.2 (2026-05-13)
+
+### Fix
+
+* Wrong logic for has_packages filter ([`7250440`](https://github.com/RedHatInsights/vmaas-lib/commit/72504408036e75fdec92363daea1cf6265839065))
+
 ## v1.32.1 (2026-05-12)
 
 ### Fix
