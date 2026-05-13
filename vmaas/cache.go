@@ -171,19 +171,18 @@ func (c *Cache) cpeIDs2Labels(cpeIDs []CpeID) []CpeLabel {
 }
 
 func (c *Cache) erratumIDs2PackageNames(erratumIDs []ErratumID) []string {
-	isDuplicate := make(map[ErratumID]bool, len(erratumIDs))
+	seen := make(map[string]bool)
 	pkgNames := make([]string, 0, len(erratumIDs))
 	for _, erratumID := range erratumIDs {
-		if isDuplicate[erratumID] {
-			continue
-		}
-		isDuplicate[erratumID] = true
 		erratum := c.ErratumID2Name[erratumID]
 		erratumDetail := c.ErratumDetails[erratum]
 		for _, pkgID := range erratumDetail.PkgIDs {
 			pkgDetail := c.PackageDetails[PkgID(pkgID)]
 			pkgName := c.ID2Packagename[pkgDetail.NameID]
-			pkgNames = append(pkgNames, pkgName)
+			if _, exists := seen[pkgName]; !exists {
+				seen[pkgName] = true
+				pkgNames = append(pkgNames, pkgName)
+			}
 		}
 	}
 	return pkgNames
