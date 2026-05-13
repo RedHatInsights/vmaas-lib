@@ -91,7 +91,9 @@ func (c *Cache) getRepoDetailSlice(req *ReposRequest, repo string, repoID2Erratu
 			repoDetail.UpdatedPackageNames = &pkgNames
 		}
 
-		if len(pkgNames) != 0 || req.ModifiedSince != nil || !req.HasPackages {
+		// Skip repository in the output if there are no changed packages found
+		// (There have to be some modified_since and has_packages flag enabled)
+		if len(pkgNames) != 0 || req.ModifiedSince == nil || !req.HasPackages {
 			repoDetailSlice = append(repoDetailSlice, repoDetail)
 		}
 
