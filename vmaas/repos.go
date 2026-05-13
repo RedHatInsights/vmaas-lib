@@ -86,7 +86,7 @@ func (c *Cache) getRepoDetailSlice(req *ReposRequest, repo string, repoID2Erratu
 		repoDetail.CPEs = c.repoID2CPEs(repoID, contentSetID)
 
 		erratumIDs := repoID2ErratumIDs[repoID]
-		pkgNames := c.erratumIDs2PackageNames(erratumIDs)
+		pkgNames := c.erratumIDs2PackageNames(erratumIDs, repoID)
 		if req.ShowPackages {
 			repoDetail.UpdatedPackageNames = &pkgNames
 		}

@@ -170,13 +170,25 @@ func (c *Cache) cpeIDs2Labels(cpeIDs []CpeID) []CpeLabel {
 	return utils.ApplyMap(cpeIDs, c.CpeID2Label)
 }
 
-func (c *Cache) erratumIDs2PackageNames(erratumIDs []ErratumID) []string {
+func (c *Cache) erratumIDs2PackageNames(erratumIDs []ErratumID, repoID RepoID) []string {
 	seen := make(map[string]bool)
 	pkgNames := make([]string, 0, len(erratumIDs))
 	for _, erratumID := range erratumIDs {
 		erratum := c.ErratumID2Name[erratumID]
 		erratumDetail := c.ErratumDetails[erratum]
 		for _, pkgID := range erratumDetail.PkgIDs {
+			// Since a single erratum contain packages from multiple repos, cross-check if the pkgID is
+			// in the requested repo. So we won't include irrelevant package names to the result set
+			pkgInRepo := false
+			for _, pkgRepo := range c.PkgID2RepoIDs[PkgID(pkgID)] {
+				if repoID == pkgRepo {
+					pkgInRepo = true
+					break
+				}
+			}
+			if !pkgInRepo {
+				continue
+			}
 			pkgDetail := c.PackageDetails[PkgID(pkgID)]
 			pkgName := c.ID2Packagename[pkgDetail.NameID]
 			if _, exists := seen[pkgName]; !exists {
