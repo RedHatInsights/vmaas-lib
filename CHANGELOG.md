@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.32.3 (2026-05-13)
+
+### Fix
+
+* Filter errata packages that are in other repos ([`402536b`](https://github.com/RedHatInsights/vmaas-lib/commit/402536bdccff4af9b90c06f92d6b68964bae9bd9))
+* De-duplicate result package names instead of input errata list ([`4533018`](https://github.com/RedHatInsights/vmaas-lib/commit/453301800b9f2bd69c23450c7383774820fe7d93))
+
 ## v1.32.2 (2026-05-13)
 
 ### Fix
