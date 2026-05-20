@@ -116,8 +116,11 @@ func (c *Cache) getRepoDetails(req *ReposRequest, repos []string, repoID2Erratum
 		if latestRepoChange == nil || (latestChange != nil && latestChange.After(*latestRepoChange)) {
 			latestRepoChange = latestChange
 		}
-		repoDetails[repo] = repoDetailSlice
-		actualPageSize += len(repoDetailSlice)
+		repoCount := len(repoDetailSlice)
+		if repoCount > 0 {
+			repoDetails[repo] = repoDetailSlice
+		}
+		actualPageSize += repoCount
 	}
 	return repoDetails, latestRepoChange, actualPageSize
 }
