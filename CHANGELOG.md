@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.32.4 (2026-05-20)
+
+### Fix
+
+* Don't put empty slice to the output ([`b64c496`](https://github.com/RedHatInsights/vmaas-lib/commit/b64c4961039c340d2beafe4b2a10df05b86370ef))
+
 ## v1.32.3 (2026-05-13)
 
 ### Fix
