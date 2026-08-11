@@ -348,8 +348,8 @@ func repos2IDs(c *Cache, r *Request) ([]RepoID, []RepoID, []ContentSetID) {
 				if r.Basearch != nil && c.RepoDetails[repoID].Basearch != *r.Basearch {
 					continue
 				}
-				candidateReleasever := c.RepoDetails[repoID].Releasever
-				if r.Releasever != nil && candidateReleasever != *r.Releasever {
+				if r.Releasever != nil && !passReleasever(c, r.Releasever, repoID) {
+					candidateReleasever := c.RepoDetails[repoID].Releasever
 					parsedRequestReleasever, err := version.NewVersion(*r.Releasever)
 					if err != nil {
 						continue

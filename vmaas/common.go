@@ -3,6 +3,7 @@ package vmaas
 import (
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -606,6 +607,20 @@ func getRepoIDs(c *Cache, p *ProcessedRequest, opts *options) repoIDMaps { //nol
 	return repoIDMaps{current, newer}
 }
 
+// aliasReleasever maps RHEL major <= 7 numeric releasevers to {major}Server
+func aliasReleasever(releasever string) string {
+	// As a guard for Atoi operation
+	dot := strings.IndexByte(releasever, '.')
+	if dot <= 0 {
+		return releasever
+	}
+	major, err := strconv.Atoi(releasever[:dot])
+	if err != nil || major > 7 {
+		return releasever
+	}
+	return strconv.Itoa(major) + "Server"
+}
+
 func passReleasever(c *Cache, releasever *string, repoID RepoID) bool {
 	detail, ok := c.RepoDetails[repoID]
 	if !ok {
@@ -614,7 +629,13 @@ func passReleasever(c *Cache, releasever *string, repoID RepoID) bool {
 	if releasever == nil {
 		return true
 	}
-	return (detail.Releasever == "" && strings.Contains(detail.URL, *releasever)) || detail.Releasever == *releasever
+
+	rv := *releasever
+	aliased := aliasReleasever(rv)
+	if detail.Releasever == "" {
+		return strings.Contains(detail.URL, rv) || strings.Contains(detail.URL, aliased)
+	}
+	return detail.Releasever == rv || detail.Releasever == aliased
 }
 
 func passBasearch(c *Cache, basearch *string, repoID RepoID) bool {

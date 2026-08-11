@@ -266,6 +266,58 @@ func TestGetRepoIDs(t *testing.T) {
 	assert.False(t, hasDuplicities(res.currentReleasever))
 }
 
+// Empty releasever + URL containing "7Server" (RHEL 7 Server stream indexing).
+func rhel7ELSRepo() RepoDetail {
+	return RepoDetail{
+		RepoDetailCommon: RepoDetailCommon{
+			Label: "rhel-7-server-els-rpms", Releasever: "", Organization: defaultOrg,
+		},
+		URL: "https://example.test/els/7/7Server/x86_64/os/",
+	}
+}
+
+func rhel6ServerRepo() RepoDetail {
+	return RepoDetail{
+		RepoDetailCommon: RepoDetailCommon{
+			Label: "rhel-6-server-rpms", Releasever: "", Organization: defaultOrg,
+		},
+		URL: "https://example.test/dist/rhel/server/6/6Server/x86_64/os/",
+	}
+}
+
+func TestPassReleaseverRHEL7With7Server(t *testing.T) {
+	c := Cache{RepoDetails: map[RepoID]RepoDetail{1: rhel7ELSRepo()}}
+	releasever := "7Server"
+	assert.True(t, passReleasever(&c, &releasever, 1))
+}
+
+func TestPassReleaseverRHEL7NumericAliasesToServer(t *testing.T) {
+	c := Cache{RepoDetails: map[RepoID]RepoDetail{1: rhel7ELSRepo()}}
+	for _, rv := range []string{"7.9", "7.8"} {
+		releasever := rv
+		assert.True(t, passReleasever(&c, &releasever, 1), rv)
+	}
+}
+
+func TestPassReleaseverRHEL6NumericAliasesToServer(t *testing.T) {
+	c := Cache{RepoDetails: map[RepoID]RepoDetail{1: rhel6ServerRepo()}}
+	releasever := "6.9"
+	assert.True(t, passReleasever(&c, &releasever, 1))
+}
+
+func TestAliasReleaseverBareMajorUnchanged(t *testing.T) {
+	assert.Equal(t, "6", aliasReleasever("6"))
+	assert.Equal(t, "6Server", aliasReleasever("6.9"))
+	assert.Equal(t, "7", aliasReleasever("7"))
+	assert.Equal(t, "7Server", aliasReleasever("7.9"))
+}
+
+func TestPassReleaseverRHEL8Unaffected(t *testing.T) {
+	c := Cache{RepoDetails: map[RepoID]RepoDetail{1: rhel7ELSRepo()}}
+	releasever := "8.0"
+	assert.False(t, passReleasever(&c, &releasever, 1))
+}
+
 func TestFilterPkgList(t *testing.T) {
 	pkgs := []string{}
 
