@@ -331,7 +331,9 @@ func TestManualCvesNewerRelease(t *testing.T) {
 	assert.Contains(t, cves.ManualCves["CVE-1"].Errata, "RHSA-6")
 	assert.Len(t, cves.ManualCves["CVE-1"].Affected, 2)
 	assert.Equal(t, cves.ManualCves["CVE-1"].Affected[0].Cpe, currentReleaseCPE)
+	assert.Equal(t, "0:1-1.x86_64", cves.ManualCves["CVE-1"].Affected[0].FixedEVRA)
 	assert.Equal(t, cves.ManualCves["CVE-1"].Affected[1].Cpe, newerReleaseCPE)
+	assert.Equal(t, "0:1-3.x86_64", cves.ManualCves["CVE-1"].Affected[1].FixedEVRA)
 	assert.Equal(t, *cves.ManualCves["CVE-1"].Affected[1].Module, ms.Module)
 	assert.Equal(t, *cves.ManualCves["CVE-1"].Affected[1].Stream, ms.Stream)
 	// CVE-2 is reported from newer release CPE (CSAF) and is fixed by RHSA-4
@@ -339,6 +341,7 @@ func TestManualCvesNewerRelease(t *testing.T) {
 	assert.Contains(t, cves.ManualCves["CVE-2"].Errata, "RHSA-4")
 	assert.Len(t, cves.ManualCves["CVE-2"].Affected, 1)
 	assert.Equal(t, cves.ManualCves["CVE-2"].Affected[0].Cpe, newerReleaseCPE)
+	assert.Equal(t, "0:1-4.x86_64", cves.ManualCves["CVE-2"].Affected[0].FixedEVRA)
 	assert.Equal(t, *cves.ManualCves["CVE-2"].Affected[0].Module, ms.Module)
 	assert.Equal(t, *cves.ManualCves["CVE-2"].Affected[0].Stream, ms.Stream)
 	// CVE-3 is reported from current release CPE (CSAF) and is fixed by RHSA-2
@@ -346,6 +349,7 @@ func TestManualCvesNewerRelease(t *testing.T) {
 	assert.Contains(t, cves.ManualCves["CVE-3"].Errata, "RHSA-2")
 	assert.Len(t, cves.ManualCves["CVE-3"].Affected, 1)
 	assert.Equal(t, cves.ManualCves["CVE-3"].Affected[0].Cpe, currentReleaseCPE)
+	assert.Equal(t, "0:1-4.x86_64", cves.ManualCves["CVE-3"].Affected[0].FixedEVRA)
 	// CVE-4 is reported from newer release CPE (Repos) and is fixed by RHSA-8
 	assert.Len(t, cves.ManualCves["CVE-4"].Errata, 1)
 	assert.Contains(t, cves.ManualCves["CVE-4"].Errata, "RHSA-8")

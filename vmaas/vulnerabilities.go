@@ -94,6 +94,11 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 	// 2. evaluate CVEs from Repositories
 	// if CVE is already in Unpatched list -> skip it
 	updates := processed.evaluateRepositories(c, opts)
+	pkgByString := make(map[string]Package, len(processed.Packages))
+	for _, p := range processed.Packages {
+		nameID := c.Packagename2ID[p.Nevra.Name]
+		pkgByString[p.Pkg] = Package{Nevra: p.Nevra, String: p.Pkg, NameID: nameID}
+	}
 	seenPkgErratum := map[packageErratum]bool{}
 	tmpManualCves := map[string]VulnerabilityDetail{}
 	for pkg, upDetail := range updates.UpdateList {
@@ -103,14 +108,15 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 				continue
 			}
 			seenPkgErratum[pe] = true
+			pkgDetail := packageFromString(pkg, pkgByString)
 			for _, cve := range c.ErratumDetails[update.Erratum].CVEs {
 				if _, inUnpatchedCves := cves.UnpatchedCves[cve]; inUnpatchedCves {
 					continue
 				}
 				if update.manuallyFixable {
-					updateCves(tmpManualCves, cve, Package{String: pkg}, []string{update.Erratum}, "", nil)
+					updateCves(tmpManualCves, cve, pkgDetail, []string{update.Erratum}, "", nil, "")
 				} else {
-					updateCves(cves.Cves, cve, Package{String: pkg}, []string{update.Erratum}, "", nil)
+					updateCves(cves.Cves, cve, pkgDetail, []string{update.Erratum}, "", nil, update.EVRA)
 				}
 			}
 		}
@@ -140,9 +146,9 @@ func evaluateUnpatchedCves(c *Cache, products []ProductsPackage, cves *Vulnerabi
 			for _, cve := range getCveStrings(c, csafCves.Unfixed) {
 				cpe := c.CpeID2Label[product.CpeID]
 				if module.Module != "" {
-					updateCves(cves.UnpatchedCves, cve.String, pp.Package, nil, cpe, &module)
+					updateCves(cves.UnpatchedCves, cve.String, pp.Package, nil, cpe, &module, "")
 				} else {
-					updateCves(cves.UnpatchedCves, cve.String, pp.Package, nil, cpe, nil)
+					updateCves(cves.UnpatchedCves, cve.String, pp.Package, nil, cpe, nil, "")
 				}
 			}
 		}
@@ -208,10 +214,11 @@ func updateManualCvesFromProducts(c *Cache, pkg Package, productID CSAFProductID
 					CVEID:         cve.ID,
 					CSAFProductID: productID,
 				}]
+				fixedEVRA := updateNevra.EVRAStringE(true)
 				if module.Module != "" {
-					updateCves(cves.ManualCves, cve.String, pkg, []string{erratum}, cpe, &module)
+					updateCves(cves.ManualCves, cve.String, pkg, []string{erratum}, cpe, &module, fixedEVRA)
 				} else {
-					updateCves(cves.ManualCves, cve.String, pkg, []string{erratum}, cpe, nil)
+					updateCves(cves.ManualCves, cve.String, pkg, []string{erratum}, cpe, nil, fixedEVRA)
 				}
 			}
 		}
@@ -463,9 +470,62 @@ func cpes2products(c *Cache, variants []VariantSuffix, cpes []CpeID, nameID Name
 	return pp
 }
 
+func packageFromString(pkg string, pkgByString map[string]Package) Package {
+	if p, ok := pkgByString[pkg]; ok {
+		return p
+	}
+	pkgDetail := Package{String: pkg}
+	if nevra, err := utils.ParseNevra(pkg, true); err == nil {
+		pkgDetail.Nevra = nevra
+	}
+	return pkgDetail
+}
+
+func shouldRecordAffected(cpe CpeLabel, fixedEVRA string) bool {
+	return len(cpe) > 0 || fixedEVRA != ""
+}
+
+func affectedKey(ap AffectedPackage) string {
+	key := ap.Name + "|" + ap.EVRA + "|" + string(ap.Cpe)
+	if ap.Module != nil {
+		key += "|" + *ap.Module
+	}
+	if ap.Stream != nil {
+		key += "|" + *ap.Stream
+	}
+	return key
+}
+
+func isEarlierEVRA(candidate, current string) bool {
+	candidateNevra, err := utils.ParseNevra("n-"+candidate, false)
+	if err != nil {
+		return false
+	}
+	currentNevra, err := utils.ParseNevra("n-"+current, false)
+	if err != nil {
+		return false
+	}
+	return candidateNevra.EVRACmp(&currentNevra) < 0
+}
+
+func buildAffectedPackage(pkg Package, cpe CpeLabel, module *ModuleStream, fixedEVRA string) AffectedPackage {
+	affectedPackage := AffectedPackage{
+		Name:      pkg.Name,
+		EVRA:      pkg.EVRAStringE(true),
+		FixedEVRA: fixedEVRA,
+		Cpe:       cpe,
+	}
+	if module != nil && module.Module != "" {
+		affectedPackage.Module = &module.Module
+		affectedPackage.Stream = &module.Stream
+	}
+	return affectedPackage
+}
+
 func updateCves(cves map[string]VulnerabilityDetail, cve string, pkg Package, errata []string, cpe CpeLabel,
-	module *ModuleStream,
+	module *ModuleStream, fixedEVRA string,
 ) {
+	recordAffected := shouldRecordAffected(cpe, fixedEVRA)
 	if _, has := cves[cve]; !has {
 		cveDetail := VulnerabilityDetail{
 			CVE:      cve,
@@ -475,16 +535,8 @@ func updateCves(cves map[string]VulnerabilityDetail, cve string, pkg Package, er
 		for _, erratum := range errata {
 			cveDetail.Errata[erratum] = true
 		}
-		if len(cpe) > 0 {
-			cveDetail.Affected = []AffectedPackage{{
-				Name: pkg.Name,
-				EVRA: pkg.EVRAStringE(true),
-				Cpe:  cpe,
-			}}
-			if module != nil {
-				cveDetail.Affected[0].Module = &module.Module
-				cveDetail.Affected[0].Stream = &module.Stream
-			}
+		if recordAffected {
+			cveDetail.Affected = []AffectedPackage{buildAffectedPackage(pkg, cpe, module, fixedEVRA)}
 		}
 		cves[cve] = cveDetail
 		return
@@ -495,17 +547,22 @@ func updateCves(cves map[string]VulnerabilityDetail, cve string, pkg Package, er
 	for _, erratum := range errata {
 		vulnDetail.Errata[erratum] = true
 	}
-	if len(cpe) > 0 {
-		affectedPackage := AffectedPackage{
-			Name: pkg.Name,
-			EVRA: pkg.EVRAStringE(true),
-			Cpe:  cpe,
+	if recordAffected {
+		newAP := buildAffectedPackage(pkg, cpe, module, fixedEVRA)
+		newKey := affectedKey(newAP)
+		found := false
+		for i, ap := range vulnDetail.Affected {
+			if affectedKey(ap) == newKey {
+				if newAP.FixedEVRA != "" && ap.FixedEVRA != "" && isEarlierEVRA(newAP.FixedEVRA, ap.FixedEVRA) {
+					vulnDetail.Affected[i].FixedEVRA = newAP.FixedEVRA
+				}
+				found = true
+				break
+			}
 		}
-		if module != nil {
-			affectedPackage.Module = &module.Module
-			affectedPackage.Stream = &module.Stream
+		if !found {
+			vulnDetail.Affected = append(vulnDetail.Affected, newAP)
 		}
-		vulnDetail.Affected = append(vulnDetail.Affected, affectedPackage)
 	}
 	cves[cve] = vulnDetail
 }

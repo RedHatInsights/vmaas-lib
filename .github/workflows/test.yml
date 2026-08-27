@@ -13,7 +13,7 @@ jobs:
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - run: sudo apt install -y librpm-dev rpm
+      - run: sudo apt-get update && sudo apt-get install -y librpm-dev rpm
       # cache downloaded modules and build cache
       - uses: actions/cache@v4
         with:
