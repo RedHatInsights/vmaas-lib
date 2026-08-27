@@ -243,10 +243,11 @@ type Updates struct {
 type Vulnerability string
 
 type VulnerabilityDetail struct {
-	CVE      string `json:"cve"`
-	Packages map[string]bool
-	Errata   map[string]bool
-	Affected []AffectedPackage `json:"affected,omitempty"`
+	CVE           string `json:"cve"`
+	Packages      map[string]bool
+	Errata        map[string]bool
+	Affected      []AffectedPackage `json:"affected,omitempty"`
+	AffectedNames map[string]bool   `json:"-"`
 }
 
 // marshal VulnerabilityDetail Packages and Errata as json arrays for backward compatibility
@@ -275,9 +276,10 @@ func (d VulnerabilityDetail) MarshalJSON() ([]byte, error) {
 }
 
 type AffectedPackage struct {
-	Name string   `json:"package_name"`
-	EVRA string   `json:"evra"`
-	Cpe  CpeLabel `json:"cpe"`
+	Name      string   `json:"package_name"`
+	EVRA      string   `json:"evra"`
+	FixedEVRA string   `json:"fixed_evra,omitempty"`
+	Cpe       CpeLabel `json:"cpe,omitempty"`
 	ModuleStreamPtrs
 }
 
