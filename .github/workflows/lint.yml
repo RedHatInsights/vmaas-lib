@@ -11,7 +11,7 @@ jobs:
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - run: sudo apt install -y librpm-dev rpm
+      - run: sudo apt-get update && sudo apt-get install -y librpm-dev rpm
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}

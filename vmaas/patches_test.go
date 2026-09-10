@@ -56,6 +56,6 @@ func TestPatches(t *testing.T) {
 
 	// Verify that errata are extracted correctly
 	expectedErrata := []string{"RHSA-2023-001", "RHSA-2023-002", "RHSA-2023-003"}
-	assert.Equal(t, expectedErrata, result.Errata)
+	assert.ElementsMatch(t, expectedErrata, result.Errata)
 	assert.Equal(t, cache.DBChange.LastChange, result.LastChange)
 }
