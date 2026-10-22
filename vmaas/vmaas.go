@@ -169,6 +169,10 @@ func DownloadCache(url, dest string) error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("couldn't download cache, got HTTP status %d from %s", resp.StatusCode, url)
+	}
+
 	fd, err := os.Create(dest)
 	if err != nil {
 		return errors.Wrap(err, "couldn't create file")
