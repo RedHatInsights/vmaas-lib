@@ -267,21 +267,43 @@ func evaluateManualCves(c *Cache, products []ProductsPackage, cves *Vulnerabilit
 ) {
 	allAlreadyFixed := make(map[string]map[string]bool) // map[package]map[cve]bool
 	for _, pp := range products {
-		seenProducts := make(map[CSAFProductID]bool, len(pp.ProductsFixed))
+		nFixed := len(pp.ProductsFixed) + len(pp.ProductsFixedNewerRelease)
+		seenProducts := make(map[CSAFProductID]bool, nFixed)
 		// already fixed pkg-cve per product to include product information into VulnerabilitiesExtended
 		alreadyFixed := make(map[string]map[string]bool) // map[package]map[cve]bool
-		for _, product := range pp.ProductsFixed {
+
+		// sort by fix version so order-sensitive `alreadyFixed` is deterministic (map order isn't)
+		fixedProducts := make([]CSAFProductID, 0, nFixed)
+		fixedProducts = append(fixedProducts, pp.ProductsFixed...)
+		fixedProducts = append(fixedProducts, pp.ProductsFixedNewerRelease...)
+		sortProductsByFixVersion(c, fixedProducts)
+		for _, product := range fixedProducts {
 			updateManualCvesFromProducts(c, pp.Package, product, seenProducts, alreadyFixed, cves, opts)
 		}
-		for _, product := range pp.ProductsFixedNewerRelease {
-			updateManualCvesFromProducts(c, pp.Package, product, seenProducts, alreadyFixed, cves, opts)
-		}
+
 		for k, v := range alreadyFixed {
 			allAlreadyFixed[k] = v
 		}
 	}
 
 	updateManualCvesFromRepositories(cves, newerReleaseReposCves, allAlreadyFixed)
+}
+
+// sorts products ascending by fix version, product ID as tie-breaker.
+func sortProductsByFixVersion(c *Cache, productIDs []CSAFProductID) {
+	nevras := make(map[CSAFProductID]utils.Nevra, len(productIDs))
+	for _, id := range productIDs {
+		product := c.CSAFProductID2Product[id]
+		nevras[id] = pkgID2Nevra(c, product.PackageID)
+	}
+	sort.SliceStable(productIDs, func(i, j int) bool {
+		ni := nevras[productIDs[i]]
+		nj := nevras[productIDs[j]]
+		if cmp := ni.EVRCmp(&nj); cmp != 0 {
+			return cmp < 0
+		}
+		return productIDs[i] < productIDs[j]
+	})
 }
 
 // process repos into CPEs and ContentSets needed for vulnerability evaluation
