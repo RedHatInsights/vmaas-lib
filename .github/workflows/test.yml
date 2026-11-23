@@ -8,12 +8,23 @@ jobs:
   test:
     name: test
     strategy:
+      fail-fast: false
       matrix:
         go-version: [1.24.x]
-        os: [ubuntu-latest]
+        # ubuntu-24.04 has rpm 4.x (RPMTAG_HDRID/PKGID/SOURCEPKGID present -> gorpm builds).
+        # ubuntu-latest is included temporarily for diagnostics (may be rpm 6.x -> build fails);
+        # continue-on-error keeps the overall result green while we inspect the runner.
+        os: [ubuntu-24.04, ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.os == 'ubuntu-latest' }}
     steps:
       - run: sudo apt-get update && sudo apt-get install -y librpm-dev rpm
+      - name: diagnostics (os / rpm / tags)
+        run: |
+          cat /etc/os-release
+          rpm --version
+          apt-cache policy librpm-dev
+          grep -E 'HDRID|PKGID|SOURCEPKGID|SOURCESIGMD5' /usr/include/rpm/rpmtag.h || true
       # cache downloaded modules and build cache
       - uses: actions/cache@v4
         with:
