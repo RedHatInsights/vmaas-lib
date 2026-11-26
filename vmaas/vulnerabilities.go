@@ -101,7 +101,16 @@ func evaluate(c *Cache, opts *options, request *Request) (*VulnerabilitiesCvesDe
 	}
 	seenPkgErratum := map[packageErratum]bool{}
 	tmpManualCves := map[string]VulnerabilityDetail{}
-	for pkg, upDetail := range updates.UpdateList {
+	// iterate packages in a stable order: Affected is deduplicated by package name
+	// (AffectedNames in updateCves), so the arch that "wins" for a multilib package must
+	// not depend on Go's randomized map iteration order.
+	pkgs := make([]string, 0, len(updates.UpdateList))
+	for pkg := range updates.UpdateList {
+		pkgs = append(pkgs, pkg)
+	}
+	sort.Strings(pkgs)
+	for _, pkg := range pkgs {
+		upDetail := updates.UpdateList[pkg]
 		for _, update := range upDetail.AvailableUpdates {
 			pe := packageErratum{pkg, update.Erratum, update.manuallyFixable}
 			if seenPkgErratum[pe] {
