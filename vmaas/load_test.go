@@ -50,6 +50,27 @@ func TestLoadCache(t *testing.T) {
 	assert.NotNil(t, cache)
 }
 
+func TestLoadUnpatchedNameToBinaryNames(t *testing.T) {
+	cache, err := loadCache(TestDump, &defaultOpts)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	for _, binary := range cache.PackageDetails {
+		if binary.SrcPkgID == nil {
+			continue
+		}
+		source, found := cache.PackageDetails[*binary.SrcPkgID]
+		if !assert.True(t, found) {
+			continue
+		}
+		assert.Contains(t, cache.UnpatchedName2BinaryNameIDs[source.NameID], binary.NameID)
+		assert.Contains(t, cache.UnpatchedName2BinaryNameIDs[binary.NameID], binary.NameID)
+		return
+	}
+	t.Fatal("test dump contains no binary package with a source package")
+}
+
 func TestBuildIndexes(t *testing.T) {
 	t1, _ := time.Parse(time.RFC3339, "2025-01-20T13:41:00+02:00")
 	t2, _ := time.Parse(time.RFC3339, "2025-01-21T13:41:00+02:00")
