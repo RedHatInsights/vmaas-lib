@@ -63,6 +63,12 @@ func (api *API) VulnerabilitiesExtended(request *Request) (*VulnerabilitiesExten
 	return request.vulnerabilitiesExtended(api.Cache, api.options)
 }
 
+// UnpatchedPackages returns paginated unfixed package/CVE associations from the loaded dump.
+// Unlike Vulnerabilities, it does not require an installed package or enabled repositories.
+func (api *API) UnpatchedPackages(request *UnpatchedPackagesRequest) (*UnpatchedPackages, error) {
+	return request.unpatchedPackages(api.Cache)
+}
+
 func (api *API) Cves(request *CvesRequest) (*Cves, error) {
 	return request.cves(api.Cache)
 }

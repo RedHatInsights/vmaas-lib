@@ -64,6 +64,16 @@ type CvesRequest struct {
 	utils.PaginationRequest
 }
 
+// UnpatchedPackagesRequest filters binary package names, CPEs and module streams
+// by full-match regular expressions. Patterns within a list are ORed; the
+// supplied lists are ANDed. Omitted modules include non-modular packages.
+type UnpatchedPackagesRequest struct {
+	PackageNames []string           `json:"package_name_list" example:".*" minItems:"1" validate:"required"`
+	Cpes         []string           `json:"cpe_list" example:"cpe:/o:redhat:enterprise_linux:9.*"`
+	Modules      []ModuleStreamPtrs `json:"modules_list"`
+	utils.PaginationRequest
+}
+
 type PkgListRequest struct {
 	ModifiedSince *time.Time `json:"modified_since" example:"2018-04-05T01:23:45+02:00" format:"date-time"`
 	// Include 'modified' package attribute into the response

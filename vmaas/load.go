@@ -345,7 +345,7 @@ func loadArchCompat(c *Cache) {
 }
 
 func loadPkgDetails(c *Cache) {
-	defer utils.TimeTrack(time.Now(), "PackageDetails, Nevra2PkgID, SrcPkgID2PkgID")
+	defer utils.TimeTrack(time.Now(), "PackageDetails, Nevra2PkgID, SrcPkgID2PkgID, UnpatchedName2BinaryNameIDs")
 
 	rows := getAllRows("package_detail", "*")
 	cnt := getCount("package_detail", "*")
@@ -353,6 +353,7 @@ func loadPkgDetails(c *Cache) {
 	id2pkdDetail := make(map[PkgID]PackageDetail, cnt)
 	nevra2id := make(map[Nevra]PkgID, cnt)
 	srcPkgID2PkgID := make(map[PkgID][]PkgID, cntSrc)
+	srcPkgID2BinaryNameIDs := make(map[PkgID]map[NameID]bool, cntSrc)
 	var pkgID PkgID
 	for rows.Next() {
 		var det PackageDetail
@@ -376,12 +377,42 @@ func loadPkgDetails(c *Cache) {
 		}
 
 		srcPkgID2PkgID[*det.SrcPkgID] = append(srcPkgID2PkgID[*det.SrcPkgID], pkgID)
+		if srcPkgID2BinaryNameIDs[*det.SrcPkgID] == nil {
+			srcPkgID2BinaryNameIDs[*det.SrcPkgID] = make(map[NameID]bool)
+		}
+		srcPkgID2BinaryNameIDs[*det.SrcPkgID][det.NameID] = true
+	}
+
+	unpatchedName2BinaryNameIDSets := make(map[NameID]map[NameID]bool, len(srcPkgID2BinaryNameIDs))
+	for srcPkgID, binaryNameIDs := range srcPkgID2BinaryNameIDs {
+		source, found := id2pkdDetail[srcPkgID]
+		if !found {
+			continue
+		}
+		if unpatchedName2BinaryNameIDSets[source.NameID] == nil {
+			unpatchedName2BinaryNameIDSets[source.NameID] = make(map[NameID]bool)
+		}
+		for binaryNameID := range binaryNameIDs {
+			// CSAF may name the source package or this binary package directly.
+			unpatchedName2BinaryNameIDSets[source.NameID][binaryNameID] = true
+			if unpatchedName2BinaryNameIDSets[binaryNameID] == nil {
+				unpatchedName2BinaryNameIDSets[binaryNameID] = make(map[NameID]bool)
+			}
+			unpatchedName2BinaryNameIDSets[binaryNameID][binaryNameID] = true
+		}
+	}
+	unpatchedName2BinaryNameIDs := make(map[NameID][]NameID, len(unpatchedName2BinaryNameIDSets))
+	for csafNameID, binaryNameIDs := range unpatchedName2BinaryNameIDSets {
+		for binaryNameID := range binaryNameIDs {
+			unpatchedName2BinaryNameIDs[csafNameID] = append(unpatchedName2BinaryNameIDs[csafNameID], binaryNameID)
+		}
 	}
 
 	// FIXME: build ModifiedID index (probably not needed for vulnerabilities/updates)
 	c.PackageDetails = id2pkdDetail
 	c.Nevra2PkgID = nevra2id
 	c.SrcPkgID2PkgID = srcPkgID2PkgID
+	c.UnpatchedName2BinaryNameIDs = unpatchedName2BinaryNameIDs
 }
 
 func loadRepoDetails(c *Cache) { //nolint: funlen

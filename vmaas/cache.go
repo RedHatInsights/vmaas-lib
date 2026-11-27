@@ -60,6 +60,8 @@ type Cache struct {
 	ErratumDetails    map[string]ErratumDetail
 	SrcPkgID2PkgID    map[PkgID][]PkgID
 	String            map[int]string
+	// CSAF package name (source or binary) -> affected binary package name IDs.
+	UnpatchedName2BinaryNameIDs map[NameID][]NameID
 
 	ContentSetID2CpeIDs map[ContentSetID][]CpeID
 	RepoID2CpeIDs       map[RepoID][]CpeID
